@@ -1,4 +1,4 @@
-import { Outlet, useLocation, useNavigate } from 'react-router'
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { useDemo } from '../lib/demo'
 import { FD } from '../lib/estilos'
 import Camion from './Camion'
@@ -13,9 +13,15 @@ const navDefs = [
 ]
 
 export default function AppLayout() {
-  const { usuarioActual, goTour } = useDemo()
+  const { usuarioActual, goTour, sesion, salir } = useDemo()
   const navigate = useNavigate()
   const { pathname } = useLocation()
+
+  // Guarda de sesión: sin token no hay app (la seguridad real es server-side)
+  if (!sesion) return <Navigate to="/login" replace />
+
+  // La navegación visible depende de la matriz de permisos (RF-USR-03)
+  const visibles = navDefs.filter((n) => sesion.permisos[n.id])
 
   const activo = (id: string) =>
     pathname.startsWith('/' + id) || (id === 'dashboard' && pathname.startsWith('/ficha'))
@@ -41,7 +47,7 @@ export default function AppLayout() {
           </div>
         </div>
         <nav data-tour="nav" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 12px' }}>
-          {navDefs.map((n) => {
+          {visibles.map((n) => {
             const act = activo(n.id)
             return (
               <button
@@ -73,7 +79,7 @@ export default function AppLayout() {
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(243,239,231,0.12)', padding: '16px 20px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: '#8A8374' }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3FA65C', animation: 'pulse 2s infinite', flex: 'none' }} />
-            Datos demo en vivo · Jul 2026
+            Sesión activa · Hub v1
           </div>
           <span style={{ fontSize: 13.5, color: '#DDD7CB', lineHeight: 1.4, fontWeight: 500 }}>{usuarioActual}</span>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -85,7 +91,7 @@ export default function AppLayout() {
               ▶ Tutorial
             </button>
             <button
-              onClick={() => navigate('/login')}
+              onClick={salir}
               className="hv-claro"
               style={{ background: 'rgba(243,239,231,0.1)', border: '1px solid rgba(243,239,231,0.18)', color: '#F3EFE7', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
             >

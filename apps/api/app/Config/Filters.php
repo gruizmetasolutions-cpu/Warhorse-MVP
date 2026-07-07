@@ -25,15 +25,19 @@ class Filters extends BaseFilters
      * or [filter_name => [classname1, classname2, ...]]
      */
     public array $aliases = [
-        'csrf'          => CSRF::class,
-        'toolbar'       => DebugToolbar::class,
-        'honeypot'      => Honeypot::class,
-        'invalidchars'  => InvalidChars::class,
-        'secureheaders' => SecureHeaders::class,
-        'cors'          => Cors::class,
-        'forcehttps'    => ForceHTTPS::class,
-        'pagecache'     => PageCache::class,
-        'performance'   => PerformanceMetrics::class,
+        'csrf'           => CSRF::class,
+        'toolbar'        => DebugToolbar::class,
+        'honeypot'       => Honeypot::class,
+        'invalidchars'   => InvalidChars::class,
+        'secureheaders'  => SecureHeaders::class,
+        'cors'           => Cors::class,
+        'forcehttps'     => ForceHTTPS::class,
+        'pagecache'      => PageCache::class,
+        'performance'    => PerformanceMetrics::class,
+        // Warhorse (doc 04 §3.1)
+        'api-auth'       => \App\Filters\ApiAuthFilter::class,
+        'rbac'           => \App\Filters\RbacFilter::class,
+        'throttle-login' => \App\Filters\ThrottleLoginFilter::class,
     ];
 
     /**

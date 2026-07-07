@@ -26,6 +26,14 @@ class InitialSeeder extends Seeder
             'catalogo_piezas',
             'usuarios',
             'unidades',
+            // Identidades Shield (vínculo 1:1 con usuarios)
+            'auth_identities',
+            'auth_logins',
+            'auth_token_logins',
+            'auth_remember_tokens',
+            'auth_groups_users',
+            'auth_permissions_users',
+            'users',
         ] as $tabla) {
             $this->db->table($tabla)->truncate();
         }

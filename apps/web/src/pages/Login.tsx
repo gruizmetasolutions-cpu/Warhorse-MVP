@@ -1,14 +1,9 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import Camion from '../components/Camion'
-import { useDemo } from '../lib/demo'
+import { ApiError } from '../lib/api'
+import { rutaDeLanding, useDemo } from '../lib/demo'
 import { FD } from '../lib/estilos'
-import type { Rol } from '../lib/types'
-
-const roles: { rol: Rol; nombre: string; desc: string }[] = [
-  { rol: 'taller', nombre: 'Edgar Fraga', desc: 'Taller — requisiciones y registro de yonke' },
-  { rol: 'compras', nombre: 'Montzay Vázquez', desc: 'Compras — gestión de pedidos' },
-  { rol: 'admin', nombre: 'Dirección', desc: 'Tablero directivo — decisión por tracto' },
-]
 
 const puntos = [
   'Costo real por unidad: diésel + refacciones + taller, consolidado.',
@@ -17,20 +12,39 @@ const puntos = [
 ]
 
 export default function Login() {
-  const { rol, setRol, goTour } = useDemo()
+  const { entrar, goTour } = useDemo()
   const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [cargando, setCargando] = useState(false)
 
-  const entrar = () => {
-    const landing = rol === 'compras' ? '/compras' : rol === 'taller' ? '/requisicion' : '/dashboard'
-    let primeraVez = false
+  const arrancar = async () => {
+    setError('')
+    setCargando(true)
     try {
-      primeraVez = !localStorage.getItem('wh_tour_v1')
-      if (primeraVez) localStorage.setItem('wh_tour_v1', 'done')
-    } catch {
-      /* sin localStorage */
+      const yo = await entrar(email.trim(), password)
+      let primeraVez = false
+      try {
+        primeraVez = !localStorage.getItem('wh_tour_v1')
+        if (primeraVez) localStorage.setItem('wh_tour_v1', 'done')
+      } catch {
+        /* sin localStorage */
+      }
+      navigate(rutaDeLanding(yo.landing))
+      if (primeraVez) setTimeout(() => goTour(0), 500)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 429) {
+        setError('Demasiados intentos; espera un minuto e inténtalo de nuevo.')
+      } else if (e instanceof ApiError && e.status === 422) {
+        setError('Escribe tu correo y contraseña.')
+      } else if (e instanceof ApiError && e.status === 401) {
+        setError('Credenciales inválidas.')
+      } else {
+        setError('No se pudo conectar con el servidor. Intenta de nuevo.')
+      }
+      setCargando(false)
     }
-    navigate(landing)
-    if (primeraVez) setTimeout(() => goTour(0), 500)
   }
 
   return (
@@ -72,70 +86,58 @@ export default function Login() {
       </div>
 
       <div style={{ flex: '2 1 360px', background: '#F3EFE7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 36px', position: 'relative' }}>
-        <div style={{ width: '100%', maxWidth: 390, display: 'flex', flexDirection: 'column', gap: 22, animation: 'fadeUp 0.4s ease' }}>
+        <form
+          style={{ width: '100%', maxWidth: 390, display: 'flex', flexDirection: 'column', gap: 22, animation: 'fadeUp 0.4s ease' }}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void arrancar()
+          }}
+        >
           <div>
             <h2 style={{ fontFamily: FD, fontWeight: 700, fontSize: 30, color: '#16191E', margin: '0 0 6px', textTransform: 'uppercase' }}>
               Entrar al Hub
             </h2>
             <p style={{ fontSize: 14.5, color: '#6F6A60', margin: 0 }}>
-              Demo: elige un rol para entrar, sin contraseña real.
+              Accede con la cuenta que te asignó Dirección.
             </p>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {roles.map((r) => {
-              const sel = rol === r.rol
-              return (
-                <button
-                  key={r.rol}
-                  onClick={() => setRol(r.rol)}
-                  className="hv-borde-naranja-solo"
-                  aria-pressed={sel}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                    padding: '13px 16px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
-                    background: '#fff',
-                    border: sel ? '2px solid #F2620F' : '1px solid #D8D2C4',
-                    boxShadow: sel ? '0 2px 8px rgba(242,98,15,0.18)' : 'none',
-                  }}
-                >
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'left' }}>
-                    <span style={{ fontWeight: 700, fontSize: 15, color: '#16191E' }}>{r.nombre}</span>
-                    <span style={{ fontSize: 13, color: '#6F6A60' }}>{r.desc}</span>
-                  </span>
-                  <span
-                    style={{
-                      width: 16, height: 16, borderRadius: '50%', flex: 'none',
-                      border: sel ? '5px solid #F2620F' : '2px solid #C9C2B2', background: '#fff',
-                    }}
-                  />
-                </button>
-              )
-            })}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <input
               type="text"
               placeholder="Usuario o correo"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               style={{ padding: '13px 14px', border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#fff' }}
             />
             <input
               type="password"
               placeholder="Contraseña"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               style={{ padding: '13px 14px', border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#fff' }}
             />
             <button
-              onClick={entrar}
+              type="submit"
+              disabled={cargando}
               className="hv-naranja"
               style={{
                 padding: 14, background: '#F2620F', color: '#fff', border: 'none', borderRadius: 9,
                 fontFamily: FD, fontWeight: 700, fontSize: 18, letterSpacing: '0.08em',
                 textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 4px 12px rgba(242,98,15,0.35)',
+                opacity: cargando ? 0.7 : 1,
               }}
             >
-              Arrancar →
+              {cargando ? 'Arrancando…' : 'Arrancar →'}
             </button>
+            {error && (
+              <div role="alert" style={{ background: '#FBEBE8', border: '1px solid #E8A99D', color: '#9B2C2C', borderRadius: 9, padding: '12px 14px', fontSize: 14 }}>
+                {error}
+              </div>
+            )}
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )

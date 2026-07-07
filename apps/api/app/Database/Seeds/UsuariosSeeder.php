@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Services\CuentaService;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Usuarios de dominio (SRS §2.2 + fixtures del demo, doc 09 §5.1).
- * La contraseña real la gestionará Shield (Sprint 1); aquí se siembra un hash
- * bcrypt de la clave de desarrollo "warhorse-demo".
+ * Usuarios de dominio + identidades Shield (vínculo 1:1 por email).
+ * Contraseña de desarrollo: "warhorse-demo".
  */
 class UsuariosSeeder extends Seeder
 {
     public function run(): void
     {
-        $hash = password_hash('warhorse-demo', PASSWORD_DEFAULT);
+        $cuentas = new CuentaService();
 
         $usuarios = [
             ['nombre' => 'Dirección WarHorse', 'email' => 'direccion@warhorse.mx', 'rol' => 'admin', 'activo' => 1],
@@ -27,8 +27,7 @@ class UsuariosSeeder extends Seeder
         ];
 
         foreach ($usuarios as $u) {
-            $u['password_hash'] = $hash;
-            $this->db->table('usuarios')->insert($u);
+            $cuentas->crear($u, 'warhorse-demo');
         }
     }
 }

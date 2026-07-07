@@ -1,28 +1,67 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { vi } from 'vitest'
 import { entrarComo, montarApp } from './util'
+
+// Auth real desde el Sprint 1: en unit tests se mockea la capa lib/api
+// (login/me/logout); getDatos sigue siendo el mock del demo.
+vi.mock('../lib/api', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../lib/api')>()
+  const PERMISOS: Record<string, Record<string, boolean>> = {
+    admin: { dashboard: true, requisicion: true, taller: true, compras: true, catalogo: true, diesel: true, usuarios: true },
+    taller: { dashboard: false, requisicion: true, taller: true, compras: false, catalogo: true, diesel: false, usuarios: false },
+    compras: { dashboard: false, requisicion: false, taller: false, compras: true, catalogo: true, diesel: false, usuarios: false },
+    diesel: { dashboard: false, requisicion: false, taller: false, compras: false, catalogo: true, diesel: true, usuarios: false },
+  }
+  const USUARIOS: Record<string, { rol: string; nombre: string; landing: string }> = {
+    'direccion@warhorse.mx': { rol: 'admin', nombre: 'Dirección WarHorse', landing: 'dashboard' },
+    'edgar@warhorse.mx': { rol: 'taller', nombre: 'Edgar Fraga', landing: 'requisicion' },
+    'montzay@warhorse.mx': { rol: 'compras', nombre: 'Montzay Vázquez', landing: 'compras' },
+    'greisy@warhorse.mx': { rol: 'diesel', nombre: 'Greisy López', landing: 'diesel' },
+  }
+  let actual: string | null = null
+  return {
+    ...real,
+    login: async (email: string, password: string) => {
+      const u = USUARIOS[email]
+      if (!u || password !== 'warhorse-demo') {
+        throw new real.ApiError(401, 'unauthenticated', 'Credenciales inválidas.')
+      }
+      actual = email
+      return { token: 'token-prueba', usuario: { id: 1, nombre: u.nombre, rol: u.rol }, landing: u.landing }
+    },
+    me: async () => {
+      const u = USUARIOS[actual ?? '']
+      return { id: 1, nombre: u.nombre, rol: u.rol, permisos: PERMISOS[u.rol], landing: u.landing }
+    },
+    logout: async () => {
+      actual = null
+    },
+    haySesion: () => actual !== null,
+  }
+})
 
 test('Dirección aterriza en el Tablero', async () => {
   montarApp()
-  await entrarComo(/dirección/i)
+  await entrarComo('direccion@warhorse.mx')
   expect(await screen.findByRole('heading', { name: /tablero directivo/i })).toBeInTheDocument()
 })
 
 test('Taller aterriza en Requisición', async () => {
   montarApp()
-  await entrarComo(/edgar fraga/i)
+  await entrarComo('edgar@warhorse.mx')
   expect(await screen.findByRole('heading', { name: /requisición de refacciones/i })).toBeInTheDocument()
 })
 
 test('Compras aterriza en su Panel', async () => {
   montarApp()
-  await entrarComo(/montzay vázquez/i)
+  await entrarComo('montzay@warhorse.mx')
   expect(await screen.findByRole('heading', { name: /panel de compras/i })).toBeInTheDocument()
 })
 
 test('el tablero muestra la decisión Vender para WH125 y Mantener al seleccionar WH101', async () => {
   montarApp()
-  await entrarComo(/dirección/i)
+  await entrarComo('direccion@warhorse.mx')
   expect(await screen.findByText('Vender / dar de baja')).toBeInTheDocument()
   expect(screen.getByText(/ya representa el 45% del valor estimado del tracto/)).toBeInTheDocument()
   expect(screen.getByText(/67% de sus liberaciones fueron "mejoralito"/)).toBeInTheDocument()
@@ -34,7 +73,7 @@ test('el tablero muestra la decisión Vender para WH125 y Mantener al selecciona
 
 test('Ver ficha completa abre la ficha de WH125 con su historial', async () => {
   montarApp()
-  await entrarComo(/dirección/i)
+  await entrarComo('direccion@warhorse.mx')
   await screen.findByText('Vender / dar de baja')
   await userEvent.click(screen.getByRole('button', { name: /ver ficha completa/i }))
   expect(await screen.findByRole('heading', { name: /ficha · wh125/i })).toBeInTheDocument()
@@ -45,7 +84,7 @@ test('Ver ficha completa abre la ficha de WH125 con su historial', async () => {
 
 test('la ficha de una unidad Yonke muestra sus piezas donadas', async () => {
   montarApp()
-  await entrarComo(/dirección/i)
+  await entrarComo('direccion@warhorse.mx')
   await screen.findByText('Vender / dar de baja')
   await userEvent.click(screen.getByRole('button', { name: 'Catálogo' }))
   await userEvent.click(screen.getByRole('button', { name: 'Yonke' }))
@@ -57,7 +96,7 @@ test('la ficha de una unidad Yonke muestra sus piezas donadas', async () => {
 
 test('requisición: validaciones verbatim y envío Yonke con toast', async () => {
   montarApp()
-  await entrarComo(/edgar fraga/i)
+  await entrarComo('edgar@warhorse.mx')
   await screen.findByRole('heading', { name: /requisición de refacciones/i })
 
   await userEvent.click(screen.getByRole('button', { name: /enviar requisición/i }))
@@ -86,7 +125,7 @@ test('requisición: validaciones verbatim y envío Yonke con toast', async () =>
 
 test('compras: Cotizado avanza directo y la instalación pide confirmación', async () => {
   montarApp()
-  await entrarComo(/montzay vázquez/i)
+  await entrarComo('montzay@warhorse.mx')
   await screen.findByRole('heading', { name: /panel de compras/i })
 
   // Compra en Cotizado → Comprado sin modal
@@ -111,7 +150,7 @@ test('compras: Cotizado avanza directo y la instalación pide confirmación', as
 
 test('usuarios: suspender, agregar y candado del permiso Admin·Usuarios', async () => {
   montarApp()
-  await entrarComo(/dirección/i)
+  await entrarComo('direccion@warhorse.mx')
   await screen.findByText('Vender / dar de baja')
   await userEvent.click(screen.getByRole('button', { name: 'Usuarios' }))
   await screen.findByRole('heading', { name: /usuarios y permisos/i })
@@ -135,7 +174,7 @@ test('usuarios: suspender, agregar y candado del permiso Admin·Usuarios', async
 test('el tour se dispara en el primer ingreso y recorre las vistas', async () => {
   localStorage.clear()
   montarApp()
-  await entrarComo(/dirección/i)
+  await entrarComo('direccion@warhorse.mx')
   expect(await screen.findByText('Bienvenido al Hub de Gastos')).toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: /siguiente →/i }))
   expect(await screen.findByText('Paso 2 de 10')).toBeInTheDocument()
@@ -146,4 +185,39 @@ test('el tour se dispara en el primer ingreso y recorre las vistas', async () =>
   // Repetible desde el botón Tutorial
   await userEvent.click(screen.getByRole('button', { name: /tutorial/i }))
   expect(await screen.findByText('Bienvenido al Hub de Gastos')).toBeInTheDocument()
+})
+
+test('login inválido muestra "Credenciales inválidas." (RF-AUTH-01)', async () => {
+  montarApp()
+  await entrarComo('direccion@warhorse.mx', 'contraseña-mala')
+  expect(await screen.findByText('Credenciales inválidas.')).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: /tablero directivo/i })).not.toBeInTheDocument()
+})
+
+test('el nav de taller solo muestra sus módulos y /compras lo regresa a su landing (RF-USR-03)', async () => {
+  montarApp('/login', '/compras')
+  await entrarComo('edgar@warhorse.mx')
+  await screen.findByRole('heading', { name: /requisición de refacciones/i })
+  const nav = screen.getByRole('navigation')
+  expect(within(nav).getByRole('button', { name: 'Requisición' })).toBeInTheDocument()
+  expect(within(nav).getByRole('button', { name: 'Catálogo' })).toBeInTheDocument()
+  expect(within(nav).queryByRole('button', { name: 'Compras' })).not.toBeInTheDocument()
+  expect(within(nav).queryByRole('button', { name: 'Tablero' })).not.toBeInTheDocument()
+  expect(within(nav).queryByRole('button', { name: 'Usuarios' })).not.toBeInTheDocument()
+  // Guarda de módulo: intentar entrar a /compras lo regresa a su vista
+  await userEvent.click(screen.getByRole('button', { name: 'ir-a-prueba' }))
+  expect(await screen.findByRole('heading', { name: /requisición de refacciones/i })).toBeInTheDocument()
+})
+
+test('sin sesión, cualquier ruta protegida redirige al login', async () => {
+  montarApp('/dashboard')
+  expect(await screen.findByRole('heading', { name: /entrar al hub/i })).toBeInTheDocument()
+})
+
+test('Salir cierra la sesión y regresa al login (RF-AUTH-03)', async () => {
+  montarApp()
+  await entrarComo('direccion@warhorse.mx')
+  await screen.findByRole('heading', { name: /tablero directivo/i })
+  await userEvent.click(screen.getByRole('button', { name: /salir/i }))
+  expect(await screen.findByRole('heading', { name: /entrar al hub/i })).toBeInTheDocument()
 })

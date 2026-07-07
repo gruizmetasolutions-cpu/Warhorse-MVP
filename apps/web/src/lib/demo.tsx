@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { useNavigate } from 'react-router'
 import * as api from './api'
+import type { Yo } from './api'
 import { permisosIniciales, usuariosIniciales } from './mock/fixtures'
 import type { DatosDemo, EstadoRequisicion, Requisicion, Rol, UsuarioDemo } from './types'
 
@@ -58,8 +59,9 @@ export interface RectTour {
 interface ContextoDemo {
   datos: DatosDemo | null
   umbral: number
-  rol: Rol
-  setRol: (r: Rol) => void
+  sesion: Yo | null
+  entrar: (email: string, password: string) => Promise<Yo>
+  salir: () => void
   usuarioActual: string
   selTractoId: string
   setSelTractoId: (id: string) => void
@@ -93,10 +95,23 @@ const rutaDeVista: Record<string, string> = {
   usuarios: '/usuarios',
 }
 
+// Ruta del SPA para un landing de la API; los módulos aún sin pantalla
+// (diésel hasta el Sprint 5, taller hasta el 4) aterrizan en el catálogo.
+export function rutaDeLanding(landing: string): string {
+  return rutaDeVista[landing] ?? '/catalogo'
+}
+
+const etiquetaRol: Record<Rol, string> = {
+  admin: 'Admin',
+  taller: 'Taller',
+  compras: 'Compras',
+  diesel: 'Diésel',
+}
+
 export function DemoProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const [datos, setDatos] = useState<DatosDemo | null>(null)
-  const [rol, setRol] = useState<Rol>('admin')
+  const [sesion, setSesion] = useState<Yo | null>(null)
   const [selTractoId, setSelTractoId] = useState('WH125')
   const [reqsExtra, setReqsExtra] = useState<Requisicion[]>([])
   const [overrides, setOverrides] = useState<Record<string, EstadoRequisicion>>({})
@@ -181,16 +196,29 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   const tipHide = useCallback(() => setTip(null), [])
 
-  const usuarioActual =
-    rol === 'compras' ? 'Montzay Vázquez · Compras' : rol === 'taller' ? 'Edgar Fraga · Taller' : 'Dirección · Admin'
+  const entrar = useCallback(async (email: string, password: string): Promise<Yo> => {
+    await api.login(email, password)
+    const yo = await api.me()
+    setSesion(yo)
+    return yo
+  }, [])
+
+  const salir = useCallback(() => {
+    void api.logout()
+    setSesion(null)
+    navigate('/login')
+  }, [navigate])
+
+  const usuarioActual = sesion ? `${sesion.nombre} · ${etiquetaRol[sesion.rol]}` : ''
 
   return (
     <Ctx.Provider
       value={{
         datos,
         umbral: 40,
-        rol,
-        setRol,
+        sesion,
+        entrar,
+        salir,
         usuarioActual,
         selTractoId,
         setSelTractoId,

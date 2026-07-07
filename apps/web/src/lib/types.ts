@@ -1,6 +1,6 @@
 // Entidades del demo — espejo exacto de data/mockData.json del demo validado
 // (Hub Gastos Tracto - Standalone.html).
-export type Rol = 'admin' | 'taller' | 'compras'
+export type Rol = 'admin' | 'taller' | 'compras' | 'diesel'
 export type EstadoUnidad = 'Activo' | 'Yonke' | 'Inactivo'
 export type TipoUnidad = 'Tractor' | 'Caja'
 export type Origen = 'Compra' | 'Yonke'
