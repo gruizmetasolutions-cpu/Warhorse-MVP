@@ -1,28 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, useNavigate } from 'react-router'
-import { AppRoutes } from '../routes'
-import { SesionProvider } from '../lib/session'
-import { ToastProvider } from '../components/Toast'
-
-function IrA({ ruta }: { ruta: string }) {
-  const navigate = useNavigate()
-  return <button onClick={() => navigate(ruta)}>ir-a-prueba</button>
-}
+import { entrarComo, montarApp } from './util'
 
 const entrarYNavegar = async (ruta: string) => {
-  render(
-    <SesionProvider>
-      <ToastProvider>
-        <MemoryRouter initialEntries={['/login']}>
-          <AppRoutes />
-          <IrA ruta={ruta} />
-        </MemoryRouter>
-      </ToastProvider>
-    </SesionProvider>,
-  )
-  await userEvent.click(await screen.findByRole('button', { name: /dirección/i }))
-  await userEvent.click(screen.getByRole('button', { name: /arrancar/i }))
+  montarApp('/login', ruta)
+  await entrarComo(/dirección/i)
   await screen.findByRole('heading', { name: /tablero directivo/i })
   await userEvent.click(screen.getByRole('button', { name: 'ir-a-prueba' }))
 }

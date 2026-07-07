@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 
 const variantes = {
   primario:
@@ -11,6 +11,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variante?: keyof typeof variantes
   cargando?: boolean
   children: ReactNode
+  ref?: Ref<HTMLButtonElement>
 }
 
 export default function Boton({

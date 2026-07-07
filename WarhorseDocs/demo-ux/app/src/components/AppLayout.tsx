@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { Navigate, Outlet } from 'react-router'
 import { useSesion } from '../lib/session'
 import NavLateral from './NavLateral'
+import SelectorEscenario from './SelectorEscenario'
+import Tour from './Tour'
 
 export default function AppLayout() {
   const { sesion } = useSesion()
@@ -44,6 +46,9 @@ export default function AppLayout() {
       <main className="min-w-0 flex-1 bg-wh-bg p-4 md:p-8">
         <Outlet />
       </main>
+
+      <Tour />
+      <SelectorEscenario />
     </div>
   )
 }

@@ -125,9 +125,9 @@ export default function Dashboard() {
                 sel?.veredicto ? estiloVeredicto[sel.veredicto].borde : 'border-wh-border'
               }`}
             >
-              <h3 className="font-display text-[19px] font-bold uppercase">
+              <h2 className="font-display text-[19px] font-bold uppercase">
                 Veredicto — {sel?.id_unidad ?? '…'}
-              </h3>
+              </h2>
               {cargando || !sel ? (
                 <Skeleton className="mt-3 h-16 w-full" />
               ) : sel.veredicto === null ? (

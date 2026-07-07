@@ -147,7 +147,7 @@ export default function Compras() {
         ))}
       </div>
 
-      <Panel>
+      <Panel dataTour="cola">
         <Tabla
           etiqueta="Cola de compras ordenada por urgencia"
           columnas={[

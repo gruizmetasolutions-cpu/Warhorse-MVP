@@ -73,7 +73,7 @@ export default function Modal({
         className="w-full max-w-md rounded-[13px] bg-wh-surface p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-display text-[19px] font-bold uppercase">{titulo}</h3>
+        <h2 className="font-display text-[19px] font-bold uppercase">{titulo}</h2>
         <div className="mt-3">{children}</div>
         <div className="mt-6 flex justify-end gap-3">
           <Boton variante="outline" onClick={onCerrar}>

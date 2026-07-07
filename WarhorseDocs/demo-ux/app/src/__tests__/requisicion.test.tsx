@@ -1,22 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
-import { AppRoutes } from '../routes'
-import { SesionProvider } from '../lib/session'
-import { ToastProvider } from '../components/Toast'
+import { entrarComo, montarApp } from './util'
 
 const entrarComoTaller = async () => {
-  render(
-    <SesionProvider>
-      <ToastProvider>
-        <MemoryRouter initialEntries={['/login']}>
-          <AppRoutes />
-        </MemoryRouter>
-      </ToastProvider>
-    </SesionProvider>,
-  )
-  await userEvent.click(await screen.findByRole('button', { name: /taller/i }))
-  await userEvent.click(screen.getByRole('button', { name: /arrancar/i }))
+  montarApp('/login')
+  await entrarComo(/taller/i)
   await screen.findByRole('heading', { name: /requisición de refacciones/i })
 }
 

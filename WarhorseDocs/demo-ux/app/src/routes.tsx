@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import AppLayout from './components/AppLayout'
 import { ToastProvider } from './components/Toast'
+import { EscenarioProvider, useEscenario } from './lib/escenario'
 import { SesionProvider, useSesion } from './lib/session'
 import type { Permisos } from './lib/types'
 import Login from './pages/Login'
@@ -42,11 +43,19 @@ export function AppRoutes() {
   )
 }
 
+function RutasConEscenario() {
+  // El cambio de escenario remonta las rutas para que las vistas refetcheen
+  const { escenario } = useEscenario()
+  return <AppRoutes key={escenario} />
+}
+
 export default function App() {
   return (
     <SesionProvider>
       <ToastProvider>
-        <AppRoutes />
+        <EscenarioProvider>
+          <RutasConEscenario />
+        </EscenarioProvider>
       </ToastProvider>
     </SesionProvider>
   )
