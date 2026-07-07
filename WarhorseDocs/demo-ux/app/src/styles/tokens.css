@@ -1,0 +1,60 @@
+/* styles/tokens.css — tokens del doc 08 (Tailwind 4 @theme) */
+@import "tailwindcss";
+
+@theme {
+  --color-wh-bg: #F3EFE7;
+  --color-wh-surface: #FFFFFF;
+  --color-wh-ink: #16191E;
+  --color-wh-ink-soft: #4A4438;
+  --color-wh-muted: #6F6A60;
+  --color-wh-muted-2: #8A8374;
+  --color-wh-on-dark: #DDD7CB;
+  --color-wh-nav-idle: #B8B2A6;
+  --color-wh-border: #D8D2C4;
+  --color-wh-border-soft: #EFEAE0;
+  --color-wh-chip-neutral: #EAE6DC;
+
+  --color-wh-orange: #F2620F;
+  --color-wh-orange-hover: #D9550C;
+  --color-wh-orange-soft: #FDE8DC;
+  --color-wh-orange-ink: #B4430A;
+  --color-wh-orange-focus: #F9B48A;
+  --color-wh-orange-04: rgba(242, 98, 15, 0.16);
+
+  --color-wh-green: #3FA65C;
+  --color-wh-green-soft: #E5F3E9;
+  --color-wh-green-ink: #2C7A44;
+  --color-wh-green-border: #9FD4B0;
+  --color-wh-amber-soft: #FBF3D9;
+  --color-wh-amber-ink: #8A6D1A;
+  --color-wh-amber-border: #E0C36A;
+  --color-wh-blue-soft: #E3ECF7;
+  --color-wh-blue-ink: #1B4E8C;
+  --color-wh-blue-border: #9FC0E4;
+
+  --font-body: "Barlow", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", sans-serif;
+
+  --radius-input: 9px;
+  --radius-card: 13px;
+}
+
+@layer base {
+  body {
+    @apply bg-wh-bg text-wh-ink font-body;
+  }
+  h1, h2, h3 {
+    @apply font-display uppercase;
+  }
+}
+
+@keyframes growBar {
+  from { height: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
