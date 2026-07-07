@@ -4,8 +4,9 @@ import { expect, test, type Page } from '@playwright/test'
 // la BD sembrada; cada rol aterriza en su vista (RF-AUTH-01/02).
 
 const entrar = async (page: Page, email: string, password = 'warhorse-demo') => {
-  await page.goto('/login')
+  // Antes del goto: marca el tour como visto para que su overlay no tape la UI
   await page.addInitScript(() => localStorage.setItem('wh_tour_v1', 'done'))
+  await page.goto('/login')
   await page.getByPlaceholder('Usuario o correo').fill(email)
   await page.getByPlaceholder('Contraseña').fill(password)
   await page.getByRole('button', { name: /arrancar/i }).click()

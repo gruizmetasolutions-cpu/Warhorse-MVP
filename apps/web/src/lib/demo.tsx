@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { useNavigate } from 'react-router'
 import * as api from './api'
-import type { Yo } from './api'
+import type { UnidadApi, Yo } from './api'
 import { permisosIniciales, usuariosIniciales } from './mock/fixtures'
 import type { DatosDemo, EstadoRequisicion, Requisicion, Rol, UsuarioDemo } from './types'
 
@@ -63,6 +63,8 @@ interface ContextoDemo {
   entrar: (email: string, password: string) => Promise<Yo>
   salir: () => void
   usuarioActual: string
+  unidades: UnidadApi[]
+  recargarUnidades: () => Promise<void>
   selTractoId: string
   setSelTractoId: (id: string) => void
   reqs: Requisicion[]
@@ -112,6 +114,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const [datos, setDatos] = useState<DatosDemo | null>(null)
   const [sesion, setSesion] = useState<Yo | null>(null)
+  const [unidades, setUnidades] = useState<UnidadApi[]>([])
   const [selTractoId, setSelTractoId] = useState('WH125')
   const [reqsExtra, setReqsExtra] = useState<Requisicion[]>([])
   const [overrides, setOverrides] = useState<Record<string, EstadoRequisicion>>({})
@@ -196,12 +199,17 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   const tipHide = useCallback(() => setTip(null), [])
 
+  const recargarUnidades = useCallback(async () => {
+    setUnidades(await api.getUnidades())
+  }, [])
+
   const entrar = useCallback(async (email: string, password: string): Promise<Yo> => {
     await api.login(email, password)
     const yo = await api.me()
     setSesion(yo)
+    void recargarUnidades()
     return yo
-  }, [])
+  }, [recargarUnidades])
 
   const salir = useCallback(() => {
     void api.logout()
@@ -220,6 +228,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         entrar,
         salir,
         usuarioActual,
+        unidades,
+        recargarUnidades,
         selTractoId,
         setSelTractoId,
         reqs,

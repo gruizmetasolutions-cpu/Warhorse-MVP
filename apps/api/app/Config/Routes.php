@@ -17,6 +17,13 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     // Autenticado
     $routes->post('auth/logout', 'AuthController::logout', ['filter' => ['cors', 'api-auth']]);
     $routes->get('auth/me', 'AuthController::me', ['filter' => ['cors', 'api-auth']]);
+
+    // Catálogo de unidades (RF-UNI-01..05): lectura para todos los roles,
+    // mutaciones solo Dirección (admin)
+    $routes->get('unidades', 'UnidadesController::index', ['filter' => ['cors', 'api-auth']]);
+    $routes->get('unidades/(:num)/ficha', 'UnidadesController::ficha/$1', ['filter' => ['cors', 'api-auth']]);
+    $routes->post('unidades', 'UnidadesController::create', ['filter' => ['cors', 'api-auth', 'rbac:admin']]);
+    $routes->patch('unidades/(:num)', 'UnidadesController::update/$1', ['filter' => ['cors', 'api-auth', 'rbac:admin']]);
 });
 
 // Preflight CORS del SPA

@@ -9,7 +9,7 @@ const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap:
 const ayudaCampo: CSSProperties = { fontSize: 12.5, fontWeight: 400, color: '#6F6A60' }
 
 export default function Requisicion() {
-  const { datos, agregarReq, toast } = useDemo()
+  const { datos, unidades, agregarReq, toast } = useDemo()
   const [destino, setDestino] = useState('')
   const [origen, setOrigen] = useState<Origen>('Compra')
   const [donante, setDonante] = useState('')
@@ -20,8 +20,9 @@ export default function Requisicion() {
   const [error, setError] = useState('')
   if (!datos) return null
 
-  const destinoOpts = datos.tractos.filter((t) => t.estado === 'Activo')
-  const donanteOpts = datos.tractos.filter((t) => t.estado === 'Yonke')
+  // Catálogo VIVO (RF-UNI-01): los selectores leen de la API, no del mock
+  const destinoOpts = unidades.filter((t) => t.estado === 'Activo')
+  const donanteOpts = unidades.filter((t) => t.estado === 'Yonke')
   const esYonke = origen === 'Yonke'
 
   const origBtn = (act: boolean, acento: 'o' | 'b'): CSSProperties => ({
@@ -73,7 +74,7 @@ export default function Requisicion() {
           >
             <option value="">Selecciona unidad…</option>
             {destinoOpts.map((t) => (
-              <option key={t.id} value={t.id}>{t.id + ' · ' + t.tipo}</option>
+              <option key={t.id} value={t.id_unidad}>{t.id_unidad + ' · ' + t.tipo}</option>
             ))}
           </select>
         </label>
@@ -101,7 +102,7 @@ export default function Requisicion() {
               >
                 <option value="">Selecciona unidad Yonke…</option>
                 {donanteOpts.map((t) => (
-                  <option key={t.id} value={t.id}>{t.id + ' · Yonke donante'}</option>
+                  <option key={t.id} value={t.id_unidad}>{t.id_unidad + ' · Yonke donante'}</option>
                 ))}
               </select>
               <span style={ayudaCampo}>Solo unidades con estado Yonke pueden donar piezas.</span>

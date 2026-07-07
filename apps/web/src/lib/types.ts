@@ -2,7 +2,7 @@
 // (Hub Gastos Tracto - Standalone.html).
 export type Rol = 'admin' | 'taller' | 'compras' | 'diesel'
 export type EstadoUnidad = 'Activo' | 'Yonke' | 'Inactivo'
-export type TipoUnidad = 'Tractor' | 'Caja'
+export type TipoUnidad = 'Tractor' | 'Caja' | 'Thermo'
 export type Origen = 'Compra' | 'Yonke'
 export type Urgencia = 'Rápida' | 'Media' | 'Crítica'
 export type Criticidad = 'Rápida' | 'Media' | 'Crítico'

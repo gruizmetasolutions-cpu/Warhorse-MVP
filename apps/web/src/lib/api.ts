@@ -1,7 +1,7 @@
 // Contrato de datos del SPA (doc 05). Auth es REAL desde el Sprint 1; el
 // resto de los datos sigue en lib/mock/ y se sustituye sprint a sprint
 // (Demo-First, ADR-003). Las vistas importan SOLO este módulo.
-import type { DatosDemo, Rol } from './types'
+import type { DatosDemo, EstadoUnidad, Rol, TipoUnidad } from './types'
 import * as mock from './mock'
 
 const BASE = '/api/v1'
@@ -85,5 +85,42 @@ export function haySesion(): boolean {
   return tokenActual !== null
 }
 
-// ---- Datos aún simulados (se sustituyen en los sprints 2-5) ----
+// ---- Catálogo de unidades (real desde el Sprint 2, doc 05 §3) ----
+
+export interface UnidadApi {
+  id: number
+  id_unidad: string
+  tipo: TipoUnidad
+  estado: EstadoUnidad
+  valor_referencia: number | null
+  costo_real_acumulado: number
+  candidata_reincidencia: boolean
+}
+
+export async function getUnidades(estado?: EstadoUnidad): Promise<UnidadApi[]> {
+  const filtro = estado ? `&estado=${estado}` : ''
+  const respuesta = await pedir<{ data: UnidadApi[] }>(`/unidades?per_page=100${filtro}`)
+  return respuesta.data
+}
+
+export interface NuevaUnidad {
+  id_unidad: string
+  tipo: TipoUnidad
+  estado: EstadoUnidad
+  fecha_alta: string
+  valor_referencia: number | null
+}
+
+export function crearUnidad(datos: NuevaUnidad): Promise<UnidadApi> {
+  return pedir<UnidadApi>('/unidades', { method: 'POST', body: JSON.stringify(datos) })
+}
+
+export function actualizarUnidad(
+  id: number,
+  cambio: { estado?: EstadoUnidad; valor_referencia?: number },
+): Promise<UnidadApi> {
+  return pedir<UnidadApi>(`/unidades/${id}`, { method: 'PATCH', body: JSON.stringify(cambio) })
+}
+
+// ---- Datos aún simulados (se sustituyen en los sprints 3-5) ----
 export const getDatos = (): Promise<DatosDemo> => mock.getDatos()
