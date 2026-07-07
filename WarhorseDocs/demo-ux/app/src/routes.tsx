@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
+import AppLayout from './components/AppLayout'
+import { ToastProvider } from './components/Toast'
 import { SesionProvider, useSesion } from './lib/session'
 import type { Permisos } from './lib/types'
 import Login from './pages/Login'
@@ -26,12 +28,14 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<RutaProtegida modulo="dashboard"><Dashboard /></RutaProtegida>} />
-      <Route path="/ficha/:id" element={<RutaProtegida><Ficha /></RutaProtegida>} />
-      <Route path="/requisicion" element={<RutaProtegida modulo="requisicion"><Requisicion /></RutaProtegida>} />
-      <Route path="/compras" element={<RutaProtegida modulo="compras"><Compras /></RutaProtegida>} />
-      <Route path="/catalogo" element={<RutaProtegida modulo="catalogo"><Catalogo /></RutaProtegida>} />
-      <Route path="/usuarios" element={<RutaProtegida modulo="usuarios"><Usuarios /></RutaProtegida>} />
+      <Route element={<AppLayout />}>
+        <Route path="/dashboard" element={<RutaProtegida modulo="dashboard"><Dashboard /></RutaProtegida>} />
+        <Route path="/ficha/:id" element={<RutaProtegida><Ficha /></RutaProtegida>} />
+        <Route path="/requisicion" element={<RutaProtegida modulo="requisicion"><Requisicion /></RutaProtegida>} />
+        <Route path="/compras" element={<RutaProtegida modulo="compras"><Compras /></RutaProtegida>} />
+        <Route path="/catalogo" element={<RutaProtegida modulo="catalogo"><Catalogo /></RutaProtegida>} />
+        <Route path="/usuarios" element={<RutaProtegida modulo="usuarios"><Usuarios /></RutaProtegida>} />
+      </Route>
       <Route path="/" element={<Inicio />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -41,7 +45,9 @@ export function AppRoutes() {
 export default function App() {
   return (
     <SesionProvider>
-      <AppRoutes />
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
     </SesionProvider>
   )
 }
