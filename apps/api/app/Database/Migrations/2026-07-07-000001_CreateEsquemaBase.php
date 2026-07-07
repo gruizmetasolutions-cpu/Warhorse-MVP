@@ -30,7 +30,7 @@ class CreateEsquemaBase extends Migration
                 UNIQUE KEY uk_unidades_id_unidad (id_unidad),
                 KEY idx_unidades_estado (estado),
                 CONSTRAINT chk_unidades_valor CHECK (valor_referencia IS NULL OR valor_referencia >= 0)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE usuarios (
@@ -45,7 +45,7 @@ class CreateEsquemaBase extends Migration
                 PRIMARY KEY (id),
                 UNIQUE KEY uk_usuarios_email (email),
                 KEY idx_usuarios_rol (rol)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE catalogo_piezas (
@@ -59,7 +59,7 @@ class CreateEsquemaBase extends Migration
                 UNIQUE KEY uk_pieza_nombre (nombre_normalizado),
                 KEY idx_pieza_numparte (numero_parte),
                 CONSTRAINT chk_pieza_precio CHECK (precio_referencia > 0)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE registros_diesel (
@@ -79,7 +79,7 @@ class CreateEsquemaBase extends Migration
                 CONSTRAINT chk_diesel_litros  CHECK (litros > 0),
                 CONSTRAINT chk_diesel_costo   CHECK (costo_total > 0),
                 CONSTRAINT chk_diesel_km      CHECK (km_recorridos >= 0)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE requisiciones (
@@ -121,7 +121,7 @@ class CreateEsquemaBase extends Migration
                 CONSTRAINT chk_req_origen_costo CHECK (
                     origen_costo_estimado IS NULL OR origen = 'Yonke'
                 )
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE registros_taller (
@@ -148,7 +148,7 @@ class CreateEsquemaBase extends Migration
                 CONSTRAINT chk_taller_parcial CHECK (
                     tipo_liberacion <> 'Parcial' OR (pendientes IS NOT NULL AND JSON_LENGTH(pendientes) >= 1)
                 )
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE consolidado_unidad (
@@ -161,7 +161,7 @@ class CreateEsquemaBase extends Migration
                 PRIMARY KEY (unidad_id),
                 CONSTRAINT fk_consol_unidad FOREIGN KEY (unidad_id) REFERENCES unidades(id) ON DELETE CASCADE,
                 CONSTRAINT chk_consol_nonneg CHECK (total_diesel >= 0 AND total_refacciones >= 0 AND total_taller >= 0)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE alertas_deuda_tecnica (
@@ -175,7 +175,7 @@ class CreateEsquemaBase extends Migration
                 KEY idx_alerta_unidad (unidad_id, resuelta),
                 CONSTRAINT fk_alerta_unidad FOREIGN KEY (unidad_id)          REFERENCES unidades(id)         ON DELETE CASCADE,
                 CONSTRAINT fk_alerta_taller FOREIGN KEY (registro_taller_id) REFERENCES registros_taller(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE parametros_veredicto (
@@ -188,7 +188,7 @@ class CreateEsquemaBase extends Migration
                 CONSTRAINT fk_param_usuario FOREIGN KEY (actualizado_por) REFERENCES usuarios(id) ON DELETE RESTRICT,
                 CONSTRAINT chk_param_umbral  CHECK (umbral_pct BETWEEN 20 AND 80),
                 CONSTRAINT chk_param_ventana CHECK (ventana_meses BETWEEN 1 AND 36)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
             <<<'SQL'
             CREATE TABLE auditoria (
@@ -204,7 +204,7 @@ class CreateEsquemaBase extends Migration
                 KEY idx_aud_entidad (entidad, entidad_id),
                 KEY idx_aud_actor (actor_id),
                 CONSTRAINT fk_aud_actor FOREIGN KEY (actor_id) REFERENCES usuarios(id) ON DELETE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL,
         ];
 

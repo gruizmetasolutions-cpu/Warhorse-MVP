@@ -30,16 +30,17 @@ class DatosDemoSeeder extends Seeder
     public function run(): void
     {
         // ---- unidades (valor 0 del demo = valor_referencia pendiente → NULL) ----
+        // insertBatch exige llaves uniformes en todas las filas
         $unidades = [
-            ['id_unidad' => 'WH101', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2021-03-15', 'valor_referencia' => 480000.00],
-            ['id_unidad' => 'WH104', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2021-08-02', 'valor_referencia' => 520000.00],
-            ['id_unidad' => 'WH118', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2019-11-20', 'valor_referencia' => 350000.00],
+            ['id_unidad' => 'WH101', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2021-03-15', 'valor_referencia' => 480000.00, 'candidata_reincidencia' => 0],
+            ['id_unidad' => 'WH104', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2021-08-02', 'valor_referencia' => 520000.00, 'candidata_reincidencia' => 0],
+            ['id_unidad' => 'WH118', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2019-11-20', 'valor_referencia' => 350000.00, 'candidata_reincidencia' => 0],
             ['id_unidad' => 'WH125', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2017-06-10', 'valor_referencia' => 210000.00, 'candidata_reincidencia' => 1],
-            ['id_unidad' => 'WH210', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2023-01-25', 'valor_referencia' => 610000.00],
-            ['id_unidad' => 'WH03', 'tipo' => 'Tractor', 'estado' => 'Yonke', 'fecha_alta' => '2012-04-01', 'valor_referencia' => null],
-            ['id_unidad' => 'WH60', 'tipo' => 'Tractor', 'estado' => 'Yonke', 'fecha_alta' => '2014-09-18', 'valor_referencia' => null],
-            ['id_unidad' => 'CJ12', 'tipo' => 'Caja', 'estado' => 'Activo', 'fecha_alta' => '2020-02-12', 'valor_referencia' => 180000.00],
-            ['id_unidad' => 'CJ07', 'tipo' => 'Caja', 'estado' => 'Inactivo', 'fecha_alta' => '2015-07-30', 'valor_referencia' => 90000.00],
+            ['id_unidad' => 'WH210', 'tipo' => 'Tractor', 'estado' => 'Activo', 'fecha_alta' => '2023-01-25', 'valor_referencia' => 610000.00, 'candidata_reincidencia' => 0],
+            ['id_unidad' => 'WH03', 'tipo' => 'Tractor', 'estado' => 'Yonke', 'fecha_alta' => '2012-04-01', 'valor_referencia' => null, 'candidata_reincidencia' => 0],
+            ['id_unidad' => 'WH60', 'tipo' => 'Tractor', 'estado' => 'Yonke', 'fecha_alta' => '2014-09-18', 'valor_referencia' => null, 'candidata_reincidencia' => 0],
+            ['id_unidad' => 'CJ12', 'tipo' => 'Caja', 'estado' => 'Activo', 'fecha_alta' => '2020-02-12', 'valor_referencia' => 180000.00, 'candidata_reincidencia' => 0],
+            ['id_unidad' => 'CJ07', 'tipo' => 'Caja', 'estado' => 'Inactivo', 'fecha_alta' => '2015-07-30', 'valor_referencia' => 90000.00, 'candidata_reincidencia' => 0],
         ];
         $this->db->table('unidades')->insertBatch($unidades);
 
