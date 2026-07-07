@@ -1,272 +1,117 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router'
-import Badge from '../components/Badge'
-import Boton from '../components/Boton'
-import { CampoTexto } from '../components/Campo'
-import Modal from '../components/Modal'
-import Panel from '../components/Panel'
-import Tabla from '../components/Tabla'
-import { useToast } from '../components/Toast'
-import * as api from '../lib/api'
-import type { EstadoRequisicion, Requisicion, Unidad } from '../lib/types'
+import { useState } from 'react'
+import Kicker from '../components/Kicker'
+import { useDemo } from '../lib/demo'
+import { badge, card, critStyle, estadoReqColors, FD, filtroPill, fmt, h2Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
+import type { EstadoRequisicion } from '../lib/types'
 
-const dinero = (n: number) => '$' + n.toLocaleString('en-US')
-
-const filtros: (EstadoRequisicion | 'Todos')[] = ['Todos', 'Solicitado', 'Cotizado', 'Comprado', 'Instalado']
-
-type Accion =
-  | { texto: 'Cotizar'; tipo: 'directa' }
-  | { texto: 'Registrar compra'; tipo: 'comprar' }
-  | { texto: 'Confirmar instalación'; tipo: 'instalar' }
-
-const siguienteAccion = (r: Requisicion): Accion | null => {
-  if (r.origen === 'Yonke') {
-    return r.estado === 'Solicitado' ? { texto: 'Confirmar instalación', tipo: 'instalar' } : null
-  }
-  switch (r.estado) {
-    case 'Solicitado':
-      return { texto: 'Cotizar', tipo: 'directa' }
-    case 'Cotizado':
-      return { texto: 'Registrar compra', tipo: 'comprar' }
-    case 'Comprado':
-      return { texto: 'Confirmar instalación', tipo: 'instalar' }
-    default:
-      return null
-  }
-}
+const flujo: EstadoRequisicion[] = ['Solicitado', 'Cotizado', 'Comprado', 'Instalado']
+const urgPeso: Record<string, number> = { Crítica: 0, Media: 1, Rápida: 2 }
 
 export default function Compras() {
-  const { avisar } = useToast()
-  const [cola, setCola] = useState<Requisicion[] | null>(null)
-  const [unidades, setUnidades] = useState<Unidad[]>([])
-  const [filtro, setFiltro] = useState<EstadoRequisicion | 'Todos'>('Todos')
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [modal, setModal] = useState<{ req: Requisicion; tipo: 'comprar' | 'instalar' } | null>(null)
-  const [costoReal, setCostoReal] = useState('')
-  const [factura, setFactura] = useState('')
-  const [errorModal, setErrorModal] = useState<string | null>(null)
-  const [confirmando, setConfirmando] = useState(false)
+  const { reqs, avanzarReq, setConfirmar, toast } = useDemo()
+  const [filtro, setFiltro] = useState<'Todos' | EstadoRequisicion>('Todos')
 
-  const cargar = useCallback(async (estado: EstadoRequisicion | 'Todos' = 'Todos') => {
-    setCargando(true)
-    setError(null)
-    try {
-      const [c, us] = await Promise.all([
-        api.getColaCompras(estado === 'Todos' ? undefined : estado),
-        api.getUnidades(),
-      ])
-      setCola(c)
-      setUnidades(us)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudieron cargar los datos.')
-    } finally {
-      setCargando(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void cargar()
-  }, [cargar])
-
-  const nombreUnidad = (id: number | null) => unidades.find((u) => u.id === id)?.id_unidad ?? '—'
-
-  const cambiarFiltro = (f: EstadoRequisicion | 'Todos') => {
-    setFiltro(f)
-    void cargar(f)
-  }
-
-  const ejecutar = async (r: Requisicion, tipo: 'directa' | 'comprar' | 'instalar') => {
-    if (tipo === 'directa') {
-      try {
-        await api.avanzarEstado(r.id, { estado: 'Cotizado' })
-        avisar(`${r.descripcion_pieza}: pasó a Cotizado`)
-        void cargar(filtro)
-      } catch (e) {
-        avisar(e instanceof Error ? e.message : 'No se pudo avanzar el estado.', 'error')
-      }
-      return
-    }
-    setModal({ req: r, tipo })
-    setCostoReal('')
-    setFactura('')
-    setErrorModal(null)
-  }
-
-  const confirmarModal = async () => {
-    if (!modal) return
-    setConfirmando(true)
-    setErrorModal(null)
-    try {
-      if (modal.tipo === 'comprar') {
-        await api.avanzarEstado(modal.req.id, {
-          estado: 'Comprado',
-          costo_real: costoReal ? Number(costoReal) : undefined,
-          numero_factura: factura || undefined,
-        })
-        avisar(`${modal.req.descripcion_pieza}: compra registrada`)
-      } else {
-        await api.avanzarEstado(modal.req.id, { estado: 'Instalado' })
-        avisar(`${modal.req.descripcion_pieza}: instalada en ${nombreUnidad(modal.req.unidad_destino_id)}`)
-      }
-      setModal(null)
-      void cargar(filtro)
-    } catch (e) {
-      setErrorModal(e instanceof Error ? e.message : 'No se pudo completar la acción.')
-    } finally {
-      setConfirmando(false)
-    }
-  }
-
-  const costoDe = (r: Requisicion) => {
-    if (r.costo_real !== null) return dinero(r.costo_real)
-    if (r.es_estimado && r.costo_estimado !== null) return dinero(r.costo_estimado)
-    return '$ por definir'
-  }
+  const filas = reqs
+    .filter((q) => filtro === 'Todos' || q.estado === filtro)
+    .sort((a, b) => urgPeso[a.urgencia] - urgPeso[b.urgencia])
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="font-display text-[34px] font-bold uppercase leading-none">
-        Panel de compras
-      </h1>
-
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado" data-tour="filtros">
-        {filtros.map((f) => (
-          <button
-            key={f}
-            onClick={() => cambiarFiltro(f)}
-            aria-pressed={filtro === f}
-            className={`rounded-full border px-4 py-1.5 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-wh-orange-focus ${
-              filtro === f
-                ? 'border-wh-orange bg-wh-orange text-white'
-                : 'border-wh-border bg-white text-wh-muted hover:text-wh-ink'
-            }`}
-          >
-            {f}
-          </button>
-        ))}
+    <>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', animation: 'fadeUp 0.35s ease' }}>
+        <div>
+          <Kicker texto="Compras" />
+          <h2 style={h2Titulo}>Panel de Compras</h2>
+          <p style={subTitulo}>
+            Vista de Montzay · ciclo: Solicitado → Cotizado → Comprado → Instalado. Las piezas de Yonke ya
+            traen costo estimado; solo se confirma instalación.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {(['Todos', ...flujo] as const).map((f) => (
+            <button key={f} onClick={() => setFiltro(f)} className="hv-borde-ink" style={filtroPill(filtro === f)}>
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <Panel dataTour="cola">
-        <Tabla
-          etiqueta="Cola de compras ordenada por urgencia"
-          columnas={[
-            {
-              titulo: 'Pieza',
-              render: (r) => (
-                <span>
-                  <span className="block font-semibold">{r.descripcion_pieza}</span>
-                  {r.numero_parte && <span className="block text-xs text-wh-muted">{r.numero_parte}</span>}
-                </span>
-              ),
-            },
-            {
-              titulo: 'Destino',
-              render: (r) => (
-                <Link
-                  to={`/ficha/${nombreUnidad(r.unidad_destino_id)}`}
-                  className="font-display font-bold text-wh-orange-ink underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-wh-orange-focus"
-                >
-                  {nombreUnidad(r.unidad_destino_id)}
-                </Link>
-              ),
-            },
-            {
-              titulo: 'Origen',
-              render: (r) => (
-                <span data-tour={r.origen === 'Yonke' ? 'badge-origen' : undefined}>
-                  <Badge tipo="origen" valor={r.origen} />
-                  {r.origen === 'Yonke' && (
-                    <span className="mt-1 block text-xs text-wh-muted">
-                      donante {nombreUnidad(r.unidad_donante_id)}
+      <div data-tour="compras" style={{ ...card, padding: '6px 20px 14px', overflowX: 'auto', animation: 'fadeUp 0.4s ease' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 820 }}>
+          <thead>
+            <tr style={theadRow}>
+              <th style={thCell}>Destino</th>
+              <th style={thCell}>Pieza</th>
+              <th style={thCell}>Origen</th>
+              <th style={{ ...thCell, textAlign: 'right' }}>Costo</th>
+              <th style={thCell}>Urgencia</th>
+              <th style={thCell}>Estado</th>
+              <th style={thCell}>Solicitud</th>
+              <th style={thCell}>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((q) => {
+              const yk = q.origen === 'Yonke'
+              const next = yk && q.estado === 'Solicitado' ? 'Instalado' : flujo[flujo.indexOf(q.estado) + 1]
+              const ec = estadoReqColors[q.estado] ?? estadoReqColors.Solicitado
+              const avanzar = () => {
+                if (next === 'Instalado') {
+                  setConfirmar({ id: q.id, pieza: q.descripcion_pieza, destino: q.tracto_destino_id, next })
+                } else if (next) {
+                  avanzarReq(q.id, next)
+                  toast(q.descripcion_pieza + ' → ' + next)
+                }
+              }
+              return (
+                <tr key={q.id} className="hv-fila">
+                  <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17, color: '#16191E' }}>
+                    {q.tracto_destino_id}
+                  </td>
+                  <td style={{ ...tdCell, fontWeight: 600 }}>
+                    {q.descripcion_pieza}
+                    <div style={{ fontWeight: 400, fontSize: 12.5, color: '#6F6A60' }}>
+                      {yk ? 'Donante: ' + q.tracto_donante_id + ' (yonke interno)' : 'Compra a proveedor externo'}
+                    </div>
+                  </td>
+                  <td style={tdCell}>
+                    <span style={yk ? badge('#FDE8DC', '#B4430A', '#F2620F') : badge('#EAE6DC', '#16191E', '#C9C2B2')}>
+                      {q.origen}
                     </span>
-                  )}
-                </span>
-              ),
-            },
-            { titulo: 'Urgencia', render: (r) => <Badge tipo="criticidad" valor={r.urgencia} /> },
-            {
-              titulo: 'Costo',
-              alinear: 'right',
-              render: (r) => (
-                // RF-COM-04 / RF-INT-02: el costo Yonke se marca estimado, nunca facturado
-                <span className="inline-flex items-center gap-2">
-                  {r.es_estimado && <Badge tipo="origen" valor="Yonke" texto="Estimado" />}
-                  {costoDe(r)}
-                </span>
-              ),
-            },
-            { titulo: 'Estado', render: (r) => <Badge tipo="estadoReq" valor={r.estado} /> },
-            {
-              titulo: 'Acción',
-              render: (r) => {
-                const accion = siguienteAccion(r)
-                if (!accion) return <span className="text-xs text-wh-muted">—</span>
-                return (
-                  <Boton
-                    variante={accion.tipo === 'directa' ? 'outline' : 'oscuro'}
-                    className="!px-3 !py-2 text-xs"
-                    onClick={() => void ejecutar(r, accion.tipo)}
-                  >
-                    {accion.texto}
-                  </Boton>
-                )
-              },
-            },
-          ]}
-          filas={cola}
-          cargando={cargando}
-          error={error}
-          onReintentar={() => void cargar(filtro)}
-          textoVacio="Sin requisiciones en esta vista"
-          claveFila={(r) => r.id}
-        />
-      </Panel>
-
-      <Modal
-        abierto={modal !== null}
-        titulo={modal?.tipo === 'comprar' ? 'Registrar compra' : 'Confirmar instalación'}
-        onCerrar={() => setModal(null)}
-        onConfirmar={() => void confirmarModal()}
-        textoConfirmar={modal?.tipo === 'comprar' ? 'Registrar' : 'Confirmar'}
-        confirmando={confirmando}
-      >
-        {modal?.tipo === 'comprar' ? (
-          <div className="flex flex-col gap-4">
-            <p className="text-sm">
-              {modal.req.descripcion_pieza} para{' '}
-              <strong>{nombreUnidad(modal.req.unidad_destino_id)}</strong>: captura el costo real y
-              la factura para pasar a <Badge tipo="estadoReq" valor="Comprado" />.
-            </p>
-            <CampoTexto
-              etiqueta="Costo real"
-              type="number"
-              min={1}
-              value={costoReal}
-              onChange={(e) => setCostoReal(e.target.value)}
-            />
-            <CampoTexto
-              etiqueta="Número de factura"
-              value={factura}
-              onChange={(e) => setFactura(e.target.value)}
-            />
-          </div>
-        ) : modal ? (
-          <p className="text-sm leading-relaxed">
-            La pieza <strong>{modal.req.descripcion_pieza}</strong>
-            {modal.req.origen === 'Yonke' && <> (donante {nombreUnidad(modal.req.unidad_donante_id)})</>}{' '}
-            se instalará en <strong>{nombreUnidad(modal.req.unidad_destino_id)}</strong> con costo{' '}
-            {modal.req.es_estimado ? 'estimado ' : ''}
-            <strong className="tabular-nums">{costoDe(modal.req)}</strong>. El costo sumará al
-            consolidado del tracto destino.
-          </p>
-        ) : null}
-        {errorModal && (
-          <p className="mt-3 text-sm font-semibold text-wh-orange-ink" role="alert">
-            {errorModal}
-          </p>
-        )}
-      </Modal>
-    </div>
+                  </td>
+                  <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {q.costo_estimado ? fmt(q.costo_estimado) : 'Por cotizar'}{' '}
+                    {yk && (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: '#FDE8DC', color: '#B4430A', border: '1px dashed #F2620F', borderRadius: 4, padding: '2px 5px' }}>
+                        Est.
+                      </span>
+                    )}
+                  </td>
+                  <td style={tdCell}>
+                    <span style={critStyle(q.urgencia)}>{q.urgencia}</span>
+                  </td>
+                  <td style={tdCell}>
+                    <span style={badge(ec[0], ec[1], ec[2])}>{q.estado}</span>
+                  </td>
+                  <td style={{ ...tdCell, color: '#6F6A60', whiteSpace: 'nowrap' }}>{q.fecha_solicitud}</td>
+                  <td style={tdCell}>
+                    {next ? (
+                      <button
+                        onClick={avanzar}
+                        className="hv-inkfill"
+                        style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        → {next}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 12.5, color: '#2C7A44', fontWeight: 700 }}>✓ Cerrado</span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }

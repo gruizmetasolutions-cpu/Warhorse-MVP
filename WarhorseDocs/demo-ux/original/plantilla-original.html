@@ -1,0 +1,606 @@
+
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#F3EFE7;font-family:Barlow,sans-serif;color:#16191E}
+*{box-sizing:border-box}
+input,select,button,textarea{font-family:Barlow,sans-serif}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,166,92,0.6)}70%{box-shadow:0 0 0 8px rgba(63,166,92,0)}100%{box-shadow:0 0 0 0 rgba(63,166,92,0)}}
+@keyframes growBar{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+</style>
+</helmet>
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+  <div style="min-height:100vh;display:flex;flex-wrap:wrap;background:#14181D">
+    <div style="flex:3 1 440px;color:#F3EFE7;padding:64px 56px;display:flex;flex-direction:column;justify-content:center;gap:34px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:8px;background:repeating-linear-gradient(135deg,#F2620F 0 14px,#14181D 14px 28px)"></div>
+      <svg viewBox="0 0 200 90" style="position:absolute;right:-40px;bottom:-16px;width:420px;opacity:0.10" fill="none" stroke="#F2620F" stroke-width="2.5">
+        <rect x="8" y="34" width="46" height="30" rx="5"></rect>
+        <rect x="58" y="16" width="128" height="48" rx="5"></rect>
+        <circle cx="32" cy="72" r="9"></circle>
+        <circle cx="92" cy="72" r="9"></circle>
+        <circle cx="150" cy="72" r="9"></circle>
+        <line x1="8" y1="50" x2="54" y2="50"></line>
+      </svg>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:34px;height:4px;background:#F2620F"></span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:0.22em;text-transform:uppercase;color:#F2620F">WarHorse México · Dataholics</span>
+        </div>
+        <h1 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(40px,5.5vw,68px);line-height:0.98;margin:0;max-width:560px;text-transform:uppercase;letter-spacing:0.01em">Hub de Gastos<br>por Tracto</h1>
+        <p style="font-size:18px;color:#B8B2A6;margin:0;font-weight:500">Cada peso que se traga un tracto, a la vista. Diésel, refacciones y taller en un solo lugar.</p>
+      </div>
+      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px;max-width:480px">
+        <li style="display:flex;gap:14px;align-items:baseline;font-size:16px;color:#DDD7CB"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#F2620F;font-size:18px;flex:none">01</span>Costo real por unidad: diésel + refacciones + taller, consolidado.</li>
+        <li style="display:flex;gap:14px;align-items:baseline;font-size:16px;color:#DDD7CB"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#F2620F;font-size:18px;flex:none">02</span>Piezas del yonke (WH03, WH60) con trazabilidad y costo estimado.</li>
+        <li style="display:flex;gap:14px;align-items:baseline;font-size:16px;color:#DDD7CB"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#F2620F;font-size:18px;flex:none">03</span>¿Vale la pena meterle más lana? Respuesta en 30 segundos.</li>
+      </ul>
+    </div>
+    <div style="flex:2 1 360px;background:#F3EFE7;display:flex;align-items:center;justify-content:center;padding:48px 36px;position:relative">
+      <div style="width:100%;max-width:390px;display:flex;flex-direction:column;gap:22px;animation:fadeUp 0.4s ease">
+        <div>
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:30px;color:#16191E;margin:0 0 6px;text-transform:uppercase">Entrar al Hub</h2>
+          <p style="font-size:14.5px;color:#6F6A60;margin:0">Demo: elige un rol para entrar, sin contraseña real.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ rolesLogin }}" as="r" hint-placeholder-count="3">
+            <button onClick="{{ r.pick }}" style="{{ r.cardStyle }}" style-hover="border-color:#F2620F">
+              <span style="display:flex;flex-direction:column;gap:2px;text-align:left">
+                <span style="font-weight:700;font-size:15px;color:#16191E">{{ r.nombre }}</span>
+                <span style="font-size:13px;color:#6F6A60">{{ r.desc }}</span>
+              </span>
+              <span style="{{ r.dotStyle }}"></span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <input type="text" placeholder="Usuario o correo" style="padding:13px 14px;border:1px solid #D8D2C4;border-radius:9px;font-size:15px;background:#fff" style-focus="outline:2px solid #F2620F;outline-offset:1px">
+          <input type="password" placeholder="Contraseña" style="padding:13px 14px;border:1px solid #D8D2C4;border-radius:9px;font-size:15px;background:#fff" style-focus="outline:2px solid #F2620F;outline-offset:1px">
+          <button onClick="{{ entrar }}" style="padding:14px;background:#F2620F;color:#fff;border:none;border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 12px rgba(242,98,15,0.35)" style-hover="background:#D9550C;transform:translateY(-1px)" style-focus="outline:3px solid #F9B48A">Arrancar →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100vh;display:flex;align-items:stretch">
+  <aside style="width:236px;flex:none;background:#14181D;color:#F3EFE7;display:flex;flex-direction:column;padding:0 0 18px;gap:22px;position:sticky;top:0;height:100vh">
+    <div style="height:6px;background:repeating-linear-gradient(135deg,#F2620F 0 12px,#14181D 12px 24px)"></div>
+    <div style="display:flex;align-items:center;gap:11px;padding:4px 20px">
+      <svg viewBox="0 0 200 90" style="width:46px;flex:none" fill="none" stroke="#F2620F" stroke-width="9">
+        <rect x="8" y="34" width="46" height="30" rx="5"></rect>
+        <rect x="58" y="16" width="128" height="48" rx="5"></rect>
+        <circle cx="32" cy="72" r="9"></circle>
+        <circle cx="92" cy="72" r="9"></circle>
+        <circle cx="150" cy="72" r="9"></circle>
+      </svg>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;line-height:1.05;text-transform:uppercase;letter-spacing:0.04em">Hub de Gastos<br><span style="color:#8A8374;font-weight:600;font-size:13px;letter-spacing:0.14em">WarHorse México</span></div>
+    </div>
+    <nav data-tour="nav" style="display:flex;flex-direction:column;gap:2px;padding:0 12px">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
+        <button onClick="{{ n.go }}" style="{{ n.style }}" style-hover="background:rgba(243,239,231,0.08);color:#F3EFE7" style-focus="outline:2px solid #F2620F">{{ n.label }}</button>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:12px;border-top:1px solid rgba(243,239,231,0.12);padding:16px 20px 0">
+      <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#8A8374">
+        <span style="width:8px;height:8px;border-radius:50%;background:#3FA65C;animation:pulse 2s infinite;flex:none"></span>
+        Datos demo en vivo · Jul 2026
+      </div>
+      <span style="font-size:13.5px;color:#DDD7CB;line-height:1.4;font-weight:500">{{ usuarioActual }}</span>
+      <div style="display:flex;gap:8px">
+        <button onClick="{{ verTutorial }}" style="background:transparent;border:1px solid rgba(243,239,231,0.18);color:#B8B2A6;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" style-hover="color:#F2620F;border-color:#F2620F">▶ Tutorial</button>
+        <button onClick="{{ logout }}" style="background:rgba(243,239,231,0.1);border:1px solid rgba(243,239,231,0.18);color:#F3EFE7;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" style-hover="background:rgba(243,239,231,0.2)">Salir</button>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;padding:30px;max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:22px;align-self:flex-start;width:100%">
+
+    <sc-if value="{{ isDash }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;animation:fadeUp 0.35s ease">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="width:26px;height:4px;background:#F2620F"></span><span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;color:#F2620F">Dirección</span></div>
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:34px;color:#16191E;margin:0;text-transform:uppercase;letter-spacing:0.01em">Tablero Directivo</h2>
+          <p style="margin:4px 0 0;font-size:14.5px;color:#6F6A60">¿Vale la pena meterle más lana a este tracto? Haz clic en una barra para analizarlo.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #D8D2C4;border-radius:9px;padding:9px 16px;font-size:14px">Periodo: <strong style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em">JULIO 2026</strong><span style="color:#8A8374;font-size:11px">▾</span></div>
+      </div>
+
+      <div data-tour="kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;animation:fadeUp 0.4s ease">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:18px 20px 16px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 2px rgba(20,24,29,0.05)">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#8A8374;text-transform:uppercase;letter-spacing:0.14em">{{ k.label }}</span>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;font-variant-numeric:tabular-nums;color:#16191E;line-height:1">{{ k.valor }}</span>
+            <span style="font-size:12.5px;color:#6F6A60">{{ k.sub }}</span>
+            <span style="width:30px;height:4px;background:{{ k.accent }};margin-top:2px"></span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:stretch;animation:fadeUp 0.45s ease">
+        <div data-tour="barras" style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:22px;box-shadow:0 1px 2px rgba(20,24,29,0.05);grid-column:1/-1">
+          <div style="display:flex;align-items:center;gap:8px;margin:0 0 18px">
+            <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.06em;text-transform:uppercase;color:#16191E;margin:0">Gasto consolidado por tracto</h3>
+            <span onMouseEnter="{{ tipBarras }}" onMouseLeave="{{ tipHide }}" style="width:19px;height:19px;border-radius:50%;background:#EAE6DC;color:#6F6A60;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex:none">?</span>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:clamp(10px,3vw,34px);height:210px;padding:0 6px;border-bottom:2px solid #16191E">
+            <sc-for list="{{ bars }}" as="b" hint-placeholder-count="5">
+              <button onClick="{{ b.open }}" title="Analizar {{ b.id }}" style="{{ b.wrapStyle }}" style-hover="opacity:0.85" style-focus="outline:2px solid #F2620F;outline-offset:2px">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;color:#16191E">{{ b.costoFmt }}</span>
+                <span style="{{ b.barStyle }}"></span>
+                <span style="{{ b.labelStyle }}">{{ b.id }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:22px;box-shadow:0 1px 2px rgba(20,24,29,0.05);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.06em;text-transform:uppercase;color:#16191E;margin:0">Rendimiento · {{ selId }}</h3>
+            <span onMouseEnter="{{ tipGauge }}" onMouseLeave="{{ tipHide }}" style="width:19px;height:19px;border-radius:50%;background:#EAE6DC;color:#6F6A60;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex:none">?</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <svg viewBox="0 0 200 120" style="width:min(240px,100%)">
+              <path d="M 24 104 A 76 76 0 0 1 62 38" fill="none" stroke="#E2DCCF" stroke-width="14" stroke-linecap="round"></path>
+              <path d="M 62 38 A 76 76 0 0 1 138 38" fill="none" stroke="#F2620F" stroke-width="14" stroke-linecap="round"></path>
+              <path d="M 138 38 A 76 76 0 0 1 176 104" fill="none" stroke="#3FA65C" stroke-width="14" stroke-linecap="round"></path>
+              <line x1="100" y1="104" x2="100" y2="42" stroke="#16191E" stroke-width="4" stroke-linecap="round" transform="rotate({{ gaugeDeg }} 100 104)" style="transition:transform 0.5s ease"></line>
+              <circle cx="100" cy="104" r="7" fill="#16191E"></circle>
+            </svg>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">{{ efLabel }} <span style="font-size:16px;font-weight:500;color:#6F6A60">km/L</span></div>
+            <div style="font-size:13px;color:#6F6A60">Costo diésel vs. kilómetros recorridos</div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:22px;box-shadow:0 1px 2px rgba(20,24,29,0.05);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.06em;text-transform:uppercase;color:#16191E;margin:0">Mantenimiento · {{ selId }}</h3>
+            <span onMouseEnter="{{ tipDonut }}" onMouseLeave="{{ tipHide }}" style="width:19px;height:19px;border-radius:50%;background:#EAE6DC;color:#6F6A60;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex:none">?</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;flex:1">
+            <svg viewBox="0 0 120 120" style="width:130px;flex:none">
+              <circle cx="60" cy="60" r="45" fill="none" stroke="#F2620F" stroke-width="18"></circle>
+              <circle cx="60" cy="60" r="45" fill="none" stroke="#3FA65C" stroke-width="18" stroke-dasharray="{{ donutDash }}" transform="rotate(-90 60 60)" style="transition:stroke-dasharray 0.5s ease"></circle>
+              <text x="60" y="68" text-anchor="middle" style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:24px" fill="#16191E">{{ pctTotalLabel }}</text>
+            </svg>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:3px;background:#3FA65C"></span>Reparación Total · {{ pctTotalLabel }}</div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:3px;background:#F2620F"></span>Mejoralito · {{ pctMejorLabel }}</div>
+              <div style="font-size:12.5px;color:#6F6A60;max-width:200px">Calculado del historial de reparaciones liberadas.</div>
+            </div>
+          </div>
+        </div>
+
+        <div data-tour="decision" style="{{ decisionBoxStyle }}">
+          <div style="height:6px;background:{{ decisionStripe }};border-radius:12px 12px 0 0;margin:-22px -22px 8px"></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;color:#8A8374">Decisión sugerida · {{ selId }}</div>
+            <span onMouseEnter="{{ tipDecision }}" onMouseLeave="{{ tipHide }}" style="width:19px;height:19px;border-radius:50%;background:#EAE6DC;color:#6F6A60;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex:none">?</span>
+          </div>
+          <div style="{{ decisionTextStyle }}">{{ decisionLabel }}</div>
+          <p style="margin:0;font-size:14.5px;color:#16191E;line-height:1.55">{{ decisionRazon }}</p>
+          <button onClick="{{ verFichaSel }}" style="align-self:flex-start;margin-top:6px;padding:11px 20px;background:#16191E;color:#F3EFE7;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer" style-hover="background:#F2620F;transform:translateY(-1px)">Ver ficha completa →</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isFicha }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;animation:fadeUp 0.35s ease">
+        <button onClick="{{ goDash }}" style="background:#fff;border:1px solid #D8D2C4;border-radius:8px;padding:9px 14px;font-size:13.5px;font-weight:600;color:#16191E;cursor:pointer" style-hover="border-color:#F2620F;color:#F2620F">← Tablero</button>
+        <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:34px;color:#16191E;margin:0;text-transform:uppercase">Ficha · {{ fichaId }}</h2>
+        <span style="{{ fichaEstadoStyle }}">{{ fichaEstado }}</span>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12.5px;font-weight:600;color:#8A8374;text-transform:uppercase;letter-spacing:0.14em">Costo total acumulado</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">{{ fichaTotalFmt }}</div>
+        </div>
+      </div>
+
+      <sc-if value="{{ fichaEsActivo }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;animation:fadeUp 0.4s ease">
+          <sc-for list="{{ fichaKpis }}" as="k" hint-placeholder-count="3">
+            <div style="background:#fff;border:1px solid #E7E0D2;border-radius:10px;padding:14px 18px;box-shadow:0 1px 2px rgba(20,24,29,0.05)">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:12.5px;font-weight:600;color:#8A8374;text-transform:uppercase;letter-spacing:0.12em">{{ k.label }}</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">{{ k.valor }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:22px;box-shadow:0 1px 2px rgba(20,24,29,0.05)">
+          <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.06em;text-transform:uppercase;color:#16191E;margin:0 0 14px">Historial de reparaciones</h3>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:640px">
+              <thead>
+                <tr style="text-align:left;color:#8A8374;font-size:12px;text-transform:uppercase;letter-spacing:0.08em">
+                  <th style="padding:8px 10px;border-bottom:2px solid #16191E">Ingreso</th>
+                  <th style="padding:8px 10px;border-bottom:2px solid #16191E">Diagnóstico</th>
+                  <th style="padding:8px 10px;border-bottom:2px solid #16191E">Criticidad</th>
+                  <th style="padding:8px 10px;border-bottom:2px solid #16191E">Liberación</th>
+                  <th style="padding:8px 10px;border-bottom:2px solid #16191E;text-align:right">Días en taller</th>
+                  <th style="padding:8px 10px;border-bottom:2px solid #16191E;text-align:right">Costo taller</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ fichaReps }}" as="r" hint-placeholder-count="3">
+                  <tr style-hover="background:#FAF7F0">
+                    <td style="padding:10px;border-bottom:1px solid #EFEAE0;white-space:nowrap">{{ r.fecha }}</td>
+                    <td style="padding:10px;border-bottom:1px solid #EFEAE0;font-weight:600">{{ r.diag }}</td>
+                    <td style="padding:10px;border-bottom:1px solid #EFEAE0"><span style="{{ r.critStyle }}">{{ r.crit }}</span></td>
+                    <td style="padding:10px;border-bottom:1px solid #EFEAE0"><span style="{{ r.libStyle }}">{{ r.lib }}</span></td>
+                    <td style="padding:10px;border-bottom:1px solid #EFEAE0;text-align:right;font-variant-numeric:tabular-nums;font-weight:{{ r.diasPeso }}">{{ r.dias }}</td>
+                    <td style="padding:10px;border-bottom:1px solid #EFEAE0;text-align:right;font-variant-numeric:tabular-nums">{{ r.costoFmt }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:22px;box-shadow:0 1px 2px rgba(20,24,29,0.05)">
+          <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.06em;text-transform:uppercase;color:#16191E;margin:0 0 4px">Piezas instaladas</h3>
+          <p style="margin:0 0 14px;font-size:13px;color:#6F6A60">Las piezas de Yonke llevan costo <em>estimado</em>: es una asignación interna, no una factura.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ fichaPiezas }}" as="p" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid #EFEAE0;border-radius:10px;padding:12px 16px" style-hover="border-color:#D8D2C4">
+                <span style="{{ p.origenStyle }}">{{ p.origen }}</span>
+                <span style="font-weight:700;font-size:14.5px">{{ p.pieza }}</span>
+                <span style="font-size:13px;color:#6F6A60">{{ p.detalle }}</span>
+                <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                  <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-variant-numeric:tabular-nums;font-size:18px">{{ p.costoFmt }}</span>
+                  <sc-if value="{{ p.esYonke }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:#FDE8DC;color:#B4430A;border:1px dashed #F2620F;border-radius:5px;padding:3px 8px">Estimado</span></sc-if>
+                </span>
+                <span style="font-size:12.5px;color:#6F6A60;white-space:nowrap">{{ p.estado }} · {{ p.fecha }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ fichaSinPiezas }}" hint-placeholder-val="{{ false }}">
+              <div style="text-align:center;padding:24px;color:#6F6A60;font-size:14px">Sin piezas registradas para esta unidad.</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ fichaEsYonke }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:22px;box-shadow:0 1px 2px rgba(20,24,29,0.05)">
+          <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.06em;text-transform:uppercase;color:#16191E;margin:0 0 4px">Piezas donadas a otras unidades</h3>
+          <p style="margin:0 0 14px;font-size:13px;color:#6F6A60">Esta unidad es donante del yonke interno. Cada pieza que sale lleva un costo estimado asignado.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ fichaDonaciones }}" as="d" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid #EFEAE0;border-radius:10px;padding:12px 16px">
+                <span style="font-weight:700;font-size:14.5px">{{ d.pieza }}</span>
+                <span style="font-size:13.5px;color:#6F6A60">→ instalada en <strong style="color:#F2620F">{{ d.destino }}</strong></span>
+                <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                  <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-variant-numeric:tabular-nums;font-size:18px">{{ d.costoFmt }}</span>
+                  <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:#FDE8DC;color:#B4430A;border:1px dashed #F2620F;border-radius:5px;padding:3px 8px">Estimado</span>
+                </span>
+                <span style="font-size:12.5px;color:#6F6A60">{{ d.fecha }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ fichaSinDonaciones }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px;color:#6F6A60;font-size:14px">
+                <svg viewBox="0 0 200 90" style="width:120px;opacity:0.35" fill="none" stroke="#16191E" stroke-width="3">
+                  <rect x="8" y="34" width="46" height="30" rx="5"></rect>
+                  <rect x="58" y="16" width="128" height="48" rx="5"></rect>
+                  <circle cx="32" cy="72" r="9"></circle>
+                  <circle cx="92" cy="72" r="9"></circle>
+                  <circle cx="150" cy="72" r="9"></circle>
+                </svg>
+                Aún no hay piezas donadas registradas de esta unidad.
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ isReq }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:640px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px;animation:fadeUp 0.35s ease">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="width:26px;height:4px;background:#F2620F"></span><span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;color:#F2620F">Piso de taller</span></div>
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:34px;color:#16191E;margin:0;text-transform:uppercase">Requisición de refacciones</h2>
+          <p style="margin:4px 0 0;font-size:14.5px;color:#6F6A60">Solicitud completa con foto y origen de la pieza, para que Compras no tenga que pedir más datos.</p>
+        </div>
+        <div data-tour="reqform" style="background:#fff;border:1px solid #E7E0D2;border-radius:14px;padding:26px;box-shadow:0 1px 2px rgba(20,24,29,0.05);display:flex;flex-direction:column;gap:20px">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600">Tracto destino
+            <select value="{{ reqDestino }}" onChange="{{ onReqDestino }}" style="padding:12px;border:1px solid #D8D2C4;border-radius:9px;font-size:15px;background:#FAF7F0" style-focus="outline:2px solid #F2620F">
+              <option value="">Selecciona unidad…</option>
+              <sc-for list="{{ destinoOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
+            </select>
+          </label>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:600">Origen de la refacción</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <button onClick="{{ pickCompra }}" style="{{ compraBtnStyle }}" style-hover="border-color:#16191E">🛒 Solicitud de Compra</button>
+              <button onClick="{{ pickYonke }}" style="{{ yonkeBtnStyle }}" style-hover="border-color:#F2620F">Canibalizado de Yonke</button>
+            </div>
+          </div>
+
+          <sc-if value="{{ reqEsYonke }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FDF3EC;border:1px dashed #F2620F;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px">
+              <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600">Tracto donante (obligatorio)
+                <select value="{{ reqDonante }}" onChange="{{ onReqDonante }}" style="padding:12px;border:1px solid #F0C4A4;border-radius:9px;font-size:15px;background:#fff" style-focus="outline:2px solid #F2620F">
+                  <option value="">Selecciona unidad Yonke…</option>
+                  <sc-for list="{{ donanteOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
+                </select>
+                <span style="font-size:12.5px;font-weight:400;color:#6F6A60">Solo unidades con estado Yonke pueden donar piezas.</span>
+              </label>
+              <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600">Costo estimado (MXN)
+                <input type="number" value="{{ reqCosto }}" onChange="{{ onReqCosto }}" placeholder="0.00" min="0" style="padding:12px;border:1px solid #F0C4A4;border-radius:9px;font-size:15px;background:#fff" style-focus="outline:2px solid #F2620F">
+                <span style="font-size:12.5px;font-weight:400;color:#6F6A60">Asigna un valor estimado de la pieza aunque no exista factura — así el costo real del tracto no se pierde.</span>
+              </label>
+            </div>
+          </sc-if>
+
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600">Descripción de la pieza
+            <input type="text" value="{{ reqPieza }}" onChange="{{ onReqPieza }}" placeholder="Ej. Turbo, número de parte si se conoce" style="padding:12px;border:1px solid #D8D2C4;border-radius:9px;font-size:15px;background:#FAF7F0" style-focus="outline:2px solid #F2620F">
+            <span style="font-size:12.5px;font-weight:400;color:#6F6A60">Entre más completa, menos idas y vueltas con Compras.</span>
+          </label>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600">Foto de la pieza o número de serie <span style="color:#F2620F">*</span><span onMouseEnter="{{ tipFoto }}" onMouseLeave="{{ tipHide }}" style="width:19px;height:19px;border-radius:50%;background:#EAE6DC;color:#6F6A60;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex:none">?</span></span>
+            <button onClick="{{ toggleFoto }}" style="{{ fotoStyle }}" style-hover="border-color:#F2620F">
+              <sc-if value="{{ reqFoto }}" hint-placeholder-val="{{ false }}">
+                <span style="display:flex;align-items:center;gap:10px"><span style="width:44px;height:44px;border-radius:8px;background:repeating-linear-gradient(45deg,#EFE7D8,#EFE7D8 6px,#F8F4EB 6px,#F8F4EB 12px);border:1px solid #D8D2C4;flex:none"></span><span style="font-size:14px;color:#16191E;font-weight:600">pieza_dañada.jpg adjunta ✓</span></span>
+              </sc-if>
+              <sc-if value="{{ reqSinFoto }}" hint-placeholder-val="{{ true }}">
+                <span style="font-size:14px;color:#6F6A60">📷 Toca para adjuntar fotografía (obligatorio)</span>
+              </sc-if>
+            </button>
+            <span style="font-size:12.5px;color:#6F6A60">La foto evita compras a ciegas: Compras ve la pieza o su etiqueta de serie exacta.</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:600">Urgencia</span>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <sc-for list="{{ urgOpts }}" as="u" hint-placeholder-count="3">
+                <button onClick="{{ u.pick }}" style="{{ u.style }}" style-hover="opacity:0.85">{{ u.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <button onClick="{{ enviarReq }}" style="padding:15px;background:#F2620F;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 12px rgba(242,98,15,0.3)" style-hover="background:#D9550C;transform:translateY(-1px)" style-focus="outline:3px solid #F9B48A">Enviar requisición</button>
+          <sc-if value="{{ reqError }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FBEBE8;border:1px solid #E8A99D;color:#9B2C2C;border-radius:9px;padding:12px 14px;font-size:14px">{{ reqErrorMsg }}</div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isCompras }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;animation:fadeUp 0.35s ease">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="width:26px;height:4px;background:#F2620F"></span><span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;color:#F2620F">Compras</span></div>
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:34px;color:#16191E;margin:0;text-transform:uppercase">Panel de Compras</h2>
+          <p style="margin:4px 0 0;font-size:14.5px;color:#6F6A60">Vista de Montzay · ciclo: Solicitado → Cotizado → Comprado → Instalado. Las piezas de Yonke ya traen costo estimado; solo se confirma instalación.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <sc-for list="{{ compFiltros }}" as="f" hint-placeholder-count="5">
+            <button onClick="{{ f.pick }}" style="{{ f.style }}" style-hover="border-color:#16191E">{{ f.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div data-tour="compras" style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:6px 20px 14px;box-shadow:0 1px 2px rgba(20,24,29,0.05);overflow-x:auto;animation:fadeUp 0.4s ease">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:820px">
+          <thead>
+            <tr style="text-align:left;color:#8A8374;font-size:12px;text-transform:uppercase;letter-spacing:0.08em">
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Destino</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Pieza</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Origen</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E;text-align:right">Costo</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Urgencia</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Estado</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Solicitud</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ compRows }}" as="q" hint-placeholder-count="5">
+              <tr style-hover="background:#FAF7F0">
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:#16191E">{{ q.destino }}</td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;font-weight:600">{{ q.pieza }}<div style="font-weight:400;font-size:12.5px;color:#6F6A60">{{ q.sub }}</div></td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0"><span style="{{ q.origenStyle }}">{{ q.origen }}</span></td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">{{ q.costoFmt }} <sc-if value="{{ q.esYonke }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:#FDE8DC;color:#B4430A;border:1px dashed #F2620F;border-radius:4px;padding:2px 5px">Est.</span></sc-if></td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0"><span style="{{ q.urgStyle }}">{{ q.urg }}</span></td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0"><span style="{{ q.estadoStyle }}">{{ q.estado }}</span></td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;color:#6F6A60;white-space:nowrap">{{ q.fecha }}</td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0">
+                  <sc-if value="{{ q.puedeAvanzar }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ q.avanzar }}" style="padding:7px 12px;background:#F3EFE7;border:1px solid #D8D2C4;border-radius:7px;font-size:12.5px;font-weight:700;color:#16191E;cursor:pointer;white-space:nowrap" style-hover="background:#16191E;color:#F3EFE7">→ {{ q.next }}</button>
+                  </sc-if>
+                  <sc-if value="{{ q.terminado }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:#2C7A44;font-weight:700">✓ Cerrado</span></sc-if>
+                </td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isCat }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;animation:fadeUp 0.35s ease">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="width:26px;height:4px;background:#F2620F"></span><span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;color:#F2620F">Flota</span></div>
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:34px;color:#16191E;margin:0;text-transform:uppercase">Catálogo de Unidades</h2>
+          <p style="margin:4px 0 0;font-size:14.5px;color:#6F6A60">{{ catResumen }}</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <sc-for list="{{ catFiltros }}" as="f" hint-placeholder-count="4">
+            <button onClick="{{ f.pick }}" style="{{ f.style }}" style-hover="border-color:#16191E">{{ f.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div data-tour="catalogo" style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:6px 20px 14px;box-shadow:0 1px 2px rgba(20,24,29,0.05);overflow-x:auto;animation:fadeUp 0.4s ease">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:560px">
+          <thead>
+            <tr style="text-align:left;color:#8A8374;font-size:12px;text-transform:uppercase;letter-spacing:0.08em">
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Unidad</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Tipo</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E">Estado</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E;text-align:right">Costo total acumulado</th>
+              <th style="padding:12px 10px;border-bottom:2px solid #16191E"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ catRows }}" as="u" hint-placeholder-count="6">
+              <tr style-hover="background:#FAF7F0">
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:#16191E">{{ u.id }}</td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0">{{ u.tipo }}</td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0"><span style="{{ u.estadoStyle }}">{{ u.estado }}</span></td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;text-align:right;font-variant-numeric:tabular-nums">{{ u.totalFmt }}</td>
+                <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;text-align:right"><button onClick="{{ u.open }}" style="padding:7px 12px;background:#F3EFE7;border:1px solid #D8D2C4;border-radius:7px;font-size:12.5px;font-weight:700;color:#16191E;cursor:pointer" style-hover="background:#16191E;color:#F3EFE7">Ver ficha</button></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        <sc-if value="{{ catVacio }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px;color:#6F6A60;font-size:14px">
+            <svg viewBox="0 0 200 90" style="width:120px;opacity:0.35" fill="none" stroke="#16191E" stroke-width="3">
+              <rect x="8" y="34" width="46" height="30" rx="5"></rect>
+              <rect x="58" y="16" width="128" height="48" rx="5"></rect>
+              <circle cx="32" cy="72" r="9"></circle>
+              <circle cx="92" cy="72" r="9"></circle>
+              <circle cx="150" cy="72" r="9"></circle>
+            </svg>
+            Aún no hay unidades en esta vista.
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isUsuarios }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:fadeUp 0.35s ease">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="width:26px;height:4px;background:#F2620F"></span><span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;color:#F2620F">Administración</span></div>
+        <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:34px;color:#16191E;margin:0;text-transform:uppercase">Usuarios y Permisos</h2>
+        <p style="margin:4px 0 0;font-size:14.5px;color:#6F6A60">Administra quién entra al Hub y qué módulos puede usar cada rol.</p>
+      </div>
+
+      <div data-tour="usuarios" style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:22px;box-shadow:0 1px 2px rgba(20,24,29,0.05);animation:fadeUp 0.4s ease">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+          <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.06em;text-transform:uppercase;color:#16191E;margin:0">Usuarios</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <input type="text" value="{{ nuevoNombre }}" onChange="{{ onNuevoNombre }}" placeholder="Nombre del nuevo usuario" style="padding:9px 12px;border:1px solid #D8D2C4;border-radius:8px;font-size:14px;background:#FAF7F0;min-width:210px" style-focus="outline:2px solid #F2620F">
+            <select value="{{ nuevoRol }}" onChange="{{ onNuevoRol }}" style="padding:9px 12px;border:1px solid #D8D2C4;border-radius:8px;font-size:14px;background:#FAF7F0" style-focus="outline:2px solid #F2620F">
+              <sc-for list="{{ rolOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
+            </select>
+            <button onClick="{{ agregarUsuario }}" style="padding:9px 18px;background:#F2620F;color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer" style-hover="background:#D9550C">+ Agregar</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:620px">
+            <thead>
+              <tr style="text-align:left;color:#8A8374;font-size:12px;text-transform:uppercase;letter-spacing:0.08em">
+                <th style="padding:10px;border-bottom:2px solid #16191E">Usuario</th>
+                <th style="padding:10px;border-bottom:2px solid #16191E">Rol</th>
+                <th style="padding:10px;border-bottom:2px solid #16191E">Estado</th>
+                <th style="padding:10px;border-bottom:2px solid #16191E">Acceso</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ userRows }}" as="u" hint-placeholder-count="4">
+                <tr style-hover="background:#FAF7F0">
+                  <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <span style="{{ u.avatarStyle }}">{{ u.iniciales }}</span>
+                      <span style="font-weight:700">{{ u.nombre }}</span>
+                    </div>
+                  </td>
+                  <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0">
+                    <select value="{{ u.rol }}" onChange="{{ u.cambiarRol }}" style="padding:8px 10px;border:1px solid #D8D2C4;border-radius:7px;font-size:13.5px;background:#FAF7F0" style-focus="outline:2px solid #F2620F">
+                      <sc-for list="{{ rolOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
+                    </select>
+                  </td>
+                  <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0"><span style="{{ u.estadoStyle }}">{{ u.estado }}</span></td>
+                  <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0">
+                    <button onClick="{{ u.toggle }}" style="{{ u.toggleStyle }}" style-hover="opacity:0.85">{{ u.toggleLabel }}</button>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #E7E0D2;border-radius:12px;padding:22px;box-shadow:0 1px 2px rgba(20,24,29,0.05);animation:fadeUp 0.45s ease">
+        <div style="display:flex;align-items:center;gap:8px;margin:0 0 4px">
+          <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:0.06em;text-transform:uppercase;color:#16191E;margin:0">Permisos por rol</h3>
+          <span onMouseEnter="{{ tipPermisos }}" onMouseLeave="{{ tipHide }}" style="width:19px;height:19px;border-radius:50%;background:#EAE6DC;color:#6F6A60;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex:none">?</span>
+        </div>
+        <p style="margin:0 0 14px;font-size:13px;color:#6F6A60">Haz clic en una celda para activar o quitar el acceso de un rol a un módulo. Aplica de inmediato a todos los usuarios de ese rol.</p>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:560px">
+            <thead>
+              <tr style="text-align:left;color:#8A8374;font-size:12px;text-transform:uppercase;letter-spacing:0.08em">
+                <th style="padding:10px;border-bottom:2px solid #16191E">Módulo</th>
+                <sc-for list="{{ permCols }}" as="c" hint-placeholder-count="3">
+                  <th style="padding:10px;border-bottom:2px solid #16191E;text-align:center">{{ c.label }}</th>
+                </sc-for>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ permRows }}" as="m" hint-placeholder-count="5">
+                <tr style-hover="background:#FAF7F0">
+                  <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;font-weight:600">{{ m.label }}<div style="font-weight:400;font-size:12.5px;color:#6F6A60">{{ m.desc }}</div></td>
+                  <sc-for list="{{ m.cells }}" as="c" hint-placeholder-count="3">
+                    <td style="padding:11px 10px;border-bottom:1px solid #EFEAE0;text-align:center">
+                      <button onClick="{{ c.toggle }}" title="{{ c.title }}" style="{{ c.style }}" style-hover="opacity:0.8" style-focus="outline:2px solid #F2620F;outline-offset:2px">{{ c.mark }}</button>
+                    </td>
+                  </sc-for>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </sc-if>
+
+  </main>
+
+  <sc-if value="{{ tourActive }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:89"></div>
+    <div style="{{ spotStyle }}"></div>
+    <div style="{{ tourCardStyle }}">
+      <div style="height:5px;background:repeating-linear-gradient(135deg,#F2620F 0 12px,#16191E 12px 24px);border-radius:14px 14px 0 0;margin:-22px -22px 14px"></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:#F2620F">Paso {{ tourNum }} de {{ tourTotal }}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:26px;line-height:1.05;text-transform:uppercase;color:#16191E;margin:4px 0 8px">{{ tourTitle }}</div>
+      <p style="margin:0 0 16px;font-size:14.5px;line-height:1.55;color:#4A4438">{{ tourBody }}</p>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
+        <sc-for list="{{ tourDots }}" as="dt" hint-placeholder-count="5"><span style="{{ dt.style }}"></span></sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onClick="{{ tourSkip }}" style="background:none;border:none;color:#8A8374;font-size:13.5px;font-weight:600;cursor:pointer;padding:8px 4px" style-hover="color:#16191E">Saltar tutorial</button>
+        <span style="flex:1"></span>
+        <sc-if value="{{ tourHasPrev }}" hint-placeholder-val="{{ false }}"><button onClick="{{ tourPrev }}" style="background:#fff;border:1px solid #D8D2C4;color:#16191E;padding:10px 16px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer" style-hover="border-color:#16191E">← Atrás</button></sc-if>
+        <button onClick="{{ tourNext }}" style="background:#F2620F;border:none;color:#fff;padding:10px 20px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer" style-hover="background:#D9550C">{{ tourNextLabel }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ tipVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ tipStyle }}">{{ tipText }}</div>
+  </sc-if>
+
+  <sc-if value="{{ confirmVisible }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ confirmCancel }}" style="position:fixed;inset:0;background:rgba(20,24,29,0.55);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div onClick="{{ confirmStop }}" style="background:#fff;border-radius:14px;max-width:480px;width:100%;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,0.35);border-top:5px solid #F2620F;animation:fadeUp 0.2s ease">
+        <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;text-transform:uppercase;color:#16191E;margin:0 0 10px">Confirmar instalación</h3>
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.55;color:#4A4438">Vas a cambiar el estado de la pieza <strong style="color:#16191E">{{ confirmPieza }}</strong> del tracto <strong style="color:#F2620F">{{ confirmDestino }}</strong> a <strong style="color:#2C7A44">Instalado</strong>.</p>
+        <p style="margin:0 0 20px;font-size:15px;font-weight:600;color:#16191E">¿Es correcto?</p>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button onClick="{{ confirmCancel }}" style="padding:10px 18px;background:#fff;border:1px solid #D8D2C4;border-radius:8px;font-size:14px;font-weight:700;color:#16191E;cursor:pointer" style-hover="background:#F3EFE7">Cancelar</button>
+          <button onClick="{{ confirmOk }}" style="padding:10px 20px;background:#2C7A44;border:none;border-radius:8px;font-size:14px;font-weight:700;color:#fff;cursor:pointer" style-hover="background:#245F37">Sí, marcar instalada</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#16191E;color:#F3EFE7;border-radius:10px;padding:14px 22px;font-size:14.5px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.3);animation:toastIn 0.25s ease;z-index:50;border-left:4px solid #F2620F">
+      <span style="width:10px;height:10px;border-radius:50%;background:#3FA65C;flex:none"></span>{{ toastMsg }}
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+

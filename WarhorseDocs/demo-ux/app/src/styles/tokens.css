@@ -1,56 +1,78 @@
-/* styles/tokens.css — tokens del doc 08 (Tailwind 4 @theme) */
+/* Base + keyframes portados literalmente del demo validado
+   (Hub Gastos Tracto - Standalone.html). Tailwind queda disponible para la
+   promoción a apps/web, pero las vistas usan los estilos del original. */
 @import "tailwindcss";
 
 @theme {
   --color-wh-bg: #F3EFE7;
-  --color-wh-surface: #FFFFFF;
   --color-wh-ink: #16191E;
-  --color-wh-ink-soft: #4A4438;
-  --color-wh-muted: #6F6A60;
-  --color-wh-muted-2: #8A8374;
-  --color-wh-on-dark: #DDD7CB;
-  --color-wh-nav-idle: #B8B2A6;
-  --color-wh-border: #D8D2C4;
-  --color-wh-border-soft: #EFEAE0;
-  --color-wh-chip-neutral: #EAE6DC;
-
+  --color-wh-dark: #14181D;
   --color-wh-orange: #F2620F;
-  --color-wh-orange-hover: #D9550C;
-  --color-wh-orange-soft: #FDE8DC;
-  --color-wh-orange-ink: #B4430A;
-  --color-wh-orange-focus: #F9B48A;
-  --color-wh-orange-04: rgba(242, 98, 15, 0.16);
-
-  --color-wh-green: #3FA65C;
-  --color-wh-green-soft: #E5F3E9;
-  --color-wh-green-ink: #2C7A44;
-  --color-wh-green-border: #9FD4B0;
-  --color-wh-amber-soft: #FBF3D9;
-  --color-wh-amber-ink: #8A6D1A;
-  --color-wh-amber-border: #E0C36A;
-  --color-wh-blue-soft: #E3ECF7;
-  --color-wh-blue-ink: #1B4E8C;
-  --color-wh-blue-border: #9FC0E4;
-
   --font-body: "Barlow", system-ui, sans-serif;
   --font-display: "Barlow Condensed", "Barlow", sans-serif;
-
-  --radius-input: 9px;
-  --radius-card: 13px;
 }
 
 @layer base {
+  html,
   body {
-    @apply bg-wh-bg text-wh-ink font-body;
+    margin: 0;
+    padding: 0;
+    background: #F3EFE7;
+    font-family: Barlow, sans-serif;
+    color: #16191E;
   }
-  h1, h2, h3 {
-    @apply font-display uppercase;
+  * {
+    box-sizing: border-box;
+  }
+  input,
+  select,
+  button,
+  textarea {
+    font-family: Barlow, sans-serif;
+  }
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #F2620F;
+    outline-offset: 1px;
   }
 }
 
-@keyframes growBar {
-  from { height: 0; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(63, 166, 92, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(63, 166, 92, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(63, 166, 92, 0); }
+}
+@keyframes growBar {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* Equivalentes de los style-hover del original (inline styles obligan !important) */
+.hv-fila:hover { background: #FAF7F0 !important; }
+.hv-nav:hover { background: rgba(243, 239, 231, 0.08) !important; color: #F3EFE7 !important; }
+.hv-naranja:hover { background: #D9550C !important; transform: translateY(-1px); }
+.hv-inkfill:hover { background: #16191E !important; color: #F3EFE7 !important; }
+.hv-ficha:hover { background: #F2620F !important; transform: translateY(-1px); }
+.hv-borde-naranja:hover { border-color: #F2620F !important; color: #F2620F !important; }
+.hv-borde-naranja-solo:hover { border-color: #F2620F !important; }
+.hv-borde-ink:hover { border-color: #16191E !important; }
+.hv-claro:hover { background: rgba(243, 239, 231, 0.2) !important; }
+.hv-crema:hover { background: #F3EFE7 !important; }
+.hv-verde:hover { background: #245F37 !important; }
+.hv-ink-texto:hover { color: #16191E !important; }
+.hv-op85:hover { opacity: 0.85; }
+.hv-op8:hover { opacity: 0.8; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
