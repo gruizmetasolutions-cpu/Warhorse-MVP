@@ -12,3 +12,4 @@ parameters:
     codeigniter:
         additionalServices:
             - CodeIgniter\Shield\Config\Services
+            - CodeIgniter\Queue\Config\Services

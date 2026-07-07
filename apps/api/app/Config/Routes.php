@@ -24,6 +24,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('unidades/(:num)/ficha', 'UnidadesController::ficha/$1', ['filter' => ['cors', 'api-auth']]);
     $routes->post('unidades', 'UnidadesController::create', ['filter' => ['cors', 'api-auth', 'rbac:admin']]);
     $routes->patch('unidades/(:num)', 'UnidadesController::update/$1', ['filter' => ['cors', 'api-auth', 'rbac:admin']]);
+
+    // Requisiciones (RF-REQ-01..07): crea solo Taller; leen taller (las
+    // suyas, anti-IDOR en el service), compras y admin
+    $routes->post('requisiciones', 'RequisicionesController::create', ['filter' => ['cors', 'api-auth', 'rbac:taller']]);
+    $routes->get('requisiciones', 'RequisicionesController::index', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin']]);
+    $routes->get('requisiciones/(:num)/foto', 'RequisicionesController::foto/$1', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin']]);
 });
 
 // Preflight CORS del SPA

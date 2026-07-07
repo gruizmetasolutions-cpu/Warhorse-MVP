@@ -30,7 +30,7 @@ if grep -q '"test:e2e"' "$WEB/package.json"; then
 fi
 
 # ---- Backend (apps/api) ----
-paso "PHPStan nivel 8"     bash -c "cd '$API' && php vendor/bin/phpstan analyse --no-progress"
+paso "PHPStan nivel 8"     bash -c "cd '$API' && php -d memory_limit=1G vendor/bin/phpstan analyse --no-progress --memory-limit=1G"
 paso "PHPUnit"             bash -c "cd '$API' && vendor/bin/phpunit --no-coverage"
 
 # ---- Auditorías de dependencias ----

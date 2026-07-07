@@ -52,6 +52,41 @@ vi.mock('../lib/api', async (importOriginal) => {
       Object.assign(u, cambio)
       return u
     },
+    crearRequisicion: async (datos: { origen: string; descripcion_pieza: string; costo_estimado_manual: number | null; unidad_destino_id: number; unidad_donante_id: number | null }) => {
+      // Réplica ligera de la cascada A→C→manual del backend (ADR-002)
+      const CATALOGO: Record<string, number> = { Alternador: 3200, Turbo: 4500 }
+      let costo: number | null = null
+      let origenCosto: string | null = null
+      if (datos.origen === 'Yonke') {
+        const enCatalogo = CATALOGO[datos.descripcion_pieza]
+        if (enCatalogo) {
+          costo = enCatalogo
+          origenCosto = 'catalogo'
+        } else if (datos.costo_estimado_manual && datos.costo_estimado_manual > 0) {
+          costo = datos.costo_estimado_manual
+          origenCosto = 'manual'
+        } else {
+          throw new real.ApiError(422, 'validation', 'Asigna un costo estimado a la pieza donada, aunque no exista factura.', {
+            costo_estimado_manual: ['Asigna un costo estimado a la pieza donada, aunque no exista factura.'],
+          })
+        }
+      }
+      return {
+        id: 999,
+        estado: 'Solicitado',
+        origen: datos.origen,
+        unidad_destino_id: datos.unidad_destino_id,
+        unidad_donante_id: datos.unidad_donante_id,
+        descripcion_pieza: datos.descripcion_pieza,
+        numero_parte: null,
+        urgencia: 'Media',
+        costo_estimado: costo,
+        origen_costo_estimado: origenCosto,
+        costo_real: null,
+        foto_pieza_url: 'x.jpg',
+        fecha_solicitud: '2026-07-07',
+      }
+    },
     login: async (email: string, password: string) => {
       const u = USUARIOS[email]
       if (!u || password !== 'warhorse-demo') {
@@ -124,7 +159,7 @@ test('la ficha de una unidad Yonke muestra sus piezas donadas', async () => {
   expect(screen.getByText('Turbo')).toBeInTheDocument()
 })
 
-test('requisición: validaciones verbatim y envío Yonke con toast', async () => {
+test('requisición: validaciones verbatim, cascada del backend y envío con foto real', async () => {
   montarApp()
   await entrarComo('edgar@warhorse.mx')
   await screen.findByRole('heading', { name: /requisición de refacciones/i })
@@ -132,13 +167,31 @@ test('requisición: validaciones verbatim y envío Yonke con toast', async () =>
   await userEvent.click(screen.getByRole('button', { name: /enviar requisición/i }))
   expect(await screen.findByText('Selecciona el tracto destino.')).toBeInTheDocument()
 
-  await userEvent.selectOptions(screen.getByLabelText(/tracto destino/i), 'WH125')
-  await userEvent.type(screen.getByLabelText(/descripción de la pieza/i), 'Alternador')
+  await userEvent.selectOptions(
+    screen.getByLabelText(/tracto destino/i),
+    screen.getByRole('option', { name: 'WH125 · Tractor' }),
+  )
+  await userEvent.click(screen.getByRole('button', { name: /enviar requisición/i }))
+  expect(await screen.findByText('Describe la pieza solicitada.')).toBeInTheDocument()
+
+  await userEvent.type(screen.getByLabelText(/descripción de la pieza/i), 'Marcha reconstruida')
   await userEvent.click(screen.getByRole('button', { name: /canibalizado de yonke/i }))
   await userEvent.click(screen.getByRole('button', { name: /enviar requisición/i }))
   expect(await screen.findByText('El origen Yonke obliga a registrar la unidad donante.')).toBeInTheDocument()
 
-  await userEvent.selectOptions(screen.getByLabelText(/tracto donante/i), 'WH03')
+  await userEvent.selectOptions(
+    screen.getByLabelText(/tracto donante/i),
+    screen.getByRole('option', { name: 'WH03 · Yonke donante' }),
+  )
+  await userEvent.click(screen.getByRole('button', { name: /enviar requisición/i }))
+  expect(await screen.findByText('La foto de la pieza o número de serie es obligatoria.')).toBeInTheDocument()
+
+  // Foto REAL (input file oculto tras la zona punteada)
+  const archivo = new File(['foto'], 'pieza_dañada.jpg', { type: 'image/jpeg' })
+  await userEvent.upload(screen.getByLabelText(/toca para adjuntar/i), archivo)
+  expect(await screen.findByText(/pieza_dañada\.jpg adjunta/)).toBeInTheDocument()
+
+  // A y C fallan para una pieza desconocida → el 422 de la cascada llega del backend
   await userEvent.click(screen.getByRole('button', { name: /enviar requisición/i }))
   expect(
     await screen.findByText('Asigna un costo estimado a la pieza donada, aunque no exista factura.'),
@@ -146,11 +199,32 @@ test('requisición: validaciones verbatim y envío Yonke con toast', async () =>
 
   await userEvent.type(screen.getByLabelText(/costo estimado/i), '2800')
   await userEvent.click(screen.getByRole('button', { name: /enviar requisición/i }))
-  expect(await screen.findByText('La foto de la pieza o número de serie es obligatoria.')).toBeInTheDocument()
+  expect(await screen.findByText(/Requisición enviada — Compras la verá en su panel/)).toBeInTheDocument()
+  expect(screen.getByText(/manual/)).toBeInTheDocument()
+})
 
-  await userEvent.click(screen.getByRole('button', { name: /toca para adjuntar/i }))
+test('requisición Yonke de pieza en catálogo: el costo lo calcula el backend (cascada C)', async () => {
+  montarApp()
+  await entrarComo('edgar@warhorse.mx')
+  await screen.findByRole('heading', { name: /requisición de refacciones/i })
+
+  await userEvent.selectOptions(
+    screen.getByLabelText(/tracto destino/i),
+    screen.getByRole('option', { name: 'WH104 · Tractor' }),
+  )
+  await userEvent.type(screen.getByLabelText(/descripción de la pieza/i), 'Alternador')
+  await userEvent.click(screen.getByRole('button', { name: /canibalizado de yonke/i }))
+  await userEvent.selectOptions(
+    screen.getByLabelText(/tracto donante/i),
+    screen.getByRole('option', { name: 'WH60 · Yonke donante' }),
+  )
+  await userEvent.upload(
+    screen.getByLabelText(/toca para adjuntar/i),
+    new File(['foto'], 'alternador.jpg', { type: 'image/jpeg' }),
+  )
+  // SIN costo manual: la cascada lo resuelve por catálogo
   await userEvent.click(screen.getByRole('button', { name: /enviar requisición/i }))
-  expect(await screen.findByText('Requisición enviada — Compras la verá en su panel.')).toBeInTheDocument()
+  expect(await screen.findByText(/Costo estimado: \$3,200 \(catalogo\)/)).toBeInTheDocument()
 })
 
 test('compras: Cotizado avanza directo y la instalación pide confirmación', async () => {

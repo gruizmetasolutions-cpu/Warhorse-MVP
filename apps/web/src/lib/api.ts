@@ -1,7 +1,7 @@
 // Contrato de datos del SPA (doc 05). Auth es REAL desde el Sprint 1; el
 // resto de los datos sigue en lib/mock/ y se sustituye sprint a sprint
 // (Demo-First, ADR-003). Las vistas importan SOLO este módulo.
-import type { DatosDemo, EstadoUnidad, Rol, TipoUnidad } from './types'
+import type { DatosDemo, EstadoUnidad, Origen, Rol, TipoUnidad, Urgencia } from './types'
 import * as mock from './mock'
 
 const BASE = '/api/v1'
@@ -23,7 +23,8 @@ export class ApiError extends Error {
 
 async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    // Con FormData el navegador fija el boundary del multipart
+    ...(opciones.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(opciones.headers as Record<string, string> | undefined),
   }
   if (tokenActual) headers.Authorization = `Bearer ${tokenActual}`
@@ -122,5 +123,47 @@ export function actualizarUnidad(
   return pedir<UnidadApi>(`/unidades/${id}`, { method: 'PATCH', body: JSON.stringify(cambio) })
 }
 
-// ---- Datos aún simulados (se sustituyen en los sprints 3-5) ----
+// ---- Requisiciones (reales desde el Sprint 3, doc 05 §5) ----
+
+export interface RequisicionApi {
+  id: number
+  estado: string
+  origen: Origen
+  unidad_destino_id: number
+  unidad_donante_id: number | null
+  descripcion_pieza: string
+  numero_parte: string | null
+  urgencia: Urgencia
+  costo_estimado: number | null
+  origen_costo_estimado: 'ultima_compra' | 'catalogo' | 'manual' | null
+  costo_real: number | null
+  foto_pieza_url: string
+  fecha_solicitud: string
+}
+
+export interface NuevaRequisicionApi {
+  unidad_destino_id: number
+  origen: Origen
+  unidad_donante_id: number | null
+  descripcion_pieza: string
+  numero_parte: string | null
+  urgencia: Urgencia
+  costo_estimado_manual: number | null
+  foto: File
+}
+
+export function crearRequisicion(datos: NuevaRequisicionApi): Promise<RequisicionApi> {
+  const fd = new FormData()
+  fd.set('unidad_destino_id', String(datos.unidad_destino_id))
+  fd.set('origen', datos.origen)
+  if (datos.unidad_donante_id !== null) fd.set('unidad_donante_id', String(datos.unidad_donante_id))
+  fd.set('descripcion_pieza', datos.descripcion_pieza)
+  if (datos.numero_parte) fd.set('numero_parte', datos.numero_parte)
+  fd.set('urgencia', datos.urgencia)
+  if (datos.costo_estimado_manual !== null) fd.set('costo_estimado_manual', String(datos.costo_estimado_manual))
+  fd.set('foto_pieza', datos.foto)
+  return pedir<RequisicionApi>('/requisiciones', { method: 'POST', body: fd })
+}
+
+// ---- Datos aún simulados (se sustituyen en los sprints 4-5) ----
 export const getDatos = (): Promise<DatosDemo> => mock.getDatos()
