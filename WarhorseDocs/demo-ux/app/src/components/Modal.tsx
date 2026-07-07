@@ -22,7 +22,14 @@ export default function Modal({
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   const focoPrevio = useRef<HTMLElement | null>(null)
+  const onCerrarRef = useRef(onCerrar)
 
+  useEffect(() => {
+    onCerrarRef.current = onCerrar
+  }, [onCerrar])
+
+  // La trampa de foco depende SOLO de `abierto`: si dependiera de onCerrar
+  // (función nueva en cada render del padre), cada tecleo robaría el foco.
   useEffect(() => {
     if (!abierto) return
     focoPrevio.current = document.activeElement as HTMLElement
@@ -30,7 +37,7 @@ export default function Modal({
     panel?.querySelector<HTMLElement>('input, select, textarea, button')?.focus()
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCerrar()
+      if (e.key === 'Escape') onCerrarRef.current()
       if (e.key === 'Tab' && panel) {
         const focables = panel.querySelectorAll<HTMLElement>('button, [href], input, select, textarea')
         if (!focables.length) return
@@ -50,7 +57,7 @@ export default function Modal({
       document.removeEventListener('keydown', onKey)
       focoPrevio.current?.focus()
     }
-  }, [abierto, onCerrar])
+  }, [abierto])
 
   if (!abierto) return null
   return (

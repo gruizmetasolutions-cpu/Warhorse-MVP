@@ -23,6 +23,13 @@ export const unidades: Unidad[] = [
 
 export const requisiciones: Requisicion[] = [
   {
+    id: 86, estado: 'Solicitado', origen: 'Yonke', unidad_destino_id: 10, unidad_donante_id: 4,
+    descripcion_pieza: 'Compresora de aire', numero_parte: null, urgencia: 'Crítica',
+    costo_estimado: 3200, costo_real: null, es_estimado: true,
+    origen_costo_estimado: 'catalogo', numero_factura: null,
+    foto_pieza_url: '/uploads/compresora-wh60.jpg', fecha_solicitud: '2026-07-06',
+  },
+  {
     id: 87, estado: 'Instalado', origen: 'Yonke', unidad_destino_id: 12, unidad_donante_id: 3,
     descripcion_pieza: 'Turbo', numero_parte: null, urgencia: 'Crítica',
     costo_estimado: 4500, costo_real: null, es_estimado: true,
