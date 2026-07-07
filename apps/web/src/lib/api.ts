@@ -1,7 +1,7 @@
 // Contrato de datos del SPA (doc 05). Auth es REAL desde el Sprint 1; el
 // resto de los datos sigue en lib/mock/ y se sustituye sprint a sprint
 // (Demo-First, ADR-003). Las vistas importan SOLO este módulo.
-import type { DatosDemo, EstadoUnidad, Origen, Rol, TipoUnidad, Urgencia } from './types'
+import type { DatosDemo, EstadoRequisicion, EstadoUnidad, Origen, Rol, TipoUnidad, Urgencia } from './types'
 import * as mock from './mock'
 
 const BASE = '/api/v1'
@@ -165,5 +165,66 @@ export function crearRequisicion(datos: NuevaRequisicionApi): Promise<Requisicio
   return pedir<RequisicionApi>('/requisiciones', { method: 'POST', body: fd })
 }
 
-// ---- Datos aún simulados (se sustituyen en los sprints 4-5) ----
+// ---- Panel de Compras (real desde el Sprint 4, doc 05 §6) ----
+
+export interface FilaCompras extends RequisicionApi {
+  unidad_destino: string
+  unidad_donante: string | null
+}
+
+export async function getColaCompras(estado?: EstadoRequisicion): Promise<FilaCompras[]> {
+  const filtro = estado ? `?estado=${estado}` : ''
+  const r = await pedir<{ data: FilaCompras[] }>(`/compras/requisiciones${filtro}`)
+  return r.data
+}
+
+export function avanzarEstado(
+  id: number,
+  cambio: { estado: EstadoRequisicion; costo_real?: number; numero_factura?: string },
+): Promise<RequisicionApi> {
+  return pedir<RequisicionApi>(`/compras/requisiciones/${id}/estado`, {
+    method: 'PATCH',
+    body: JSON.stringify(cambio),
+  })
+}
+
+// ---- Taller (real desde el Sprint 4, doc 05 §7) ----
+
+export interface RegistroTallerApi {
+  id: number
+  unidad_id: number
+  id_unidad: string
+  fecha_ingreso: string
+  fecha_salida: string | null
+  dias_en_taller: number | null
+  diagnostico: string
+  criticidad: 'Rápida' | 'Media' | 'Crítico'
+  costo_taller: number
+  tipo_liberacion: 'Total' | 'Parcial' | null
+  pendientes: string[] | null
+  es_reincidencia: boolean | 0 | 1
+}
+
+export async function getTaller(): Promise<RegistroTallerApi[]> {
+  const r = await pedir<{ data: RegistroTallerApi[] }>('/taller')
+  return r.data
+}
+
+export function registrarIngreso(datos: {
+  unidad_id: number
+  fecha_ingreso: string
+  diagnostico: string
+  criticidad: 'Rápida' | 'Media' | 'Crítico'
+}): Promise<RegistroTallerApi> {
+  return pedir<RegistroTallerApi>('/taller', { method: 'POST', body: JSON.stringify(datos) })
+}
+
+export function liberarUnidad(
+  id: number,
+  datos: { tipo_liberacion: 'Total' | 'Parcial'; fecha_salida: string; costo_taller: number; pendientes?: string[] },
+): Promise<RegistroTallerApi> {
+  return pedir<RegistroTallerApi>(`/taller/${id}/liberar`, { method: 'PATCH', body: JSON.stringify(datos) })
+}
+
+// ---- Datos aún simulados (se sustituyen en el Sprint 5) ----
 export const getDatos = (): Promise<DatosDemo> => mock.getDatos()

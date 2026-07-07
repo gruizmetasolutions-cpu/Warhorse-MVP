@@ -30,6 +30,16 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->post('requisiciones', 'RequisicionesController::create', ['filter' => ['cors', 'api-auth', 'rbac:taller']]);
     $routes->get('requisiciones', 'RequisicionesController::index', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin']]);
     $routes->get('requisiciones/(:num)/foto', 'RequisicionesController::foto/$1', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin']]);
+
+    // Panel de Compras (RF-COM-01..04): la cola la ven compras y admin; el
+    // ciclo lo avanza SOLO compras (doc 05 §6)
+    $routes->get('compras/requisiciones', 'ComprasController::index', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin']]);
+    $routes->patch('compras/requisiciones/(:num)/estado', 'ComprasController::estado/$1', ['filter' => ['cors', 'api-auth', 'rbac:compras']]);
+
+    // Taller (RF-TAL-01..04): captura solo taller; lectura taller y admin
+    $routes->get('taller', 'TallerController::index', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin']]);
+    $routes->post('taller', 'TallerController::create', ['filter' => ['cors', 'api-auth', 'rbac:taller']]);
+    $routes->patch('taller/(:num)/liberar', 'TallerController::liberar/$1', ['filter' => ['cors', 'api-auth', 'rbac:taller']]);
 });
 
 // Preflight CORS del SPA

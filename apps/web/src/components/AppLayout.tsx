@@ -7,6 +7,7 @@ import { ConfirmarModal, TipFlotante, ToastAviso, TourOverlay } from './Overlays
 const navDefs = [
   { id: 'dashboard', label: 'Tablero' },
   { id: 'requisicion', label: 'Requisición' },
+  { id: 'taller', label: 'Taller' },
   { id: 'compras', label: 'Compras' },
   { id: 'catalogo', label: 'Catálogo' },
   { id: 'usuarios', label: 'Usuarios' },

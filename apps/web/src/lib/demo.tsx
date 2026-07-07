@@ -37,10 +37,9 @@ export const pasosTour: PasoTour[] = [
 ]
 
 export interface Confirmacion {
-  id: string
   pieza: string
   destino: string
-  next: EstadoRequisicion
+  alConfirmar: () => void | Promise<void>
 }
 
 export interface Tip {
@@ -92,6 +91,7 @@ const Ctx = createContext<ContextoDemo | null>(null)
 const rutaDeVista: Record<string, string> = {
   dashboard: '/dashboard',
   requisicion: '/requisicion',
+  taller: '/taller',
   compras: '/compras',
   catalogo: '/catalogo',
   usuarios: '/usuarios',

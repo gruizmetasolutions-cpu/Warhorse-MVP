@@ -29,7 +29,116 @@ final class RequisicionService
         private readonly UnidadModel $unidades = new UnidadModel(),
         private readonly ValorizacionService $valorizacion = new ValorizacionService(),
         private readonly AuditoriaService $auditoria = new AuditoriaService(),
+        private readonly ConsolidadoService $consolidado = new ConsolidadoService(),
     ) {
+    }
+
+    /**
+     * Cola de Compras (RF-COM-01): ordenada Crítica→Media→Rápida, filtrable
+     * por estado; usa el índice compuesto (estado, urgencia) del doc 03.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listarCola(?string $estado): array
+    {
+        $builder = db_connect()->table('requisiciones r')
+            ->select('r.*, d.id_unidad AS unidad_destino, y.id_unidad AS unidad_donante')
+            ->join('unidades d', 'd.id = r.unidad_destino_id')
+            ->join('unidades y', 'y.id = r.unidad_donante_id', 'left');
+
+        if ($estado !== null && $estado !== '') {
+            $builder->where('r.estado', $estado);
+        }
+
+        return Bd::filas(
+            $builder->orderBy("FIELD(r.urgencia, 'Crítica', 'Media', 'Rápida')", '', false)
+                ->orderBy('r.fecha_solicitud', 'ASC'),
+        );
+    }
+
+    /**
+     * Avanza el ciclo de una requisición (RF-COM-02/03) según la máquina
+     * §4.2 del SRS. La instalación corre en transacción ACID: requisición +
+     * consolidado del destino + auditoría con el origen del estimado.
+     *
+     * @param array<string, mixed> $cambio
+     * @param array<string, mixed> $actor
+     *
+     * @return array<string, mixed>
+     */
+    public function avanzarEstado(int $id, array $cambio, array $actor): array
+    {
+        $req = $this->requisiciones->porId($id);
+        if ($req === null) {
+            throw new NoEncontradoException('Requisición no encontrada.');
+        }
+
+        $nuevo  = (string) ($cambio['estado'] ?? '');
+        $origen = (string) $req['origen'];
+        $actual = (string) $req['estado'];
+
+        // RF-INT-03: una requisición Yonke jamás lleva factura
+        if ($origen === 'Yonke' && ! empty($cambio['numero_factura'])) {
+            throw new ConflictoException('Una requisición Yonke no puede llevar número de factura.');
+        }
+
+        $legal = ($origen === 'Compra' && $actual === 'Solicitado' && $nuevo === 'Cotizado')
+            || ($origen === 'Compra' && $actual === 'Cotizado' && $nuevo === 'Comprado')
+            || ($origen === 'Compra' && $actual === 'Comprado' && $nuevo === 'Instalado')
+            || ($origen === 'Yonke' && $actual === 'Solicitado' && $nuevo === 'Instalado');
+
+        if (! $legal) {
+            throw new ConflictoException("Transición ilegal: {$origen} {$actual} → {$nuevo}.");
+        }
+
+        $actualizacion = ['estado' => $nuevo];
+
+        if ($nuevo === 'Comprado') {
+            $costoReal = (float) ($cambio['costo_real'] ?? 0);
+            $factura   = trim((string) ($cambio['numero_factura'] ?? ''));
+            if ($costoReal <= 0 || $factura === '') {
+                throw new ValidacionException('Falta el costo real y el número de factura.', [
+                    'costo_real'     => $costoReal <= 0 ? ['Captura el costo real facturado.'] : [],
+                    'numero_factura' => $factura === '' ? ['Captura el número de factura.'] : [],
+                ]);
+            }
+            $actualizacion['costo_real']     = $costoReal;
+            $actualizacion['numero_factura'] = $factura;
+        }
+
+        $db = db_connect();
+        $db->transStart();
+
+        if ($nuevo === 'Instalado') {
+            $actualizacion['fecha_instalacion'] = date('Y-m-d');
+            // El costo efectivo suma al consolidado del tracto destino
+            $costoEfectivo = $origen === 'Yonke'
+                ? (float) $req['costo_estimado']
+                : (float) $req['costo_real'];
+            $this->consolidado->agregarRefaccion((int) $req['unidad_destino_id'], $costoEfectivo);
+
+            $this->requisiciones->update($id, $actualizacion);
+            $this->auditoria->registrar($actor, 'requisicion.instalada', 'requisiciones', $id, [
+                'estado' => $actual,
+            ], [
+                'estado'                => 'Instalado',
+                'costo_aplicado'        => $costoEfectivo,
+                'origen_costo_estimado' => $req['origen_costo_estimado'],
+            ]);
+        } else {
+            $this->requisiciones->update($id, $actualizacion);
+            $this->auditoria->registrar($actor, 'requisicion.estado', 'requisiciones', $id, [
+                'estado' => $actual,
+            ], [
+                'estado' => $nuevo,
+            ]);
+        }
+
+        $db->transComplete();
+
+        $fila = $this->requisiciones->porId($id);
+
+        return $fila ?? [];
     }
 
     /**

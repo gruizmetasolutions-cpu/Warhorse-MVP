@@ -20,6 +20,17 @@ vi.mock('../lib/api', async (importOriginal) => {
     'greisy@warhorse.mx': { rol: 'diesel', nombre: 'Greisy López', landing: 'diesel' },
   }
   let actual: string | null = null
+  const reqsFake = [
+    { id: 1, estado: 'Instalado', origen: 'Yonke', unidad_destino_id: 10, unidad_donante_id: 3, unidad_destino: 'WH101', unidad_donante: 'WH03', descripcion_pieza: 'Turbo', numero_parte: null, urgencia: 'Crítica', costo_estimado: 4500, origen_costo_estimado: 'catalogo', costo_real: null, foto_pieza_url: 'a.jpg', fecha_solicitud: '2026-06-20' },
+    { id: 2, estado: 'Cotizado', origen: 'Compra', unidad_destino_id: 11, unidad_donante_id: null, unidad_destino: 'WH104', unidad_donante: null, descripcion_pieza: 'Balatas de freno', numero_parte: null, urgencia: 'Media', costo_estimado: null, origen_costo_estimado: null, costo_real: null, foto_pieza_url: 'b.jpg', fecha_solicitud: '2026-06-28' },
+    { id: 3, estado: 'Comprado', origen: 'Compra', unidad_destino_id: 13, unidad_donante_id: null, unidad_destino: 'WH125', unidad_donante: null, descripcion_pieza: 'Kit de clutch', numero_parte: null, urgencia: 'Crítica', costo_estimado: null, origen_costo_estimado: null, costo_real: 6400, foto_pieza_url: 'c.jpg', fecha_solicitud: '2026-06-25' },
+    { id: 4, estado: 'Solicitado', origen: 'Yonke', unidad_destino_id: 11, unidad_donante_id: 4, unidad_destino: 'WH104', unidad_donante: 'WH60', descripcion_pieza: 'Alternador', numero_parte: null, urgencia: 'Media', costo_estimado: 3200, origen_costo_estimado: 'catalogo', costo_real: null, foto_pieza_url: 'd.jpg', fecha_solicitud: '2026-06-30' },
+    { id: 5, estado: 'Solicitado', origen: 'Compra', unidad_destino_id: 14, unidad_donante_id: null, unidad_destino: 'WH210', unidad_donante: null, descripcion_pieza: 'Filtros de aceite', numero_parte: null, urgencia: 'Rápida', costo_estimado: null, origen_costo_estimado: null, costo_real: null, foto_pieza_url: 'e.jpg', fecha_solicitud: '2026-06-30' },
+  ]
+  const registrosFake: Array<{ id: number; unidad_id: number; id_unidad: string; fecha_ingreso: string; fecha_salida: string | null; dias_en_taller: number | null; diagnostico: string; criticidad: string; costo_taller: number; tipo_liberacion: string | null; pendientes: string[] | null; es_reincidencia: boolean }> = [
+    { id: 800, unidad_id: 11, id_unidad: 'WH104', fecha_ingreso: '2026-07-01', fecha_salida: null, dias_en_taller: null, diagnostico: 'Frenos traseros', criticidad: 'Media', costo_taller: 0, tipo_liberacion: null, pendientes: null, es_reincidencia: false },
+    { id: 801, unidad_id: 13, id_unidad: 'WH125', fecha_ingreso: '2026-03-01', fecha_salida: '2026-05-26', dias_en_taller: 86, diagnostico: 'Transmisión tronada', criticidad: 'Crítico', costo_taller: 32000, tipo_liberacion: 'Total', pendientes: null, es_reincidencia: false },
+  ]
   const unidadesFake = [
     { id: 10, id_unidad: 'WH101', tipo: 'Tractor', estado: 'Activo', valor_referencia: 480000, costo_real_acumulado: 45000, candidata_reincidencia: false },
     { id: 11, id_unidad: 'WH104', tipo: 'Tractor', estado: 'Activo', valor_referencia: 520000, costo_real_acumulado: 46700, candidata_reincidencia: false },
@@ -86,6 +97,60 @@ vi.mock('../lib/api', async (importOriginal) => {
         foto_pieza_url: 'x.jpg',
         fecha_solicitud: '2026-07-07',
       }
+    },
+    getColaCompras: async (estado?: string) => {
+      const peso: Record<string, number> = { 'Crítica': 0, Media: 1, 'Rápida': 2 }
+      return reqsFake
+        .filter((q) => !estado || q.estado === estado)
+        .slice()
+        .sort((a, b) => peso[a.urgencia] - peso[b.urgencia])
+    },
+    avanzarEstado: async (id: number, cambio: { estado: string; costo_real?: number; numero_factura?: string }) => {
+      const q = reqsFake.find((x) => x.id === id)
+      if (!q) throw new real.ApiError(404, 'not_found', 'Requisición no encontrada.')
+      const legal = (q.origen === 'Compra' && q.estado === 'Solicitado' && cambio.estado === 'Cotizado')
+        || (q.origen === 'Compra' && q.estado === 'Cotizado' && cambio.estado === 'Comprado')
+        || (q.origen === 'Compra' && q.estado === 'Comprado' && cambio.estado === 'Instalado')
+        || (q.origen === 'Yonke' && q.estado === 'Solicitado' && cambio.estado === 'Instalado')
+      if (!legal) throw new real.ApiError(409, 'conflict', `Transición ilegal: ${q.origen} ${q.estado} → ${cambio.estado}.`)
+      if (cambio.estado === 'Comprado' && (!cambio.costo_real || !cambio.numero_factura)) {
+        throw new real.ApiError(422, 'validation', 'Falta el costo real y el número de factura.', {
+          costo_real: ['Falta el costo real y el número de factura.'],
+        })
+      }
+      Object.assign(q, { estado: cambio.estado, costo_real: cambio.costo_real ?? q.costo_real })
+      return q
+    },
+    getTaller: async () => registrosFake.slice(),
+    registrarIngreso: async (datos: { unidad_id: number; fecha_ingreso: string; diagnostico: string; criticidad: string }) => {
+      const nuevo = {
+        id: 900 + registrosFake.length,
+        unidad_id: datos.unidad_id,
+        id_unidad: unidadesFake.find((u) => u.id === datos.unidad_id)?.id_unidad ?? '—',
+        fecha_ingreso: datos.fecha_ingreso,
+        fecha_salida: null,
+        dias_en_taller: null,
+        diagnostico: datos.diagnostico,
+        criticidad: datos.criticidad,
+        costo_taller: 0,
+        tipo_liberacion: null,
+        pendientes: null,
+        es_reincidencia: false,
+      }
+      registrosFake.unshift(nuevo)
+      return nuevo
+    },
+    liberarUnidad: async (id: number, datos: { tipo_liberacion: string; fecha_salida: string; costo_taller: number; pendientes?: string[] }) => {
+      const r = registrosFake.find((x) => x.id === id)
+      if (!r) throw new real.ApiError(404, 'not_found', 'Registro de taller no encontrado.')
+      if (r.tipo_liberacion !== null) throw new real.ApiError(409, 'conflict', 'La unidad ya fue liberada de este ingreso.')
+      if (datos.tipo_liberacion === 'Parcial' && !(datos.pendientes ?? []).length) {
+        throw new real.ApiError(422, 'validation', 'Una liberación parcial exige al menos un pendiente.', {
+          pendientes: ['Una liberación parcial exige al menos un pendiente.'],
+        })
+      }
+      Object.assign(r, { tipo_liberacion: datos.tipo_liberacion, fecha_salida: datos.fecha_salida, costo_taller: datos.costo_taller, pendientes: datos.pendientes ?? null, dias_en_taller: 1 })
+      return r
     },
     login: async (email: string, password: string) => {
       const u = USUARIOS[email]
@@ -227,14 +292,24 @@ test('requisición Yonke de pieza en catálogo: el costo lo calcula el backend (
   expect(await screen.findByText(/Costo estimado: \$3,200 \(catalogo\)/)).toBeInTheDocument()
 })
 
-test('compras: Cotizado avanza directo y la instalación pide confirmación', async () => {
+test('compras: registrar compra exige costo real + factura; la instalación pide confirmación (RF-COM-02/03)', async () => {
   montarApp()
   await entrarComo('montzay@warhorse.mx')
   await screen.findByRole('heading', { name: /panel de compras/i })
+  await screen.findByText('Balatas de freno')
 
-  // Compra en Cotizado → Comprado sin modal
+  // Compra Cotizado → modal Registrar compra
   const filaBalatas = screen.getByText('Balatas de freno').closest('tr')!
   await userEvent.click(within(filaBalatas).getByRole('button', { name: /→ comprado/i }))
+  const modalCompra = await screen.findByRole('dialog', { name: /registrar compra/i })
+
+  // Sin datos → el 422 del backend aparece en el modal
+  await userEvent.click(within(modalCompra).getByRole('button', { name: /^registrar$/i }))
+  expect(await within(modalCompra).findByText('Falta el costo real y el número de factura.')).toBeInTheDocument()
+
+  await userEvent.type(within(modalCompra).getByLabelText(/costo real/i), '1800')
+  await userEvent.type(within(modalCompra).getByLabelText(/número de factura/i), 'F-777')
+  await userEvent.click(within(modalCompra).getByRole('button', { name: /^registrar$/i }))
   await waitFor(() => {
     const fila = screen.getByText('Balatas de freno').closest('tr')!
     expect(within(fila).getByText('Comprado')).toBeInTheDocument()
@@ -249,6 +324,49 @@ test('compras: Cotizado avanza directo y la instalación pide confirmación', as
   await waitFor(() => {
     const fila = screen.getByText('Alternador').closest('tr')!
     expect(within(fila).getByText('Instalado')).toBeInTheDocument()
+  })
+})
+
+test('taller: ingreso y liberación parcial con pendientes (RF-TAL-01/03/04)', async () => {
+  montarApp()
+  await entrarComo('edgar@warhorse.mx')
+  await screen.findByRole('heading', { name: /requisición de refacciones/i })
+  await userEvent.click(screen.getByRole('button', { name: 'Taller' }))
+  await screen.findByRole('heading', { name: /control de taller/i })
+  await screen.findByText('Frenos traseros')
+
+  // Ingreso con validación en cliente
+  await userEvent.click(screen.getByRole('button', { name: /registrar ingreso/i }))
+  expect(await screen.findByText('Selecciona la unidad que ingresa a taller.')).toBeInTheDocument()
+
+  await userEvent.selectOptions(
+    screen.getByLabelText(/^unidad$/i),
+    screen.getByRole('option', { name: 'WH210 · Tractor' }),
+  )
+  await userEvent.type(screen.getByLabelText(/fecha de ingreso/i), '2026-07-07')
+  await userEvent.type(screen.getByLabelText(/diagnóstico principal/i), 'Fuga de aire')
+  await userEvent.click(screen.getByRole('button', { name: /registrar ingreso/i }))
+  expect(await screen.findByText('Ingreso registrado — la unidad queda En Taller.')).toBeInTheDocument()
+
+  // Liberación parcial: sin pendientes → error verbatim; con pendientes → alerta
+  const filaFrenos = screen.getByText('Frenos traseros').closest('tr')!
+  await userEvent.click(within(filaFrenos).getByRole('button', { name: /liberar/i }))
+  const modal = await screen.findByRole('dialog', { name: /liberar wh104/i })
+  await userEvent.click(within(modal).getByRole('button', { name: /parcial \(mejoralito\)/i }))
+  await userEvent.type(within(modal).getByLabelText(/fecha de salida/i), '2026-07-08')
+  await userEvent.click(within(modal).getByRole('button', { name: /^liberar$/i }))
+  expect(await within(modal).findByText('Una liberación parcial exige al menos un pendiente.')).toBeInTheDocument()
+
+  await userEvent.type(within(modal).getByLabelText(/pendientes/i), 'Manguera principal')
+  await userEvent.click(within(modal).getByRole('button', { name: /^liberar$/i }))
+  expect(
+    await screen.findByText('WH104 liberada como mejoralito — se generó alerta de deuda técnica.'),
+  ).toBeInTheDocument()
+
+  // Pasa al historial como Mejoralito
+  await waitFor(() => {
+    const fila = screen.getByText('Frenos traseros').closest('tr')!
+    expect(within(fila).getByText('Mejoralito')).toBeInTheDocument()
   })
 })
 

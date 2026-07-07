@@ -9,8 +9,11 @@ process.env.LD_LIBRARY_PATH = [libsLocales, process.env.LD_LIBRARY_PATH ?? ''].f
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   timeout: 60_000,
   retries: 1,
+  // La BD de desarrollo es remota (Hostinger): el login puede tardar >5s
+  expect: { timeout: 15_000 },
   use: {
     baseURL: 'http://localhost:5173',
   },

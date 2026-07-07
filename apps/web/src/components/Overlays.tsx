@@ -130,12 +130,11 @@ export function TipFlotante() {
 }
 
 export function ConfirmarModal() {
-  const { confirmar, setConfirmar, avanzarReq, toast } = useDemo()
+  const { confirmar, setConfirmar } = useDemo()
   if (!confirmar) return null
   const ok = () => {
-    avanzarReq(confirmar.id, confirmar.next)
+    void confirmar.alConfirmar()
     setConfirmar(null)
-    toast(confirmar.pieza + ' → ' + confirmar.next)
   }
   return (
     <div
