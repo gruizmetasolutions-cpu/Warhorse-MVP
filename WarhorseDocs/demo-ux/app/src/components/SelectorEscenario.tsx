@@ -9,7 +9,7 @@ export default function SelectorEscenario() {
   const { escenario, cambiar } = useEscenario()
   const id = useId()
   return (
-    <div className="fixed bottom-4 left-4 z-[55] flex items-center gap-2 rounded-full border border-wh-border bg-wh-surface py-1.5 pr-3 pl-2 text-xs shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
+    <div className="fixed right-4 bottom-4 z-[55] flex items-center gap-2 rounded-full border border-wh-border bg-wh-surface py-1.5 pr-3 pl-2 text-xs shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
       <FlaskConical size={14} className="text-wh-orange" aria-hidden="true" />
       <label htmlFor={id} className="font-display font-semibold uppercase tracking-wider text-wh-muted-2">
         Escenario

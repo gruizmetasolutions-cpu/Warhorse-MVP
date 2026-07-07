@@ -24,7 +24,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={{ avisar }}>
       {children}
       <div
-        className="fixed right-4 bottom-4 z-[60] flex flex-col gap-2"
+        className="fixed right-4 bottom-16 z-[60] flex flex-col gap-2"
         role="status"
         aria-live="polite"
       >

@@ -11,6 +11,7 @@ npm install
 npm run dev        # http://localhost:5173
 npm run typecheck  # tsc --noEmit
 npm run lint
+npm run test       # Vitest + React Testing Library (41 pruebas)
 npm run build
 ```
 
@@ -21,4 +22,4 @@ Los componentes importan **solo** `src/lib/api.ts`. La implementación mock vive
 Ver [09_demo_ux_guia.md](../09_demo_ux_guia.md) (inventario de pantallas, mapa de navegación, capa mock, fixtures, WCAG, Definición de Hecho) y el [Design System 08](../../01-vision/08_identidad_visual_design_system.md) (tokens, componentes, config Tailwind).
 
 ## Estado
-Especificación completa (docs 08 y 09). **Implementación en código = Sprint D** del [roadmap](../../07-roadmap/07_roadmap_sprints.md). Las pantallas, rutas, componentes y capa mock se construyen conforme al doc 09 §11.
+**Implementado (Sprint D).** Las 7 pantallas del doc 09 §2, la capa mock (`lib/api.ts` + `lib/mock/`), el tour de onboarding, el selector de escenarios (normal / vacío / error) y los estados por componente están construidos conforme a los docs 08 y 09. Suite: 41 pruebas (Vitest + RTL) + typecheck + lint en verde. Pendiente del DoD (doc 09 §12): sesión de validación con stakeholder, bitácora de hallazgos y re-sincronización SRS/API.
