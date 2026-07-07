@@ -24,8 +24,10 @@
 | S0-10 | Integridad BD | consolidado_unidad | doc 03 §5 (columna generada) | WH125: 18000+43500+32000 → `costo_real_acumulado` = **93,500.00** | ✅ |
 | S0-11 | Integridad BD | requisiciones | doc 03 §4 (CHECK invariantes) | INSERT Yonke con `numero_factura` → rechazado por `chk_req_yonke_donante` en la BD | ✅ defensa en profundidad activa |
 | S0-12 | Smoke conexión | BD real | doc 07 S0 | mysqli directo: conexión OK, `SELECT DATABASE()` correcto | ✅ |
+| S0-13 | Integración BD tests | esquema | doc 06 §1.2 (BD aislada por suite) | `tests/database/EsquemaTest.php`: migraciones completas contra la BD de pruebas + 10 tablas presentes | ✅ 3/3 |
+| S0-14 | Integridad BD tests | consolidado / requisiciones | doc 03 §5 + RF-INT-03 | columna generada suma 350.75 y CHECK Yonke-con-factura rechazado, ahora como tests PHPUnit permanentes | ✅ |
 
-**Compuerta `./verificar.sh`: EN VERDE (7/7 pasos).**
+**Compuerta `./verificar.sh`: EN VERDE (7/7 pasos; PHPUnit 8 tests / 20 aserciones).**
 
 ## Trazabilidad
 
@@ -34,10 +36,10 @@ Este sprint no implementa RF de negocio; habilita la base para todos (esquema do
 ## Hallazgos y desviaciones
 
 1. **La BD real es MariaDB 11.8 (Hostinger), no MySQL 8** como asume el doc 03. Ajuste aplicado: collation `utf8mb4_0900_ai_ci` → `utf8mb4_unicode_ci` (existe en ambos motores). CHECKs, columna generada STORED, JSON y ENUM funcionan igual. **Acción sugerida**: anotar en el doc 03 la compatibilidad MariaDB o confirmar que producción será MySQL 8.
-2. **BD de pruebas pendiente**: PHPUnit Feature (Sprint 1+) necesita una BD de pruebas aislada (doc 06 §1.2). No creé `u575426443_warhorse_test` porque no hubo autorización explícita. **Pendiente: el usuario la crea en hPanel (o autoriza crearla) antes del Sprint 1.**
+2. **BD de pruebas: RESUELTO.** hPanel no permitía crearla con el usuario existente, así que la BD de pruebas corre en Docker local: contenedor `warhorse_test_db`, **MariaDB 11.8.8 — la misma versión exacta del servidor real** (`mariadb:11.8`, puerto 3309, BD `warhorse_test`). Grupo `tests` configurado en `.env` (con `DBPrefix` vacío; el default del appstarter es `db_`). Ventaja adicional: los tests no pagan latencia de red.
 3. **Sin driver de cobertura PHP** (pcov/xdebug no instalados): la medición de cobertura ≥80% del doc 06 se hará efectiva a más tardar en el Sprint 6 instalando `pcov`.
 4. **Latencia BD remota**: las migraciones/seeds tardan segundos por viaje de red; para los tests Feature se evaluará minimizar round-trips (transacción con rollback por test).
 
 ## Estado de la compuerta
 
-✅ **Sprint 0 COMPLETO al 100%** (con los pendientes 2 y 3 arriba, que no bloquean este sprint pero sí condicionan el arranque del Sprint 1).
+✅ **Sprint 0 COMPLETO al 100%.** Único pendiente no bloqueante: instalar `pcov` para medir cobertura (hallazgo 3), a más tardar en el Sprint 6.
