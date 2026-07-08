@@ -35,9 +35,11 @@ class Filters extends BaseFilters
         'pagecache'      => PageCache::class,
         'performance'    => PerformanceMetrics::class,
         // Warhorse (doc 04 §3.1)
-        'api-auth'       => \App\Filters\ApiAuthFilter::class,
-        'rbac'           => \App\Filters\RbacFilter::class,
-        'throttle-login' => \App\Filters\ThrottleLoginFilter::class,
+        'api-auth'         => \App\Filters\ApiAuthFilter::class,
+        'rbac'             => \App\Filters\RbacFilter::class,
+        'throttle-login'   => \App\Filters\ThrottleLoginFilter::class,
+        'throttle-mut'     => \App\Filters\ThrottleMutacionesFilter::class,
+        'secure-api'       => \App\Filters\CabecerasSeguridad::class,
     ];
 
     /**
@@ -83,6 +85,7 @@ class Filters extends BaseFilters
         'after' => [
             // 'honeypot',
             // 'secureheaders',
+            'secure-api',
         ],
     ];
 

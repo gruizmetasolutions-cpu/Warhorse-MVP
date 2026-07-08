@@ -6,10 +6,3 @@ export type TipoUnidad = 'Tractor' | 'Caja' | 'Thermo'
 export type Origen = 'Compra' | 'Yonke'
 export type Urgencia = 'Rápida' | 'Media' | 'Crítica'
 export type EstadoRequisicion = 'Solicitado' | 'Cotizado' | 'Comprado' | 'Instalado'
-
-export interface UsuarioDemo {
-  id: string
-  nombre: string
-  rol: Rol
-  activo: boolean
-}

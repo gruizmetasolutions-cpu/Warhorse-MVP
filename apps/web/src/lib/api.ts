@@ -292,6 +292,46 @@ export function ajustarParametros(datos: { umbral_pct: number; ventana_meses: nu
   })
 }
 
+// ---- Salud de datos (real desde el Sprint 6, SRS §9) ----
+
+export interface SaludDatosApi {
+  requisiciones: { total: number; con_foto_y_origen: number; pct: number }
+  liberaciones: { total: number; con_tipo: number; pct: number }
+  yonke: {
+    total: number
+    con_costo: number
+    pct: number
+    por_origen: { ultima_compra: number; catalogo: number; manual: number }
+  }
+}
+
+export function getSaludDatos(): Promise<SaludDatosApi> {
+  return pedir<SaludDatosApi>('/metricas/salud')
+}
+
+// ---- Usuarios y permisos (real desde el Sprint 6, doc 05 §9) ----
+
+export interface UsuarioAdminApi {
+  id: number
+  nombre: string
+  email: string
+  rol: Rol
+  activo: boolean
+}
+
+export async function getUsuarios(): Promise<UsuarioAdminApi[]> {
+  const r = await pedir<{ data: UsuarioAdminApi[] }>('/usuarios')
+  return r.data
+}
+
+export function crearUsuario(datos: { nombre: string; email: string; rol: Rol }): Promise<UsuarioAdminApi> {
+  return pedir<UsuarioAdminApi>('/usuarios', { method: 'POST', body: JSON.stringify(datos) })
+}
+
+export function actualizarUsuario(id: number, cambio: { rol?: Rol; activo?: boolean }): Promise<UsuarioAdminApi> {
+  return pedir<UsuarioAdminApi>(`/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify(cambio) })
+}
+
 // ---- Ficha de tracto (real desde el Sprint 5, doc 05 §3) ----
 
 export interface FichaApi {

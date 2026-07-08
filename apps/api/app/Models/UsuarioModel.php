@@ -21,6 +21,17 @@ class UsuarioModel extends Model
     /**
      * @return array<string, mixed>|null
      */
+    public function porId(int $id): ?array
+    {
+        /** @var array<string, mixed>|null $fila */
+        $fila = $this->find($id);
+
+        return $fila;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
     public function porEmail(string $email): ?array
     {
         /** @var array<string, mixed>|null $fila */

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router'
 import Ayuda from '../components/Ayuda'
 import Kicker from '../components/Kicker'
-import { ApiError, ajustarParametros, getDashboard, type DashboardApi, type Veredicto } from '../lib/api'
+import { ApiError, ajustarParametros, getDashboard, getSaludDatos, type DashboardApi, type SaludDatosApi, type Veredicto } from '../lib/api'
 import { useDemo } from '../lib/demo'
 import { card, FD, fmt, h2Titulo, h3Titulo, subTitulo } from '../lib/estilos'
 
@@ -22,6 +22,7 @@ export default function Dashboard() {
   const { selTractoId, setSelTractoId, toast } = useDemo()
   const navigate = useNavigate()
   const [dash, setDash] = useState<DashboardApi | null>(null)
+  const [salud, setSalud] = useState<SaludDatosApi | null>(null)
   const [ajustar, setAjustar] = useState(false)
   const [umbralForm, setUmbralForm] = useState('')
   const [ventanaForm, setVentanaForm] = useState('')
@@ -34,6 +35,10 @@ export default function Dashboard() {
   useEffect(() => {
     void cargar(selTractoId)
   }, [cargar, selTractoId])
+
+  useEffect(() => {
+    void getSaludDatos().then(setSalud)
+  }, [])
 
   if (!dash) return null
 
@@ -238,6 +243,38 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
+        {salud && (
+          <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 style={h3Titulo}>Salud de datos</h3>
+              <Ayuda tip="El mayor riesgo del Hub es de adopción: si el piso no registra, el ROI miente. Estas métricas miden si los datos llegan completos (SRS §9)." />
+            </div>
+            {[
+              { label: 'Requisiciones con foto y origen', pct: salud.requisiciones.pct, sub: `${salud.requisiciones.con_foto_y_origen} de ${salud.requisiciones.total}` },
+              { label: 'Liberaciones con tipo', pct: salud.liberaciones.pct, sub: `${salud.liberaciones.con_tipo} de ${salud.liberaciones.total}` },
+              {
+                label: 'Yonke con costo asignado',
+                pct: salud.yonke.pct,
+                sub: `${salud.yonke.total} · catalogo ${salud.yonke.por_origen.catalogo} · última compra ${salud.yonke.por_origen.ultima_compra} · manual ${salud.yonke.por_origen.manual}`,
+              },
+            ].map((m) => (
+              <div key={m.label} style={{ display: 'flex', alignItems: 'baseline', gap: 10, borderBottom: '1px solid #EFEAE0', paddingBottom: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{m.label}</div>
+                  <div style={{ fontSize: 12.5, color: '#6F6A60' }}>{m.sub}</div>
+                </div>
+                <span
+                  style={{
+                    fontFamily: FD, fontWeight: 700, fontSize: 24, fontVariantNumeric: 'tabular-nums',
+                    color: m.pct >= 90 ? '#2C7A44' : m.pct >= 60 ? '#8A6D1A' : '#B4430A',
+                  }}
+                >
+                  {m.pct}%
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {ajustar && (

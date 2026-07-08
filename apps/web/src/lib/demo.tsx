@@ -9,8 +9,7 @@ import {
 import { useNavigate } from 'react-router'
 import * as api from './api'
 import type { UnidadApi, Yo } from './api'
-import { permisosIniciales, usuariosIniciales } from './mock/fixtures'
-import type { Rol, UsuarioDemo } from './types'
+import type { Rol } from './types'
 
 // Estado global del demo — espejo del `state` del componente del demo
 // validado (view/rol/selTractoId/reqsExtra/estadoOverrides/usuarios/permisos).
@@ -63,10 +62,6 @@ interface ContextoDemo {
   recargarUnidades: () => Promise<void>
   selTractoId: string
   setSelTractoId: (id: string) => void
-  usuarios: UsuarioDemo[]
-  setUsuarios: (u: UsuarioDemo[]) => void
-  permisos: Record<string, boolean>
-  setPermisos: (p: Record<string, boolean>) => void
   toastMsg: string
   toast: (msg: string) => void
   confirmar: Confirmacion | null
@@ -110,8 +105,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<Yo | null>(null)
   const [unidades, setUnidades] = useState<UnidadApi[]>([])
   const [selTractoId, setSelTractoId] = useState('')
-  const [usuarios, setUsuarios] = useState<UsuarioDemo[]>(usuariosIniciales.map((u) => ({ ...u })))
-  const [permisos, setPermisos] = useState<Record<string, boolean>>({ ...permisosIniciales })
   const [toastMsg, setToastMsg] = useState('')
   const [confirmar, setConfirmar] = useState<Confirmacion | null>(null)
   const [tip, setTip] = useState<Tip | null>(null)
@@ -205,10 +198,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         recargarUnidades,
         selTractoId,
         setSelTractoId,
-        usuarios,
-        setUsuarios,
-        permisos,
-        setPermisos,
         toastMsg,
         toast,
         confirmar,

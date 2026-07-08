@@ -57,8 +57,36 @@ vi.mock('../lib/api', async (importOriginal) => {
     WH210: { ef: 2.7, mejoralito: 0 },
   }
   const pesos = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
+  const usuariosAdminFake = [
+    { id: 1, nombre: 'Dirección WarHorse', email: 'direccion@warhorse.mx', rol: 'admin', activo: true },
+    { id: 2, nombre: 'Edgar Fraga', email: 'edgar@warhorse.mx', rol: 'taller', activo: true },
+    { id: 3, nombre: 'Héctor Ramírez', email: 'hector@warhorse.mx', rol: 'taller', activo: true },
+    { id: 4, nombre: 'Montzay Vázquez', email: 'montzay@warhorse.mx', rol: 'compras', activo: true },
+    { id: 5, nombre: 'Karla Ortiz', email: 'karla@warhorse.mx', rol: 'compras', activo: false },
+    { id: 6, nombre: 'Greisy López', email: 'greisy@warhorse.mx', rol: 'diesel', activo: true },
+  ]
   return {
     ...real,
+    getSaludDatos: async () => ({
+      requisiciones: { total: 8, con_foto_y_origen: 8, pct: 100 },
+      liberaciones: { total: 10, con_tipo: 10, pct: 100 },
+      yonke: { total: 4, con_costo: 4, pct: 100, por_origen: { ultima_compra: 0, catalogo: 4, manual: 0 } },
+    }),
+    getUsuarios: async () => usuariosAdminFake.map((u) => ({ ...u })),
+    crearUsuario: async (d: { nombre: string; email: string; rol: string }) => {
+      if (usuariosAdminFake.some((u) => u.email === d.email)) {
+        throw new real.ApiError(409, 'conflict', 'Ya existe un usuario con ese correo.')
+      }
+      const nuevo = { id: 100 + usuariosAdminFake.length, nombre: d.nombre, email: d.email, rol: d.rol, activo: true }
+      usuariosAdminFake.push(nuevo)
+      return nuevo
+    },
+    actualizarUsuario: async (id: number, cambio: { rol?: string; activo?: boolean }) => {
+      const u = usuariosAdminFake.find((x) => x.id === id)
+      if (!u) throw new real.ApiError(404, 'not_found', 'Usuario no encontrado.')
+      Object.assign(u, cambio)
+      return { ...u }
+    },
     getDashboard: async (seleccion?: string) => {
       const activos = unidadesFake.filter((u) => u.estado === 'Activo' && u.tipo === 'Tractor')
       const orden = activos.slice().sort((a, b) => b.costo_real_acumulado - a.costo_real_acumulado)
@@ -375,6 +403,18 @@ test('dashboard: ajustar umbral recalcula el veredicto server-side (RF-DASH-05)'
   expect(await screen.findByText('Vender / dar de baja')).toBeInTheDocument()
 })
 
+test('dashboard: la tarjeta de salud de datos muestra la adopción (SRS §9)', async () => {
+  montarApp()
+  await entrarComo('direccion@warhorse.mx')
+  await screen.findByText('Vender / dar de baja')
+
+  expect(await screen.findByRole('heading', { name: /salud de datos/i })).toBeInTheDocument()
+  expect(screen.getByText(/Requisiciones con foto y origen/i)).toBeInTheDocument()
+  expect(screen.getByText(/Liberaciones con tipo/i)).toBeInTheDocument()
+  expect(screen.getByText(/Yonke con costo asignado/i)).toBeInTheDocument()
+  expect(screen.getByText(/4 · catalogo 4/)).toBeInTheDocument()
+})
+
 test('Ver ficha completa abre la ficha de WH125 con su historial', async () => {
   montarApp()
   await entrarComo('direccion@warhorse.mx')
@@ -544,14 +584,15 @@ test('taller: ingreso y liberación parcial con pendientes (RF-TAL-01/03/04)', a
   })
 })
 
-test('usuarios: suspender, agregar y candado del permiso Admin·Usuarios', async () => {
+test('usuarios reales: reactivar, alta con correo y matriz de solo lectura (RF-USR-01/02/03)', async () => {
   montarApp()
   await entrarComo('direccion@warhorse.mx')
   await screen.findByText('Vender / dar de baja')
   await userEvent.click(screen.getByRole('button', { name: 'Usuarios' }))
   await screen.findByRole('heading', { name: /usuarios y permisos/i })
 
-  const filaKarla = screen.getByText('Karla Ortiz').closest('tr')!
+  // Suspensión/reactivación contra la API (RF-USR-01)
+  const filaKarla = (await screen.findByText('Karla Ortiz')).closest('tr')!
   expect(within(filaKarla).getByText('Suspendido')).toBeInTheDocument()
   await userEvent.click(within(filaKarla).getByRole('button', { name: /reactivar/i }))
   await waitFor(() => {
@@ -559,12 +600,44 @@ test('usuarios: suspender, agregar y candado del permiso Admin·Usuarios', async
     expect(within(fila).getByText('Activo')).toBeInTheDocument()
   })
 
+  // Alta real: exige correo; las credenciales viajan por correo
   await userEvent.type(screen.getByPlaceholderText(/nombre del nuevo usuario/i), 'Paola Ruiz')
   await userEvent.click(screen.getByRole('button', { name: /\+ agregar/i }))
-  expect(await screen.findByText('Paola Ruiz')).toBeInTheDocument()
+  expect(await screen.findByText('Escribe el correo del usuario.')).toBeInTheDocument()
 
+  await userEvent.type(screen.getByPlaceholderText(/correo del nuevo usuario/i), 'paola@warhorse.mx')
+  await userEvent.click(screen.getByRole('button', { name: /\+ agregar/i }))
+  expect(await screen.findByText('Paola Ruiz')).toBeInTheDocument()
+  expect(screen.getByText(/credenciales enviadas por correo/i)).toBeInTheDocument()
+
+  // Alta duplicada: 409 del backend verbatim
+  await userEvent.type(screen.getByPlaceholderText(/nombre del nuevo usuario/i), 'Karla Bis')
+  await userEvent.type(screen.getByPlaceholderText(/correo del nuevo usuario/i), 'karla@warhorse.mx')
+  await userEvent.click(screen.getByRole('button', { name: /\+ agregar/i }))
+  expect(await screen.findByText('Ya existe un usuario con ese correo.')).toBeInTheDocument()
+
+  // Matriz de permisos de SOLO lectura (decisión marco; RF-USR-03)
   await userEvent.click(screen.getByTitle('El Admin no puede perder acceso a Usuarios'))
   expect(await screen.findByText('El Admin siempre conserva acceso a Usuarios.')).toBeInTheDocument()
+  await userEvent.click(screen.getByTitle('Taller · Tablero Directivo'))
+  expect(await screen.findByText(/la matriz de permisos es fija por rol/i)).toBeInTheDocument()
+})
+
+test('usuarios: el cambio de rol llama a la API y se refleja', async () => {
+  montarApp()
+  await entrarComo('direccion@warhorse.mx')
+  await screen.findByText('Vender / dar de baja')
+  await userEvent.click(screen.getByRole('button', { name: 'Usuarios' }))
+  await screen.findByRole('heading', { name: /usuarios y permisos/i })
+
+  const filaHector = (await screen.findByText('Héctor Ramírez')).closest('tr')!
+  // La tabla real muestra el correo que viene de la API (RF-USR-01)
+  expect(within(filaHector).getByText('hector@warhorse.mx')).toBeInTheDocument()
+  await userEvent.selectOptions(
+    within(filaHector).getByRole('combobox', { name: /rol de héctor ramírez/i }),
+    'compras',
+  )
+  expect(await screen.findByText(/Héctor Ramírez ahora es Compras/)).toBeInTheDocument()
 })
 
 test('el tour se dispara en el primer ingreso y recorre las vistas', async () => {

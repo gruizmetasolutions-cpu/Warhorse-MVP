@@ -34,6 +34,8 @@ class Cors extends BaseConfig
          *   - ['http://localhost:8080']
          *   - ['https://www.example.com']
          */
+        // Origen del SPA (doc 04 §A05). El valor real lo fija el constructor
+        // desde `.env` (`cors.allowedOrigin`); en dev cae al Vite local.
         'allowedOrigins' => ['http://localhost:5173'],
 
         /**
@@ -102,4 +104,16 @@ class Cors extends BaseConfig
          */
         'maxAge' => 3600,
     ];
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Producción fija el origen en `.env` (cors.allowedOrigin =
+        // https://hub.warhorse.mx); dev conserva el Vite local (doc 04 §A05).
+        $origen = env('cors.allowedOrigin');
+        if (is_string($origen) && $origen !== '') {
+            $this->default['allowedOrigins'] = [$origen];
+        }
+    }
 }
