@@ -2,3 +2,16 @@
 # Artefactos transitorios
 /apps/web/test-results/
 /apps/api/tmp/
+
+# Bundle de despliegue: el contenido pesado se regenera con el build.
+# Solo se versiona la "receta" (DEPLOY.md, index.php, .htaccess, .env.example).
+/deploy/public_html/assets/
+/deploy/public_html/index.html
+/deploy/warhorse_app/app/
+/deploy/warhorse_app/vendor
+/deploy/warhorse_app/writable/
+/deploy/warhorse_app/spark
+/deploy/warhorse_app/composer.json
+/deploy/warhorse_app/composer.lock
+/deploy/warhorse_app/preload.php
+/deploy/warhorse_app/.env

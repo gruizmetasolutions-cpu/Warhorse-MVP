@@ -1,0 +1,48 @@
+# Warhorse — docroot único: SPA (React) + API (CodeIgniter) en el mismo origen.
+# El SPA pide siempre /api/v1/... (mismo dominio), así que no hace falta CORS.
+
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # ------------------------------------------------------------------
+    # CRÍTICO en hosting compartido (LiteSpeed/CGI): reinyecta el header
+    # Authorization, que el servidor suele descartar. Sin esto, el login
+    # por token (Bearer) falla con 401 en producción.
+    # ------------------------------------------------------------------
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # 1) Toda la API la maneja CodeIgniter (front controller index.php).
+    #    CI4 lee la URI original (/api/v1/...) y hace match con sus rutas.
+    RewriteCond %{REQUEST_URI} ^/api(/.*)?$
+    RewriteRule ^ index.php [L]
+
+    # 2) Archivos y carpetas reales del SPA (assets, favicon, etc.): directo.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 3) Cualquier otra ruta la resuelve el SPA en el cliente (React Router).
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# ------------------------------------------------------------------
+# Cabeceras de seguridad (respaldan al filtro de la API para los
+# estáticos del SPA). La API además las emite por su cuenta.
+# ------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+</IfModule>
+
+# Cachea los assets hasheados del SPA (nombres con hash = inmutables)
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+</IfModule>
