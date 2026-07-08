@@ -12,7 +12,8 @@ const entrar = async (page: Page, email: string) => {
   await page.getByRole('button', { name: /arrancar/i }).click()
 }
 
-test('admin: alta de usuario, auditoría server-side y salud de datos', async ({ page, request }) => {
+test('admin: alta de usuario, auditoría server-side y salud de datos', async ({ page, request }, testInfo) => {
+  const correo = `nadia.e2e.${Date.now()}.${testInfo.retry}@warhorse.mx`
   await entrar(page, 'direccion@warhorse.mx')
   await expect(page.getByRole('heading', { name: /tablero directivo/i })).toBeVisible()
 
@@ -24,10 +25,13 @@ test('admin: alta de usuario, auditoría server-side y salud de datos', async ({
   await page.getByRole('navigation').getByRole('button', { name: 'Usuarios' }).click()
   await expect(page.getByRole('heading', { name: /usuarios y permisos/i })).toBeVisible()
   await page.getByPlaceholder(/nombre del nuevo usuario/i).fill('Nadia E2E')
-  await page.getByPlaceholder(/correo del nuevo usuario/i).fill('nadia.e2e@warhorse.mx')
+  await page.getByPlaceholder(/correo del nuevo usuario/i).fill(correo)
   await page.getByRole('button', { name: /\+ agregar/i }).click({ force: true })
-  await expect(page.getByText(/credenciales enviadas por correo/i)).toBeVisible()
-  await expect(page.getByText('nadia.e2e@warhorse.mx')).toBeVisible()
+  // Nuevo flujo sin correo: tarjeta con la temporal, cerramos con "Entendido"
+  const tarjeta = page.getByRole('dialog', { name: /credenciales de/i })
+  await expect(tarjeta).toBeVisible()
+  await tarjeta.getByRole('button', { name: /entendido/i }).click({ force: true })
+  await expect(page.getByText(correo)).toBeVisible()
 
   // RF-INT-05: el alta quedó en la bitácora, consultable por Dirección
   const login = await request.post('http://localhost:8080/api/v1/auth/login', {
@@ -39,7 +43,7 @@ test('admin: alta de usuario, auditoría server-side y salud de datos', async ({
   })
   expect(bitacora.status()).toBe(200)
   const { data } = await bitacora.json()
-  const evento = data.find((e: { valor_nuevo?: { email?: string } }) => e.valor_nuevo?.email === 'nadia.e2e@warhorse.mx')
+  const evento = data.find((e: { valor_nuevo?: { email?: string } }) => e.valor_nuevo?.email === correo)
   expect(evento).toBeTruthy()
   expect(evento.actor).toBe('Dirección WarHorse')
 })

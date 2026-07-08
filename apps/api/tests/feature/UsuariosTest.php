@@ -107,30 +107,22 @@ final class UsuariosTest extends CIUnitTestCase
             ->get('api/v1/usuarios')->assertStatus(403);
     }
 
-    public function testAltaValidaEncolaCredencialesYPermiteLogin(): void
+    public function testAltaEntregaTemporalUnaVezYPermiteLogin(): void
     {
         $r = $this->alta(['nombre' => 'Paola Ruiz', 'email' => 'paola@warhorse.mx', 'rol' => 'taller']);
         $r->assertStatus(201);
 
         $json = $this->json($r);
         $this->assertSame('Paola Ruiz', $json['nombre']);
-        // La contraseña temporal viaja por correo, JAMÁS en la respuesta
-        $this->assertArrayNotHasKey('password', $json);
-        $this->assertArrayNotHasKey('password_temporal', $json);
+        // Sin correo: la temporal se entrega UNA vez en el alta (contrato nuevo)
+        $temporal = (string) $json['password_temporal'];
+        $this->assertGreaterThanOrEqual(8, strlen($temporal));
 
-        // Alta auditada (RF-INT-05)
+        // Alta auditada (RF-INT-05); el usuario queda obligado a cambiarla
         $this->seeInDatabase('auditoria', ['entidad' => 'usuarios', 'entidad_id' => $json['id'], 'accion' => 'usuario.alta']);
+        $this->seeInDatabase('usuarios', ['email' => 'paola@warhorse.mx', 'debe_cambiar_password' => 1]);
 
-        // Correo de credenciales encolado (en dev el job lo escribe al log)
-        $fila = $this->db->table('queue_jobs')->orderBy('id', 'DESC')->get()->getRowArray();
-        $this->assertIsArray($fila);
-        $payload = json_decode((string) $fila['payload'], true);
-        $this->assertSame('correo-credenciales', $payload['job']);
-        $this->assertSame('paola@warhorse.mx', $payload['data']['email']);
-
-        // La contraseña temporal del correo permite iniciar sesión con su rol
-        $temporal = (string) $payload['data']['password_temporal'];
-        $this->assertNotSame('', $temporal);
+        // La temporal permite iniciar sesión con su rol
         $sesion = $this->json($this->login('paola@warhorse.mx', $temporal));
         $this->assertSame('taller', $sesion['usuario']['rol']);
     }

@@ -66,8 +66,56 @@ final class AuthController extends BaseController
                 'nombre' => (string) $usuario['nombre'],
                 'rol'    => $rol,
             ],
-            'landing' => Permisos::landing($rol),
+            'landing'               => Permisos::landing($rol),
+            'debe_cambiar_password' => (bool) ($usuario['debe_cambiar_password'] ?? false),
         ]);
+    }
+
+    /**
+     * Cambio de contraseña propio (alta sin correo): la persona entra con la
+     * temporal y define aquí su contraseña. Exento del filtro password-vigente.
+     */
+    public function password(): ResponseInterface
+    {
+        $request = $this->request;
+        $datos   = $request instanceof \CodeIgniter\HTTP\IncomingRequest ? (array) $request->getJSON(true) : [];
+
+        if (! $this->validateData($datos, [
+            'password_actual' => 'required|string',
+            'password_nueva'  => 'required|string|min_length[8]',
+        ])) {
+            $errores = $this->validator?->getErrors() ?? [];
+
+            return RespuestasApi::error(422, 'validation', 'La contraseña nueva debe tener al menos 8 caracteres.', array_map(static fn (string $e): array => [$e], $errores));
+        }
+
+        $usuario   = ActorActual::usuario();
+        $proveedor = auth()->getProvider();
+        $shield    = $proveedor->findByCredentials(['email' => (string) $usuario['email']]);
+        if ($shield === null || ! service('passwords')->verify((string) $datos['password_actual'], (string) $shield->password_hash)) {
+            return RespuestasApi::error(401, 'bad_credentials', 'La contraseña actual no es correcta.');
+        }
+
+        $db = db_connect();
+        $db->transStart();
+
+        $shield->password = (string) $datos['password_nueva'];
+        $proveedor->save($shield);
+
+        (new \App\Models\UsuarioModel())->update((int) $usuario['id'], ['debe_cambiar_password' => 0]);
+
+        (new \App\Services\AuditoriaService())->registrar(
+            $usuario,
+            'usuario.password',
+            'usuarios',
+            (int) $usuario['id'],
+            ['debe_cambiar_password' => true],
+            ['debe_cambiar_password' => false],
+        );
+
+        $db->transComplete();
+
+        return $this->response->setStatusCode(200)->setJSON(['debe_cambiar_password' => false]);
     }
 
     public function logout(): ResponseInterface
@@ -90,11 +138,12 @@ final class AuthController extends BaseController
         $rol     = (string) $usuario['rol'];
 
         return $this->response->setJSON([
-            'id'       => (int) $usuario['id'],
-            'nombre'   => (string) $usuario['nombre'],
-            'rol'      => $rol,
-            'permisos' => Permisos::deRol($rol),
-            'landing'  => Permisos::landing($rol),
+            'id'                    => (int) $usuario['id'],
+            'nombre'                => (string) $usuario['nombre'],
+            'rol'                   => $rol,
+            'permisos'              => Permisos::deRol($rol),
+            'landing'               => Permisos::landing($rol),
+            'debe_cambiar_password' => (bool) ($usuario['debe_cambiar_password'] ?? false),
         ]);
     }
 }

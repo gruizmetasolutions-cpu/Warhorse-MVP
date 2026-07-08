@@ -15,7 +15,7 @@ class UsuarioModel extends Model
     protected $table         = 'usuarios';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['nombre', 'email', 'password_hash', 'rol', 'activo'];
+    protected $allowedFields = ['nombre', 'email', 'password_hash', 'rol', 'activo', 'debe_cambiar_password'];
     protected $useTimestamps = true;
 
     /**

@@ -40,6 +40,7 @@ class Filters extends BaseFilters
         'throttle-login'   => \App\Filters\ThrottleLoginFilter::class,
         'throttle-mut'     => \App\Filters\ThrottleMutacionesFilter::class,
         'secure-api'       => \App\Filters\CabecerasSeguridad::class,
+        'password-vigente' => \App\Filters\PasswordVigenteFilter::class,
     ];
 
     /**

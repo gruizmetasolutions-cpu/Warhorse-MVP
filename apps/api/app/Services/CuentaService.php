@@ -20,16 +20,17 @@ final class CuentaService
     /**
      * Crea la cuenta completa: fila de dominio + usuario Shield + grupo(=rol).
      *
-     * @param array{nombre: string, email: string, rol: string, activo?: int|bool} $datos
+     * @param array{nombre: string, email: string, rol: string, activo?: int|bool, debe_cambiar_password?: int|bool} $datos
      */
     public function crear(array $datos, string $password): int
     {
         $this->usuarios->insert([
-            'nombre'        => $datos['nombre'],
-            'email'         => $datos['email'],
-            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-            'rol'           => $datos['rol'],
-            'activo'        => (int) ($datos['activo'] ?? 1),
+            'nombre'                => $datos['nombre'],
+            'email'                 => $datos['email'],
+            'password_hash'         => password_hash($password, PASSWORD_DEFAULT),
+            'rol'                   => $datos['rol'],
+            'activo'                => (int) ($datos['activo'] ?? 1),
+            'debe_cambiar_password' => (int) ($datos['debe_cambiar_password'] ?? 0),
         ]);
         $dominioId = (int) $this->usuarios->getInsertID();
 

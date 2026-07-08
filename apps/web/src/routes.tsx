@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import AppLayout from './components/AppLayout'
 import { DemoProvider, rutaDeLanding, useDemo } from './lib/demo'
 import Login from './pages/Login'
+import DefinirPassword from './pages/DefinirPassword'
 import Dashboard from './pages/Dashboard'
 import Ficha from './pages/Ficha'
 import Requisicion from './pages/Requisicion'
@@ -19,6 +20,8 @@ import Usuarios from './pages/Usuarios'
 function RutaModulo({ modulo, children }: { modulo: string; children: ReactNode }) {
   const { sesion } = useDemo()
   if (!sesion) return <Navigate to="/login" replace />
+  // Cambio obligatorio de contraseña: nada del Hub hasta definirla
+  if (sesion.debe_cambiar_password) return <Navigate to="/definir-password" replace />
   if (!sesion.permisos[modulo]) return <Navigate to={rutaDeLanding(sesion.landing)} replace />
   return children
 }
@@ -27,6 +30,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/definir-password" element={<DefinirPassword />} />
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<RutaModulo modulo="dashboard"><Dashboard /></RutaModulo>} />
         <Route path="/ficha/:id" element={<Ficha />} />

@@ -55,16 +55,19 @@ final class UsuarioService
             throw new ConflictoException('Ya existe un usuario con ese correo.');
         }
 
-        // Contraseña temporal generada server-side; viaja SOLO por correo
+        // Contraseña temporal generada server-side (12 hex). Sin correo: se
+        // devuelve UNA vez en el alta para que Dirección la entregue en mano.
+        // El usuario queda obligado a cambiarla en su primer login.
         $temporal = bin2hex(random_bytes(6));
 
         $db = db_connect();
         $db->transStart();
 
         $id = $this->cuentas->crear([
-            'nombre' => $datos['nombre'],
-            'email'  => $datos['email'],
-            'rol'    => $datos['rol'],
+            'nombre'                => $datos['nombre'],
+            'email'                 => $datos['email'],
+            'rol'                   => $datos['rol'],
+            'debe_cambiar_password' => 1,
         ], $temporal);
 
         $this->auditoria->registrar($actor, 'usuario.alta', 'usuarios', $id, null, [
@@ -75,19 +78,13 @@ final class UsuarioService
 
         $db->transComplete();
 
-        // RF-USR-01: credenciales por correo (cola; en dev, log)
-        service('queue')->push('notificaciones', 'correo-credenciales', [
+        return [
+            'id'                => $id,
             'nombre'            => $datos['nombre'],
             'email'             => $datos['email'],
+            'rol'               => $datos['rol'],
+            'activo'            => true,
             'password_temporal' => $temporal,
-        ]);
-
-        return [
-            'id'     => $id,
-            'nombre' => $datos['nombre'],
-            'email'  => $datos['email'],
-            'rol'    => $datos['rol'],
-            'activo' => true,
         ];
     }
 

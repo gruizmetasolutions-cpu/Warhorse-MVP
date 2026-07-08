@@ -56,6 +56,7 @@ export interface RectTour {
 interface ContextoDemo {
   sesion: Yo | null
   entrar: (email: string, password: string) => Promise<Yo>
+  refrescarSesion: () => Promise<Yo>
   salir: () => void
   usuarioActual: string
   unidades: UnidadApi[]
@@ -179,6 +180,14 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     return yo
   }, [recargarUnidades])
 
+  // Tras definir la contraseña propia: relee la sesión para levantar la
+  // obligación pendiente (debe_cambiar_password) y dejar navegar.
+  const refrescarSesion = useCallback(async (): Promise<Yo> => {
+    const yo = await api.me()
+    setSesion(yo)
+    return yo
+  }, [])
+
   const salir = useCallback(() => {
     void api.logout()
     setSesion(null)
@@ -192,6 +201,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       value={{
         sesion,
         entrar,
+        refrescarSesion,
         salir,
         usuarioActual,
         unidades,

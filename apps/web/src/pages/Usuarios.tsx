@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import Ayuda from '../components/Ayuda'
 import Kicker from '../components/Kicker'
-import { actualizarUsuario, ApiError, crearUsuario, getUsuarios, type UsuarioAdminApi } from '../lib/api'
+import { actualizarUsuario, ApiError, crearUsuario, getUsuarios, type UsuarioAdminApi, type UsuarioCreado } from '../lib/api'
+import { descargarCredencialesPdf } from '../lib/credencialesPdf'
 import { useDemo } from '../lib/demo'
 import { badge, card, FD, h2Titulo, h3Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
 import type { Rol } from '../lib/types'
@@ -35,6 +36,7 @@ export default function Usuarios() {
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoEmail, setNuevoEmail] = useState('')
   const [nuevoRol, setNuevoRol] = useState<Rol>('taller')
+  const [creado, setCreado] = useState<UsuarioCreado | null>(null)
 
   const cargar = useCallback(async () => {
     setUsuarios(await getUsuarios())
@@ -58,13 +60,23 @@ export default function Usuarios() {
     if (!nombre) return toast('Escribe el nombre del usuario.')
     if (!email) return toast('Escribe el correo del usuario.')
     try {
-      const creado = await crearUsuario({ nombre, email, rol: nuevoRol })
+      const nuevo = await crearUsuario({ nombre, email, rol: nuevoRol })
       setNuevoNombre('')
       setNuevoEmail('')
-      toast(creado.nombre + ' agregado como ' + rolNombres[creado.rol] + ' — credenciales enviadas por correo.')
+      setCreado(nuevo) // muestra la temporal UNA vez (sin correo)
       await cargar()
     } catch (e) {
       toast(mensajeError(e, 'No se pudo dar de alta al usuario.'))
+    }
+  }
+
+  const copiarTemporal = async () => {
+    if (!creado) return
+    try {
+      await navigator.clipboard.writeText(creado.password_temporal)
+      toast('Contraseña temporal copiada.')
+    } catch {
+      toast('No se pudo copiar; anótala del recuadro.')
     }
   }
 
@@ -261,6 +273,60 @@ export default function Usuarios() {
           </table>
         </div>
       </div>
+
+      {creado && (
+        <div
+          onClick={() => setCreado(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={'Credenciales de ' + creado.nombre}
+            style={{ background: '#fff', borderRadius: 14, maxWidth: 460, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+          >
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 6px' }}>
+              Usuario creado ✓
+            </h3>
+            <p style={{ margin: '0 0 14px', fontSize: 14, color: '#4A4438' }}>
+              {creado.nombre} · {creado.email} · {rolNombres[creado.rol]}
+            </p>
+            <p style={{ margin: '0 0 8px', fontSize: 13.5, color: '#6F6A60' }}>
+              Entrégale esta contraseña temporal. <strong>No se volverá a mostrar.</strong> Al entrar por
+              primera vez, deberá crear su propia contraseña.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAF7F0', border: '1px dashed #F2620F', borderRadius: 10, padding: '16px 12px', margin: '0 0 16px' }}>
+              <code style={{ fontFamily: "'Courier New', monospace", fontSize: 24, fontWeight: 700, letterSpacing: '0.08em', color: '#B4430A' }}>
+                {creado.password_temporal}
+              </code>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => void copiarTemporal()}
+                className="hv-borde-ink"
+                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+              >
+                Copiar
+              </button>
+              <button
+                onClick={() => descargarCredencialesPdf(creado)}
+                className="hv-borde-ink"
+                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+              >
+                ⬇ Descargar PDF
+              </button>
+              <button
+                onClick={() => setCreado(null)}
+                className="hv-naranja"
+                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

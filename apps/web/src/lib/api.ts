@@ -50,6 +50,7 @@ export interface SesionLogin {
   token: string
   usuario: { id: number; nombre: string; rol: Rol }
   landing: string
+  debe_cambiar_password: boolean
 }
 
 export interface Yo {
@@ -58,6 +59,7 @@ export interface Yo {
   rol: Rol
   permisos: Record<string, boolean>
   landing: string
+  debe_cambiar_password: boolean
 }
 
 export async function login(email: string, password: string): Promise<SesionLogin> {
@@ -83,6 +85,15 @@ export function me(): Promise<Yo> {
 
 export function haySesion(): boolean {
   return tokenActual !== null
+}
+
+// Cambio de contraseña propio (alta sin correo): la persona define la suya
+// tras entrar con la temporal. Devuelve la sesión sin la obligación pendiente.
+export function cambiarPassword(datos: { password_actual: string; password_nueva: string }): Promise<{ debe_cambiar_password: boolean }> {
+  return pedir<{ debe_cambiar_password: boolean }>('/auth/password', {
+    method: 'PATCH',
+    body: JSON.stringify(datos),
+  })
 }
 
 // ---- Catálogo de unidades (real desde el Sprint 2, doc 05 §3) ----
@@ -319,13 +330,18 @@ export interface UsuarioAdminApi {
   activo: boolean
 }
 
+// El alta devuelve la contraseña temporal UNA sola vez (sin correo).
+export interface UsuarioCreado extends UsuarioAdminApi {
+  password_temporal: string
+}
+
 export async function getUsuarios(): Promise<UsuarioAdminApi[]> {
   const r = await pedir<{ data: UsuarioAdminApi[] }>('/usuarios')
   return r.data
 }
 
-export function crearUsuario(datos: { nombre: string; email: string; rol: Rol }): Promise<UsuarioAdminApi> {
-  return pedir<UsuarioAdminApi>('/usuarios', { method: 'POST', body: JSON.stringify(datos) })
+export function crearUsuario(datos: { nombre: string; email: string; rol: Rol }): Promise<UsuarioCreado> {
+  return pedir<UsuarioCreado>('/usuarios', { method: 'POST', body: JSON.stringify(datos) })
 }
 
 export function actualizarUsuario(id: number, cambio: { rol?: Rol; activo?: boolean }): Promise<UsuarioAdminApi> {

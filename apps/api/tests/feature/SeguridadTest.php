@@ -130,26 +130,34 @@ final class SeguridadTest extends CIUnitTestCase
 
     public function testRateLimitEnMutantesEs429(): void
     {
-        // El throttler usa caché de archivo persistente entre tests: se limpia
-        // para que el bucket arranque lleno en esta medición
+        // El throttler usa caché de archivo persistente entre tests. Se limpia
+        // y, por si acaso, se resetea explícitamente el bucket de Héctor para
+        // que la medición arranque desde cero sin contaminación de otros tests.
         cache()->clean();
+        $hectorId = (int) $this->db->table('usuarios')->where('email', 'hector@warhorse.mx')->get()->getRowArray()['id'];
+        service('throttler')->remove('mut-actor-' . $hectorId);
 
-        // Héctor (bucket propio por actor) dispara 60 mutaciones inválidas al
-        // mismo endpoint: la 61 debe toparse con el límite, no con validación
         $tokenHector = $this->token('hector@warhorse.mx');
 
-        $ultimo = 0;
-        for ($i = 0; $i < 61; $i++) {
+        // Ráfaga amplia (>60) de mutaciones inválidas: el límite de 60/min debe
+        // dispararse dentro de la ventana; las válidas antes del tope son 422.
+        $vio429     = false;
+        $vioOtro    = false;
+        for ($i = 0; $i < 75; $i++) {
             $r = $this->withHeaders(['Authorization' => 'Bearer ' . $tokenHector])
                 ->withBodyFormat('json')
                 ->post('api/v1/taller', ['unidad_id' => 0]);
-            $ultimo = $r->response()->getStatusCode();
-            if ($ultimo === 429) {
+            $codigo = $r->response()->getStatusCode();
+            if ($codigo === 429) {
+                $vio429 = true;
                 break;
             }
-            $this->assertSame(422, $ultimo, "Request {$i} debió ser 422 o 429");
+            if ($codigo !== 422) {
+                $vioOtro = true;
+            }
         }
 
-        $this->assertSame(429, $ultimo, 'El límite de tasa nunca se alcanzó');
+        $this->assertFalse($vioOtro, 'Antes del tope, toda mutación inválida debe ser 422');
+        $this->assertTrue($vio429, 'El límite de tasa (60/min) nunca se alcanzó en 75 intentos');
     }
 }

@@ -20,6 +20,8 @@ vi.mock('../lib/api', async (importOriginal) => {
     'greisy@warhorse.mx': { rol: 'diesel', nombre: 'Greisy López', landing: 'diesel' },
   }
   let actual: string | null = null
+  // Simula un usuario recién dado de alta que aún debe cambiar su temporal.
+  let debeCambiar = false
   const reqsFake = [
     { id: 1, estado: 'Instalado', origen: 'Yonke', unidad_destino_id: 10, unidad_donante_id: 3, unidad_destino: 'WH101', unidad_donante: 'WH03', descripcion_pieza: 'Turbo', numero_parte: null, urgencia: 'Crítica', costo_estimado: 4500, origen_costo_estimado: 'catalogo', costo_real: null, foto_pieza_url: 'a.jpg', fecha_solicitud: '2026-06-20' },
     { id: 2, estado: 'Cotizado', origen: 'Compra', unidad_destino_id: 11, unidad_donante_id: null, unidad_destino: 'WH104', unidad_donante: null, descripcion_pieza: 'Balatas de freno', numero_parte: null, urgencia: 'Media', costo_estimado: null, origen_costo_estimado: null, costo_real: null, foto_pieza_url: 'b.jpg', fecha_solicitud: '2026-06-28' },
@@ -79,7 +81,7 @@ vi.mock('../lib/api', async (importOriginal) => {
       }
       const nuevo = { id: 100 + usuariosAdminFake.length, nombre: d.nombre, email: d.email, rol: d.rol, activo: true }
       usuariosAdminFake.push(nuevo)
-      return nuevo
+      return { ...nuevo, password_temporal: 'temporal-' + d.email.split('@')[0] }
     },
     actualizarUsuario: async (id: number, cambio: { rol?: string; activo?: boolean }) => {
       const u = usuariosAdminFake.find((x) => x.id === id)
@@ -288,19 +290,31 @@ vi.mock('../lib/api', async (importOriginal) => {
       return r
     },
     login: async (email: string, password: string) => {
+      // Usuario nuevo entrando con su temporal: obligado a cambiarla
+      if (email === 'nadia@warhorse.mx' && password === 'temporal-abc') {
+        actual = 'edgar@warhorse.mx' // hereda un rol para navegar tras el cambio
+        debeCambiar = true
+        return { token: 'token-temp', usuario: { id: 9, nombre: 'Nadia E2E', rol: 'taller' }, landing: 'requisicion', debe_cambiar_password: true }
+      }
       const u = USUARIOS[email]
       if (!u || password !== 'warhorse-demo') {
         throw new real.ApiError(401, 'unauthenticated', 'Credenciales inválidas.')
       }
       actual = email
-      return { token: 'token-prueba', usuario: { id: 1, nombre: u.nombre, rol: u.rol }, landing: u.landing }
+      debeCambiar = false
+      return { token: 'token-prueba', usuario: { id: 1, nombre: u.nombre, rol: u.rol }, landing: u.landing, debe_cambiar_password: false }
     },
     me: async () => {
       const u = USUARIOS[actual ?? '']
-      return { id: 1, nombre: u.nombre, rol: u.rol, permisos: PERMISOS[u.rol], landing: u.landing }
+      return { id: 1, nombre: u.nombre, rol: u.rol, permisos: PERMISOS[u.rol], landing: u.landing, debe_cambiar_password: debeCambiar }
+    },
+    cambiarPassword: async (_d: { password_actual: string; password_nueva: string }) => {
+      debeCambiar = false
+      return { debe_cambiar_password: false }
     },
     logout: async () => {
       actual = null
+      debeCambiar = false
     },
     haySesion: () => actual !== null,
   }
@@ -600,7 +614,7 @@ test('usuarios reales: reactivar, alta con correo y matriz de solo lectura (RF-U
     expect(within(fila).getByText('Activo')).toBeInTheDocument()
   })
 
-  // Alta real: exige correo; las credenciales viajan por correo
+  // Alta real: exige correo; la temporal se muestra UNA vez con Copiar/PDF
   await userEvent.type(screen.getByPlaceholderText(/nombre del nuevo usuario/i), 'Paola Ruiz')
   await userEvent.click(screen.getByRole('button', { name: /\+ agregar/i }))
   expect(await screen.findByText('Escribe el correo del usuario.')).toBeInTheDocument()
@@ -608,7 +622,12 @@ test('usuarios reales: reactivar, alta con correo y matriz de solo lectura (RF-U
   await userEvent.type(screen.getByPlaceholderText(/correo del nuevo usuario/i), 'paola@warhorse.mx')
   await userEvent.click(screen.getByRole('button', { name: /\+ agregar/i }))
   expect(await screen.findByText('Paola Ruiz')).toBeInTheDocument()
-  expect(screen.getByText(/credenciales enviadas por correo/i)).toBeInTheDocument()
+  // Tarjeta única con la contraseña temporal y sus acciones
+  const tarjeta = await screen.findByRole('dialog', { name: /credenciales de/i })
+  expect(within(tarjeta).getByText('temporal-paola')).toBeInTheDocument()
+  expect(within(tarjeta).getByRole('button', { name: /copiar/i })).toBeInTheDocument()
+  expect(within(tarjeta).getByRole('button', { name: /descargar pdf/i })).toBeInTheDocument()
+  await userEvent.click(within(tarjeta).getByRole('button', { name: /entendido/i }))
 
   // Alta duplicada: 409 del backend verbatim
   await userEvent.type(screen.getByPlaceholderText(/nombre del nuevo usuario/i), 'Karla Bis')
@@ -654,6 +673,33 @@ test('el tour se dispara en el primer ingreso y recorre las vistas', async () =>
   // Repetible desde el botón Tutorial
   await userEvent.click(screen.getByRole('button', { name: /tutorial/i }))
   expect(await screen.findByText('Bienvenido al Hub de Gastos')).toBeInTheDocument()
+})
+
+test('usuario nuevo: la temporal fuerza a definir su contraseña antes de entrar', async () => {
+  montarApp()
+  await entrarComo('nadia@warhorse.mx', 'temporal-abc')
+
+  // No aterriza en su módulo: lo manda a definir contraseña
+  expect(await screen.findByRole('heading', { name: /define tu contraseña/i })).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: /requisición de refacciones/i })).not.toBeInTheDocument()
+
+  // Validaciones en cliente
+  await userEvent.type(screen.getByLabelText(/nueva contraseña/i), 'corta7')
+  await userEvent.type(screen.getByLabelText(/confirmar/i), 'corta7')
+  await userEvent.click(screen.getByRole('button', { name: /guardar y entrar/i }))
+  expect(await screen.findByText(/al menos 8 caracteres/i)).toBeInTheDocument()
+
+  await userEvent.clear(screen.getByLabelText(/nueva contraseña/i))
+  await userEvent.type(screen.getByLabelText(/nueva contraseña/i), 'miClaveNueva9')
+  await userEvent.type(screen.getByLabelText(/confirmar/i), 'otraDistinta9')
+  await userEvent.click(screen.getByRole('button', { name: /guardar y entrar/i }))
+  expect(await screen.findByText(/no coinciden/i)).toBeInTheDocument()
+
+  // Coinciden y ≥ 8: entra a su landing
+  await userEvent.clear(screen.getByLabelText(/confirmar/i))
+  await userEvent.type(screen.getByLabelText(/confirmar/i), 'miClaveNueva9')
+  await userEvent.click(screen.getByRole('button', { name: /guardar y entrar/i }))
+  expect(await screen.findByRole('heading', { name: /requisición de refacciones/i })).toBeInTheDocument()
 })
 
 test('login inválido muestra "Credenciales inválidas." (RF-AUTH-01)', async () => {
