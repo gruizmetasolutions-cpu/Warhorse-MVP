@@ -42,8 +42,115 @@ vi.mock('../lib/api', async (importOriginal) => {
     { id: 5, id_unidad: 'CJ12', tipo: 'Caja', estado: 'Activo', valor_referencia: 180000, costo_real_acumulado: 3500, candidata_reincidencia: false },
     { id: 6, id_unidad: 'CJ07', tipo: 'Caja', estado: 'Inactivo', valor_referencia: 90000, costo_real_acumulado: 0, candidata_reincidencia: false },
   ]
+  const cargasFake: Array<{ id: number; unidad_id: number; id_unidad: string; fecha: string; litros: number; costo_total: number; km_recorridos: number }> = [
+    { id: 1, unidad_id: 10, id_unidad: 'WH101', fecha: '2026-06-20', litros: 392.16, costo_total: 10000, km_recorridos: 941 },
+  ]
+  // Parámetros del veredicto (RF-DASH-05) y evidencia por unidad para el
+  // fake de /dashboard — espejo ligero del DashboardService real
+  let umbralFake = 40
+  let ventanaFake = 12
+  const infoDash: Record<string, { ef: number | null; mejoralito: number }> = {
+    WH101: { ef: 2.4, mejoralito: 0 },
+    WH104: { ef: 2.1, mejoralito: 50 },
+    WH118: { ef: 1.8, mejoralito: 50 },
+    WH125: { ef: 1.2, mejoralito: 67 },
+    WH210: { ef: 2.7, mejoralito: 0 },
+  }
+  const pesos = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
   return {
     ...real,
+    getDashboard: async (seleccion?: string) => {
+      const activos = unidadesFake.filter((u) => u.estado === 'Activo' && u.tipo === 'Tractor')
+      const orden = activos.slice().sort((a, b) => b.costo_real_acumulado - a.costo_real_acumulado)
+      const ranking = orden.map((u, i) => ({ id: u.id, id_unidad: u.id_unidad, costo_total: u.costo_real_acumulado, critico: i === 0 }))
+      const el = activos.find((u) => u.id_unidad === seleccion) ?? orden[0]
+      const extra = infoDash[el.id_unidad] ?? { ef: null, mejoralito: 0 }
+      const valor = el.valor_referencia
+      let veredicto: string | null
+      let razon: string
+      if (valor === null) {
+        veredicto = null
+        razon = 'Valor de referencia pendiente: captura el valor estimado de la unidad para calcular su veredicto.'
+      } else {
+        const pct = Math.round((el.costo_real_acumulado / valor) * 100)
+        if (pct < umbralFake) {
+          veredicto = 'Mantener'
+          razon = `El costo acumulado (${pesos(el.costo_real_acumulado)}) representa el ${pct}% del valor estimado (${pesos(valor)}), debajo del umbral del ${umbralFake}%. La unidad sigue siendo un activo rentable.`
+        } else if (extra.mejoralito > 0) {
+          veredicto = 'Vender'
+          razon = `El costo acumulado (${pesos(el.costo_real_acumulado)}) ya representa el ${pct}% del valor estimado del tracto (${pesos(valor)}), por encima del umbral del ${umbralFake}%. Además, ${extra.mejoralito}% de sus liberaciones fueron "mejoralito": reincide.`
+        } else {
+          veredicto = 'Evaluar'
+          razon = `El costo acumulado (${pesos(el.costo_real_acumulado)}) ya representa el ${pct}% del valor estimado del tracto (${pesos(valor)}), por encima del umbral del ${umbralFake}%. Sin mejoralitos en la ventana: evaluar la unidad caso a caso.`
+        }
+      }
+      return {
+        kpis: { diesel: 124900, refacciones: 85000, taller: 60700, costo_real_acumulado: activos.reduce((a, u) => a + u.costo_real_acumulado, 0) },
+        ranking,
+        seleccion: {
+          id: el.id,
+          id_unidad: el.id_unidad,
+          costo_total: el.costo_real_acumulado,
+          valor_referencia: valor,
+          eficiencia_km_l: extra.ef,
+          pct_reparacion_total: 100 - extra.mejoralito,
+          pct_mejoralito: extra.mejoralito,
+          veredicto,
+          razon,
+          valor_referencia_pendiente: valor === null,
+        },
+        parametros: { umbral_pct: umbralFake, ventana_meses: ventanaFake },
+      }
+    },
+    ajustarParametros: async (datos: { umbral_pct: number; ventana_meses: number }) => {
+      umbralFake = datos.umbral_pct
+      ventanaFake = datos.ventana_meses
+      return { umbral_pct: umbralFake, ventana_meses: ventanaFake }
+    },
+    getDiesel: async () => cargasFake.slice(),
+    registrarCarga: async (datos: { unidad_id: number; fecha: string; litros: number; costo_total: number; km_recorridos: number }) => {
+      if (!(datos.litros > 0)) {
+        throw new real.ApiError(422, 'validation', 'Datos de la carga inválidos.', {
+          litros: ['El campo litros debe ser mayor a cero.'],
+        })
+      }
+      const u = unidadesFake.find((x) => x.id === datos.unidad_id)
+      if (!u) {
+        throw new real.ApiError(422, 'validation', 'La unidad no existe en el catálogo.', {
+          unidad_id: ['La unidad no existe en el catálogo.'],
+        })
+      }
+      const nueva = { id: 100 + cargasFake.length, unidad_id: datos.unidad_id, id_unidad: u.id_unidad, fecha: datos.fecha, litros: datos.litros, costo_total: datos.costo_total, km_recorridos: datos.km_recorridos }
+      cargasFake.unshift(nueva)
+      return nueva
+    },
+    getFicha: async (id: number) => {
+      const u = unidadesFake.find((x) => x.id === id)
+      if (!u) throw new real.ApiError(404, 'not_found', 'Unidad no encontrada.')
+      const base = {
+        unidad: { id: u.id, id_unidad: u.id_unidad, tipo: u.tipo, estado: u.estado, valor_referencia: u.valor_referencia, candidata_reincidencia: u.candidata_reincidencia },
+        kpis: { diesel: 0, refacciones: 0, taller: 0, costo_real_acumulado: u.costo_real_acumulado },
+        reparaciones: [] as unknown[],
+        piezas_instaladas: [] as unknown[],
+        piezas_donadas: [] as unknown[],
+      }
+      if (u.id_unidad === 'WH125') {
+        base.kpis = { diesel: 18000, refacciones: 43500, taller: 32000, costo_real_acumulado: 93500 }
+        base.reparaciones = [
+          { fecha_ingreso: '2026-03-01', fecha_salida: '2026-05-26', dias_en_taller: 86, diagnostico: 'Transmisión tronada', criticidad: 'Crítico', tipo_liberacion: 'Total', costo_taller: 32000, es_reincidencia: false },
+          { fecha_ingreso: '2026-06-24', fecha_salida: '2026-06-27', dias_en_taller: 3, diagnostico: 'Ajuste de frenos', criticidad: 'Media', tipo_liberacion: 'Parcial', costo_taller: 2400, es_reincidencia: true },
+        ]
+        base.piezas_instaladas = [
+          { descripcion_pieza: 'Caja de transmisión', origen: 'Yonke', unidad_donante_id: 'WH60', costo: 28000, es_estimado: true, estado: 'Instalado', fecha: '2026-05-20' },
+        ]
+      }
+      if (u.id_unidad === 'WH03') {
+        base.piezas_donadas = [
+          { descripcion_pieza: 'Turbo', unidad_destino: 'WH101', costo_estimado: 4500, fecha: '2026-06-22' },
+        ]
+      }
+      return base
+    },
     getUnidades: async (estado?: string) =>
       unidadesFake.filter((u) => !estado || u.estado === estado),
     crearUnidad: async (datos: { id_unidad: string; tipo: string; estado: string; valor_referencia: number | null }) => {
@@ -199,6 +306,73 @@ test('el tablero muestra la decisión Vender para WH125 y Mantener al selecciona
   expect(screen.getByText('$270,600')).toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: /wh101/i }))
   expect(await screen.findByText('Mantener')).toBeInTheDocument()
+})
+
+test('Diésel aterriza en su pantalla y registra una carga (RF-DIE-01/02)', async () => {
+  montarApp()
+  await entrarComo('greisy@warhorse.mx')
+  expect(await screen.findByRole('heading', { name: /control de diésel/i })).toBeInTheDocument()
+
+  // Validación en cliente
+  await userEvent.click(screen.getByRole('button', { name: /registrar carga/i }))
+  expect(await screen.findByText('Selecciona la unidad que cargó diésel.')).toBeInTheDocument()
+
+  await userEvent.selectOptions(
+    screen.getByLabelText(/^unidad$/i),
+    screen.getByRole('option', { name: 'WH101 · Tractor' }),
+  )
+  await userEvent.type(screen.getByLabelText(/fecha de la carga/i), '2026-07-08')
+  await userEvent.type(screen.getByLabelText(/litros/i), '320.5')
+  await userEvent.type(screen.getByLabelText(/costo total/i), '8975')
+  await userEvent.type(screen.getByLabelText(/kilómetros recorridos/i), '410')
+  await userEvent.click(screen.getByRole('button', { name: /registrar carga/i }))
+  expect(await screen.findByText(/Carga registrada — el consolidado de WH101 ya la refleja/)).toBeInTheDocument()
+  expect(await screen.findByText('320.5 L')).toBeInTheDocument()
+})
+
+test('diésel: el 422 numérico del backend se muestra verbatim', async () => {
+  montarApp()
+  await entrarComo('greisy@warhorse.mx')
+  await screen.findByRole('heading', { name: /control de diésel/i })
+
+  await userEvent.selectOptions(
+    screen.getByLabelText(/^unidad$/i),
+    screen.getByRole('option', { name: 'WH104 · Tractor' }),
+  )
+  await userEvent.type(screen.getByLabelText(/fecha de la carga/i), '2026-07-08')
+  await userEvent.type(screen.getByLabelText(/litros/i), '0')
+  await userEvent.type(screen.getByLabelText(/costo total/i), '100')
+  await userEvent.type(screen.getByLabelText(/kilómetros recorridos/i), '10')
+  await userEvent.click(screen.getByRole('button', { name: /registrar carga/i }))
+  expect(await screen.findByText('El campo litros debe ser mayor a cero.')).toBeInTheDocument()
+})
+
+test('dashboard: ajustar umbral recalcula el veredicto server-side (RF-DASH-05)', async () => {
+  montarApp()
+  await entrarComo('direccion@warhorse.mx')
+  await screen.findByText('Vender / dar de baja')
+  expect(screen.getByText(/Umbral 40% · Ventana 12 meses/)).toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole('button', { name: /ajustar parámetros/i }))
+  const modal = await screen.findByRole('dialog', { name: /ajustar parámetros/i })
+  const umbralInput = within(modal).getByLabelText(/umbral/i)
+  await userEvent.clear(umbralInput)
+  await userEvent.type(umbralInput, '50')
+  await userEvent.click(within(modal).getByRole('button', { name: /guardar/i }))
+
+  // WH125 (45%) queda debajo del nuevo umbral del 50% → Mantener
+  expect(await screen.findByText('Mantener')).toBeInTheDocument()
+  expect(screen.getByText(/Umbral 50% · Ventana 12 meses/)).toBeInTheDocument()
+  expect(screen.getByText(/debajo del umbral del 50%/)).toBeInTheDocument()
+
+  // De regreso a 40 el veredicto vuelve a Vender (recalcula en ambos sentidos)
+  await userEvent.click(screen.getByRole('button', { name: /ajustar parámetros/i }))
+  const modal2 = await screen.findByRole('dialog', { name: /ajustar parámetros/i })
+  const umbralInput2 = within(modal2).getByLabelText(/umbral/i)
+  await userEvent.clear(umbralInput2)
+  await userEvent.type(umbralInput2, '40')
+  await userEvent.click(within(modal2).getByRole('button', { name: /guardar/i }))
+  expect(await screen.findByText('Vender / dar de baja')).toBeInTheDocument()
 })
 
 test('Ver ficha completa abre la ficha de WH125 con su historial', async () => {

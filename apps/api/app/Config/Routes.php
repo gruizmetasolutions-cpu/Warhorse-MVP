@@ -36,6 +36,18 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('compras/requisiciones', 'ComprasController::index', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin']]);
     $routes->patch('compras/requisiciones/(:num)/estado', 'ComprasController::estado/$1', ['filter' => ['cors', 'api-auth', 'rbac:compras']]);
 
+    // Dashboard de Dirección (RF-DASH-01..06): solo admin, veredicto server-side
+    $routes->get('dashboard', 'DashboardController::index', ['filter' => ['cors', 'api-auth', 'rbac:admin']]);
+
+    // Parámetros del veredicto (RF-DASH-05): solo Dirección, auditado
+    $routes->get('parametros/veredicto', 'ParametrosController::obtener', ['filter' => ['cors', 'api-auth', 'rbac:admin']]);
+    $routes->patch('parametros/veredicto', 'ParametrosController::actualizar', ['filter' => ['cors', 'api-auth', 'rbac:admin']]);
+
+    // Diésel (RF-DIE-01..03): captura SOLO el rol diesel (doc 05 §10);
+    // lectura diesel y admin
+    $routes->get('diesel', 'DieselController::index', ['filter' => ['cors', 'api-auth', 'rbac:diesel,admin']]);
+    $routes->post('diesel', 'DieselController::create', ['filter' => ['cors', 'api-auth', 'rbac:diesel']]);
+
     // Taller (RF-TAL-01..04): captura solo taller; lectura taller y admin
     $routes->get('taller', 'TallerController::index', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin']]);
     $routes->post('taller', 'TallerController::create', ['filter' => ['cors', 'api-auth', 'rbac:taller']]);

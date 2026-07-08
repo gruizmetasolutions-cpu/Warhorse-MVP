@@ -23,9 +23,13 @@ final class ComprasController extends BaseController
     {
         $request = $this->request;
         $estado  = null;
+        $pagina  = 1;
+        $porPag  = 100;
         if ($request instanceof IncomingRequest) {
             $valor  = $request->getGet('estado');
             $estado = is_string($valor) && $valor !== '' ? $valor : null;
+            $pagina = max(1, (int) ($request->getGet('page') ?? 1));
+            $porPag = min(200, max(1, (int) ($request->getGet('per_page') ?? 100)));
         }
 
         if ($estado !== null && ! in_array($estado, ['Solicitado', 'Cotizado', 'Comprado', 'Instalado'], true)) {
@@ -33,7 +37,8 @@ final class ComprasController extends BaseController
         }
 
         return $this->response->setJSON([
-            'data' => (new RequisicionService())->listarCola($estado),
+            'data' => (new RequisicionService())->listarCola($estado, $pagina, $porPag),
+            'meta' => ['page' => $pagina, 'per_page' => $porPag],
         ]);
     }
 

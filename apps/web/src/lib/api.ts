@@ -1,8 +1,7 @@
-// Contrato de datos del SPA (doc 05). Auth es REAL desde el Sprint 1; el
-// resto de los datos sigue en lib/mock/ y se sustituye sprint a sprint
-// (Demo-First, ADR-003). Las vistas importan SOLO este módulo.
-import type { DatosDemo, EstadoRequisicion, EstadoUnidad, Origen, Rol, TipoUnidad, Urgencia } from './types'
-import * as mock from './mock'
+// Contrato de datos del SPA (doc 05). Desde el Sprint 5 TODOS los datos son
+// reales: auth (S1), unidades (S2), requisiciones (S3), compras/taller (S4)
+// y diésel/dashboard/ficha (S5). Las vistas importan SOLO este módulo.
+import type { EstadoRequisicion, EstadoUnidad, Origen, Rol, TipoUnidad, Urgencia } from './types'
 
 const BASE = '/api/v1'
 
@@ -226,5 +225,112 @@ export function liberarUnidad(
   return pedir<RegistroTallerApi>(`/taller/${id}/liberar`, { method: 'PATCH', body: JSON.stringify(datos) })
 }
 
-// ---- Datos aún simulados (se sustituyen en el Sprint 5) ----
-export const getDatos = (): Promise<DatosDemo> => mock.getDatos()
+// ---- Diésel (real desde el Sprint 5, doc 05 §4) ----
+
+export interface CargaDieselApi {
+  id: number
+  unidad_id: number
+  id_unidad: string
+  fecha: string
+  litros: number
+  costo_total: number
+  km_recorridos: number
+}
+
+export async function getDiesel(filtros?: { unidad_id?: number; desde?: string; hasta?: string }): Promise<CargaDieselApi[]> {
+  const query = new URLSearchParams({ per_page: '100' })
+  if (filtros?.unidad_id) query.set('unidad_id', String(filtros.unidad_id))
+  if (filtros?.desde) query.set('desde', filtros.desde)
+  if (filtros?.hasta) query.set('hasta', filtros.hasta)
+  const r = await pedir<{ data: CargaDieselApi[] }>(`/diesel?${query.toString()}`)
+  return r.data
+}
+
+export function registrarCarga(datos: {
+  unidad_id: number
+  fecha: string
+  litros: number
+  costo_total: number
+  km_recorridos: number
+}): Promise<CargaDieselApi> {
+  return pedir<CargaDieselApi>('/diesel', { method: 'POST', body: JSON.stringify(datos) })
+}
+
+// ---- Dashboard de Dirección (real desde el Sprint 5, doc 05 §8) ----
+
+export type Veredicto = 'Mantener' | 'Evaluar' | 'Vender'
+
+export interface SeleccionDashboard {
+  id: number
+  id_unidad: string
+  costo_total: number
+  valor_referencia: number | null
+  eficiencia_km_l: number | null
+  pct_reparacion_total: number
+  pct_mejoralito: number
+  veredicto: Veredicto | null
+  razon: string
+  valor_referencia_pendiente: boolean
+}
+
+export interface DashboardApi {
+  kpis: { diesel: number; refacciones: number; taller: number; costo_real_acumulado: number }
+  ranking: Array<{ id: number; id_unidad: string; costo_total: number; critico: boolean }>
+  seleccion: SeleccionDashboard | null
+  parametros: { umbral_pct: number; ventana_meses: number }
+}
+
+export function getDashboard(seleccion?: string): Promise<DashboardApi> {
+  const filtro = seleccion ? `?seleccion=${encodeURIComponent(seleccion)}` : ''
+  return pedir<DashboardApi>(`/dashboard${filtro}`)
+}
+
+export function ajustarParametros(datos: { umbral_pct: number; ventana_meses: number }): Promise<{ umbral_pct: number; ventana_meses: number }> {
+  return pedir<{ umbral_pct: number; ventana_meses: number }>('/parametros/veredicto', {
+    method: 'PATCH',
+    body: JSON.stringify(datos),
+  })
+}
+
+// ---- Ficha de tracto (real desde el Sprint 5, doc 05 §3) ----
+
+export interface FichaApi {
+  unidad: {
+    id: number
+    id_unidad: string
+    tipo: TipoUnidad
+    estado: EstadoUnidad
+    valor_referencia: number | null
+    candidata_reincidencia: boolean
+  }
+  kpis: { diesel: number; refacciones: number; taller: number; costo_real_acumulado: number }
+  reparaciones: Array<{
+    fecha_ingreso: string
+    fecha_salida: string | null
+    dias_en_taller: number | null
+    diagnostico: string
+    criticidad: 'Rápida' | 'Media' | 'Crítico'
+    tipo_liberacion: 'Total' | 'Parcial' | null
+    costo_taller: number
+    es_reincidencia: boolean
+  }>
+  piezas_instaladas: Array<{
+    descripcion_pieza: string
+    origen: Origen
+    unidad_donante_id: string | null
+    costo: number | null
+    es_estimado: boolean
+    estado: EstadoRequisicion
+    fecha: string
+  }>
+  piezas_donadas: Array<{
+    descripcion_pieza: string
+    unidad_destino: string
+    costo_estimado: number
+    fecha: string
+  }>
+}
+
+export function getFicha(id: number): Promise<FichaApi> {
+  return pedir<FichaApi>(`/unidades/${id}/ficha`)
+}

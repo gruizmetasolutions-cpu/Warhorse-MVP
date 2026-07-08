@@ -8,6 +8,7 @@ import Ficha from './pages/Ficha'
 import Requisicion from './pages/Requisicion'
 import Taller from './pages/Taller'
 import Compras from './pages/Compras'
+import Diesel from './pages/Diesel'
 import Catalogo from './pages/Catalogo'
 import Usuarios from './pages/Usuarios'
 
@@ -32,6 +33,7 @@ export function AppRoutes() {
         <Route path="/requisicion" element={<RutaModulo modulo="requisicion"><Requisicion /></RutaModulo>} />
         <Route path="/taller" element={<RutaModulo modulo="taller"><Taller /></RutaModulo>} />
         <Route path="/compras" element={<RutaModulo modulo="compras"><Compras /></RutaModulo>} />
+        <Route path="/diesel" element={<RutaModulo modulo="diesel"><Diesel /></RutaModulo>} />
         <Route path="/catalogo" element={<RutaModulo modulo="catalogo"><Catalogo /></RutaModulo>} />
         <Route path="/usuarios" element={<RutaModulo modulo="usuarios"><Usuarios /></RutaModulo>} />
       </Route>

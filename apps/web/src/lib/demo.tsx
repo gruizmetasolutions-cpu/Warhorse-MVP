@@ -2,7 +2,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -11,7 +10,7 @@ import { useNavigate } from 'react-router'
 import * as api from './api'
 import type { UnidadApi, Yo } from './api'
 import { permisosIniciales, usuariosIniciales } from './mock/fixtures'
-import type { DatosDemo, EstadoRequisicion, Requisicion, Rol, UsuarioDemo } from './types'
+import type { Rol, UsuarioDemo } from './types'
 
 // Estado global del demo — espejo del `state` del componente del demo
 // validado (view/rol/selTractoId/reqsExtra/estadoOverrides/usuarios/permisos).
@@ -56,8 +55,6 @@ export interface RectTour {
 }
 
 interface ContextoDemo {
-  datos: DatosDemo | null
-  umbral: number
   sesion: Yo | null
   entrar: (email: string, password: string) => Promise<Yo>
   salir: () => void
@@ -66,9 +63,6 @@ interface ContextoDemo {
   recargarUnidades: () => Promise<void>
   selTractoId: string
   setSelTractoId: (id: string) => void
-  reqs: Requisicion[]
-  agregarReq: (r: Requisicion) => void
-  avanzarReq: (id: string, next: EstadoRequisicion) => void
   usuarios: UsuarioDemo[]
   setUsuarios: (u: UsuarioDemo[]) => void
   permisos: Record<string, boolean>
@@ -93,12 +87,13 @@ const rutaDeVista: Record<string, string> = {
   requisicion: '/requisicion',
   taller: '/taller',
   compras: '/compras',
+  diesel: '/diesel',
   catalogo: '/catalogo',
   usuarios: '/usuarios',
 }
 
-// Ruta del SPA para un landing de la API; los módulos aún sin pantalla
-// (diésel hasta el Sprint 5, taller hasta el 4) aterrizan en el catálogo.
+// Ruta del SPA para un landing de la API; un landing desconocido aterriza
+// en el catálogo (visible para todos los roles).
 export function rutaDeLanding(landing: string): string {
   return rutaDeVista[landing] ?? '/catalogo'
 }
@@ -112,12 +107,9 @@ const etiquetaRol: Record<Rol, string> = {
 
 export function DemoProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
-  const [datos, setDatos] = useState<DatosDemo | null>(null)
   const [sesion, setSesion] = useState<Yo | null>(null)
   const [unidades, setUnidades] = useState<UnidadApi[]>([])
-  const [selTractoId, setSelTractoId] = useState('WH125')
-  const [reqsExtra, setReqsExtra] = useState<Requisicion[]>([])
-  const [overrides, setOverrides] = useState<Record<string, EstadoRequisicion>>({})
+  const [selTractoId, setSelTractoId] = useState('')
   const [usuarios, setUsuarios] = useState<UsuarioDemo[]>(usuariosIniciales.map((u) => ({ ...u })))
   const [permisos, setPermisos] = useState<Record<string, boolean>>({ ...permisosIniciales })
   const [toastMsg, setToastMsg] = useState('')
@@ -128,27 +120,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const toastT = useRef<ReturnType<typeof setTimeout>>(undefined)
   const tourT = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  useEffect(() => {
-    void api.getDatos().then(setDatos)
-  }, [])
-
   const toast = useCallback((msg: string) => {
     clearTimeout(toastT.current)
     setToastMsg(msg)
     toastT.current = setTimeout(() => setToastMsg(''), 3200)
-  }, [])
-
-  const reqs = (datos ? [...datos.requisiciones, ...reqsExtra] : reqsExtra).map((q) => ({
-    ...q,
-    estado: overrides[q.id] || q.estado,
-  }))
-
-  const agregarReq = useCallback((r: Requisicion) => {
-    setReqsExtra((prev) => [...prev, r])
-  }, [])
-
-  const avanzarReq = useCallback((id: string, next: EstadoRequisicion) => {
-    setOverrides((prev) => ({ ...prev, [id]: next }))
   }, [])
 
   const medirTour = useCallback((paso: number) => {
@@ -222,8 +197,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider
       value={{
-        datos,
-        umbral: 40,
         sesion,
         entrar,
         salir,
@@ -232,9 +205,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         recargarUnidades,
         selTractoId,
         setSelTractoId,
-        reqs,
-        agregarReq,
-        avanzarReq,
         usuarios,
         setUsuarios,
         permisos,

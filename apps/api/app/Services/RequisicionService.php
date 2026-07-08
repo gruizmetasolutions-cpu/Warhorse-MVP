@@ -39,7 +39,7 @@ final class RequisicionService
      *
      * @return list<array<string, mixed>>
      */
-    public function listarCola(?string $estado): array
+    public function listarCola(?string $estado, int $pagina = 1, int $porPagina = 100): array
     {
         $builder = db_connect()->table('requisiciones r')
             ->select('r.*, d.id_unidad AS unidad_destino, y.id_unidad AS unidad_donante')
@@ -50,9 +50,13 @@ final class RequisicionService
             $builder->where('r.estado', $estado);
         }
 
+        // El ENUM ya ordena Rápida < Media < Crítica: DESC = Crítica primero.
+        // Con top-N paginado el orden lo resuelven los índices idx_req_cola /
+        // idx_req_cola_global, cero filesort (doc 06 §3)
         return Bd::filas(
-            $builder->orderBy("FIELD(r.urgencia, 'Crítica', 'Media', 'Rápida')", '', false)
-                ->orderBy('r.fecha_solicitud', 'ASC'),
+            $builder->orderBy('r.urgencia', 'DESC')
+                ->orderBy('r.fecha_solicitud', 'ASC')
+                ->limit($porPagina, ($pagina - 1) * $porPagina),
         );
     }
 

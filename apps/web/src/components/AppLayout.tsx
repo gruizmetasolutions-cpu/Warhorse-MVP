@@ -9,6 +9,7 @@ const navDefs = [
   { id: 'requisicion', label: 'Requisición' },
   { id: 'taller', label: 'Taller' },
   { id: 'compras', label: 'Compras' },
+  { id: 'diesel', label: 'Diésel' },
   { id: 'catalogo', label: 'Catálogo' },
   { id: 'usuarios', label: 'Usuarios' },
 ]

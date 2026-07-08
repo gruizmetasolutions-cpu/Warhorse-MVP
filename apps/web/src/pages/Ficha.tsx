@@ -1,26 +1,35 @@
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import Camion from '../components/Camion'
+import { getFicha, type FichaApi } from '../lib/api'
 import { useDemo } from '../lib/demo'
 import { badge, card, critStyle, estadoUnidadColors, FD, fmt, h2Titulo, h3Titulo, tdCell, thCell, theadRow } from '../lib/estilos'
 
 export default function Ficha() {
   const { id } = useParams()
-  const { datos, reqs } = useDemo()
+  const { unidades } = useDemo()
   const navigate = useNavigate()
-  if (!datos) return null
+  const [ficha, setFicha] = useState<FichaApi | null>(null)
 
-  const ft = datos.tractos.find((t) => t.id === id) ?? datos.tractos[0]
+  // La URL trae el id de flota (WH125); el catálogo vivo resuelve el id numérico
+  const unidad = unidades.find((u) => u.id_unidad === id)
+
+  useEffect(() => {
+    if (!unidad) return
+    void getFicha(unidad.id).then(setFicha)
+  }, [unidad])
+
+  if (!ficha) return null
+
+  const ft = ficha.unidad
   const esYonke = ft.estado === 'Yonke'
   const fc = estadoUnidadColors[ft.estado] ?? estadoUnidadColors.Activo
 
-  const fichaReps = datos.reparaciones.filter((r) => r.tracto_id === ft.id)
-  const fichaPiezas = reqs.filter((q) => q.tracto_destino_id === ft.id)
-  const fichaDonaciones = reqs.filter((q) => q.tracto_donante_id === ft.id)
   const fichaKpis = [
-    { label: 'Gasto Diésel', valor: fmt(ft.gasto_diesel) },
-    { label: 'Gasto Refacciones', valor: fmt(ft.gasto_refacciones) },
-    { label: 'Gasto Taller', valor: fmt(ft.gasto_taller) },
-    { label: 'Valor estimado de la unidad', valor: ft.valor_estimado ? fmt(ft.valor_estimado) : '—' },
+    { label: 'Gasto Diésel', valor: fmt(ficha.kpis.diesel) },
+    { label: 'Gasto Refacciones', valor: fmt(ficha.kpis.refacciones) },
+    { label: 'Gasto Taller', valor: fmt(ficha.kpis.taller) },
+    { label: 'Valor estimado de la unidad', valor: ft.valor_referencia ? fmt(ft.valor_referencia) : '—' },
   ]
 
   const selloEstimado = (
@@ -39,14 +48,14 @@ export default function Ficha() {
         >
           ← Tablero
         </button>
-        <h2 style={h2Titulo}>Ficha · {ft.id}</h2>
+        <h2 style={h2Titulo}>Ficha · {ft.id_unidad}</h2>
         <span style={{ ...badge(fc[0], fc[1], fc[2]), fontSize: 13, padding: '5px 14px' }}>{ft.estado}</span>
         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
           <div style={{ fontFamily: FD, fontSize: 12.5, fontWeight: 600, color: '#8A8374', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
             Costo total acumulado
           </div>
           <div style={{ fontFamily: FD, fontSize: 34, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-            {fmt(ft.costo_total)}
+            {fmt(ficha.kpis.costo_real_acumulado)}
           </div>
         </div>
       </div>
@@ -77,28 +86,44 @@ export default function Ficha() {
                   </tr>
                 </thead>
                 <tbody>
-                  {fichaReps.map((r) => (
-                    <tr key={r.id} className="hv-fila">
+                  {ficha.reparaciones.map((r, i) => (
+                    <tr key={r.fecha_ingreso + '-' + i} className="hv-fila">
                       <td style={{ ...tdCell, padding: 10, whiteSpace: 'nowrap' }}>{r.fecha_ingreso}</td>
-                      <td style={{ ...tdCell, padding: 10, fontWeight: 600 }}>{r.diagnostico}</td>
+                      <td style={{ ...tdCell, padding: 10, fontWeight: 600 }}>
+                        {r.diagnostico}
+                        {r.es_reincidencia && (
+                          <span style={{ marginLeft: 8 }}>
+                            <span style={badge('#FDE8DC', '#B4430A', '#F2620F')}>Reincidencia</span>
+                          </span>
+                        )}
+                      </td>
                       <td style={{ ...tdCell, padding: 10 }}>
                         <span style={critStyle(r.criticidad)}>{r.criticidad}</span>
                       </td>
                       <td style={{ ...tdCell, padding: 10 }}>
-                        <span style={r.tipo_liberacion === 'Total' ? badge('#E5F3E9', '#2C7A44', '#9FD4B0') : badge('#FDE8DC', '#B4430A', '#F2620F')}>
-                          {r.tipo_liberacion}
-                        </span>
+                        {r.tipo_liberacion === null ? (
+                          <span style={badge('#EAE6DC', '#4A4438', '#C9C2B2')}>En taller</span>
+                        ) : (
+                          <span style={r.tipo_liberacion === 'Total' ? badge('#E5F3E9', '#2C7A44', '#9FD4B0') : badge('#FDE8DC', '#B4430A', '#F2620F')}>
+                            {r.tipo_liberacion === 'Total' ? 'Total' : 'Mejoralito'}
+                          </span>
+                        )}
                       </td>
-                      <td style={{ ...tdCell, padding: 10, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: r.dias_en_taller >= 30 ? 700 : 400 }}>
-                        {r.dias_en_taller + (r.dias_en_taller === 1 ? ' día' : ' días')}
+                      <td style={{ ...tdCell, padding: 10, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: (r.dias_en_taller ?? 0) >= 30 ? 700 : 400 }}>
+                        {r.dias_en_taller === null ? '—' : r.dias_en_taller + (r.dias_en_taller === 1 ? ' día' : ' días')}
                       </td>
                       <td style={{ ...tdCell, padding: 10, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {fmt(r.costo_estimado_taller)}
+                        {fmt(r.costo_taller)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {ficha.reparaciones.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
+                  Sin reparaciones registradas para esta unidad.
+                </div>
+              )}
             </div>
           </div>
 
@@ -108,27 +133,27 @@ export default function Ficha() {
               Las piezas de Yonke llevan costo <em>estimado</em>: es una asignación interna, no una factura.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {fichaPiezas.map((q) => (
-                <div key={q.id} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', border: '1px solid #EFEAE0', borderRadius: 10, padding: '12px 16px' }}>
+              {ficha.piezas_instaladas.map((q, i) => (
+                <div key={q.descripcion_pieza + '-' + i} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', border: '1px solid #EFEAE0', borderRadius: 10, padding: '12px 16px' }}>
                   <span style={q.origen === 'Yonke' ? badge('#FDE8DC', '#B4430A', '#F2620F') : badge('#EAE6DC', '#16191E', '#C9C2B2')}>
                     {q.origen}
                   </span>
                   <span style={{ fontWeight: 700, fontSize: 14.5 }}>{q.descripcion_pieza}</span>
                   <span style={{ fontSize: 13, color: '#6F6A60' }}>
-                    {q.origen === 'Yonke' ? 'donada por ' + q.tracto_donante_id : 'compra a proveedor'}
+                    {q.origen === 'Yonke' ? 'donada por ' + (q.unidad_donante_id ?? '—') : 'compra a proveedor'}
                   </span>
                   <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontFamily: FD, fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontSize: 18 }}>
-                      {q.costo_estimado ? fmt(q.costo_estimado) : 'Pendiente'}
+                      {q.costo !== null ? fmt(q.costo) : 'Pendiente'}
                     </span>
-                    {q.origen === 'Yonke' && selloEstimado}
+                    {q.es_estimado && selloEstimado}
                   </span>
                   <span style={{ fontSize: 12.5, color: '#6F6A60', whiteSpace: 'nowrap' }}>
-                    {q.estado} · {q.fecha_instalacion || q.fecha_solicitud}
+                    {q.estado} · {q.fecha}
                   </span>
                 </div>
               ))}
-              {fichaPiezas.length === 0 && (
+              {ficha.piezas_instaladas.length === 0 && (
                 <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
                   Sin piezas registradas para esta unidad.
                 </div>
@@ -145,22 +170,22 @@ export default function Ficha() {
             Esta unidad es donante del yonke interno. Cada pieza que sale lleva un costo estimado asignado.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {fichaDonaciones.map((q) => (
-              <div key={q.id} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', border: '1px solid #EFEAE0', borderRadius: 10, padding: '12px 16px' }}>
+            {ficha.piezas_donadas.map((q, i) => (
+              <div key={q.descripcion_pieza + '-' + i} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', border: '1px solid #EFEAE0', borderRadius: 10, padding: '12px 16px' }}>
                 <span style={{ fontWeight: 700, fontSize: 14.5 }}>{q.descripcion_pieza}</span>
                 <span style={{ fontSize: 13.5, color: '#6F6A60' }}>
-                  → instalada en <strong style={{ color: '#F2620F' }}>{q.tracto_destino_id}</strong>
+                  → instalada en <strong style={{ color: '#F2620F' }}>{q.unidad_destino}</strong>
                 </span>
                 <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontFamily: FD, fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontSize: 18 }}>
-                    {fmt(q.costo_estimado || 0)}
+                    {fmt(q.costo_estimado)}
                   </span>
                   {selloEstimado}
                 </span>
-                <span style={{ fontSize: 12.5, color: '#6F6A60' }}>{q.fecha_instalacion || q.fecha_solicitud}</span>
+                <span style={{ fontSize: 12.5, color: '#6F6A60' }}>{q.fecha}</span>
               </div>
             ))}
-            {fichaDonaciones.length === 0 && (
+            {ficha.piezas_donadas.length === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: 28, color: '#6F6A60', fontSize: 14 }}>
                 <Camion stroke="#16191E" strokeWidth={3} style={{ width: 120, opacity: 0.35 }} />
                 Aún no hay piezas donadas registradas de esta unidad.
