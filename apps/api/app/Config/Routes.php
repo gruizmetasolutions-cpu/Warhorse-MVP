@@ -29,14 +29,14 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
 
     // Requisiciones (RF-REQ-01..07): crea solo Taller; leen taller (las
     // suyas, anti-IDOR en el service), compras y admin
-    $routes->post('requisiciones', 'RequisicionesController::create', ['filter' => ['cors', 'api-auth', 'rbac:taller', 'throttle-mut', 'password-vigente']]);
+    $routes->post('requisiciones', 'RequisicionesController::create', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
     $routes->get('requisiciones', 'RequisicionesController::index', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin', 'password-vigente']]);
     $routes->get('requisiciones/(:num)/foto', 'RequisicionesController::foto/$1', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin', 'password-vigente']]);
 
     // Panel de Compras (RF-COM-01..04): la cola la ven compras y admin; el
     // ciclo lo avanza SOLO compras (doc 05 §6)
     $routes->get('compras/requisiciones', 'ComprasController::index', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'password-vigente']]);
-    $routes->patch('compras/requisiciones/(:num)/estado', 'ComprasController::estado/$1', ['filter' => ['cors', 'api-auth', 'rbac:compras', 'throttle-mut', 'password-vigente']]);
+    $routes->patch('compras/requisiciones/(:num)/estado', 'ComprasController::estado/$1', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'throttle-mut', 'password-vigente']]);
 
     // Usuarios y permisos (RF-USR-01/02): solo Dirección
     $routes->get('usuarios', 'UsuariosController::index', ['filter' => ['cors', 'api-auth', 'rbac:admin', 'password-vigente']]);
@@ -59,12 +59,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     // Diésel (RF-DIE-01..03): captura SOLO el rol diesel (doc 05 §10);
     // lectura diesel y admin
     $routes->get('diesel', 'DieselController::index', ['filter' => ['cors', 'api-auth', 'rbac:diesel,admin', 'password-vigente']]);
-    $routes->post('diesel', 'DieselController::create', ['filter' => ['cors', 'api-auth', 'rbac:diesel', 'throttle-mut', 'password-vigente']]);
+    $routes->post('diesel', 'DieselController::create', ['filter' => ['cors', 'api-auth', 'rbac:diesel,admin', 'throttle-mut', 'password-vigente']]);
 
     // Taller (RF-TAL-01..04): captura solo taller; lectura taller y admin
     $routes->get('taller', 'TallerController::index', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'password-vigente']]);
-    $routes->post('taller', 'TallerController::create', ['filter' => ['cors', 'api-auth', 'rbac:taller', 'throttle-mut', 'password-vigente']]);
-    $routes->patch('taller/(:num)/liberar', 'TallerController::liberar/$1', ['filter' => ['cors', 'api-auth', 'rbac:taller', 'throttle-mut', 'password-vigente']]);
+    $routes->post('taller', 'TallerController::create', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
+    $routes->patch('taller/(:num)/liberar', 'TallerController::liberar/$1', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
 });
 
 // Preflight CORS del SPA

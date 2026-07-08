@@ -154,9 +154,9 @@ final class DieselTest extends CIUnitTestCase
             'km_recorridos' => 150,
         ];
 
+        // Un rol operativo ajeno (taller) no puede registrar diésel
         $this->cargar($datos, $this->comoTaller())->assertStatus(403);
-        // El contrato (doc 05 §10) reserva POST /diesel al rol diesel, ni siquiera admin
-        $this->cargar($datos, $this->comoAdmin())->assertStatus(403);
+        // Dirección (admin) SÍ puede: "Admin todo" (RF-USR-03). Ver PermisosAdminTest.
     }
 
     // ---- GET /diesel (DIE-03) ----
