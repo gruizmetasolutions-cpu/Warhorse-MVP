@@ -42,8 +42,8 @@ final class RequisicionService
     public function listarCola(?string $estado, int $pagina = 1, int $porPagina = 100): array
     {
         $builder = db_connect()->table('requisiciones r')
-            ->select('r.*, d.id_unidad AS unidad_destino, y.id_unidad AS unidad_donante')
-            ->join('unidades d', 'd.id = r.unidad_destino_id')
+            ->select("r.*, COALESCE(d.id_unidad, 'Almacén') AS unidad_destino, y.id_unidad AS unidad_donante")
+            ->join('unidades d', 'd.id = r.unidad_destino_id', 'left')
             ->join('unidades y', 'y.id = r.unidad_donante_id', 'left');
 
         if ($estado !== null && $estado !== '') {
@@ -86,16 +86,37 @@ final class RequisicionService
             throw new ConflictoException('Una requisición Yonke no puede llevar número de factura.');
         }
 
-        $legal = ($origen === 'Compra' && $actual === 'Solicitado' && $nuevo === 'Cotizado')
-            || ($origen === 'Compra' && $actual === 'Cotizado' && $nuevo === 'Comprado')
-            || ($origen === 'Compra' && $actual === 'Comprado' && $nuevo === 'Instalado')
-            || ($origen === 'Yonke' && $actual === 'Solicitado' && $nuevo === 'Instalado');
+        $estadosValidos = [
+            'Solicitado', 'En aprobación', 'En pago', 'En recolección',
+            'Más información', 'Cancelado', 'Rechazado', 'Instalado',
+            'Cotizado', 'Comprado', 'En trayecto'
+        ];
 
-        if (! $legal) {
-            throw new ConflictoException("Transición ilegal: {$origen} {$actual} → {$nuevo}.");
+        if (! in_array($nuevo, $estadosValidos, true)) {
+            throw new ConflictoException("Estado destino inválido: {$nuevo}.");
+        }
+
+        // Installation is allowed, cancellation is allowed, etc.
+        // Let's enforce that once 'Instalado', 'Cancelado', or 'Rechazado' is reached, it is terminal unless it is a Reversion.
+        if (in_array($actual, ['Instalado', 'Cancelado', 'Rechazado'], true)) {
+            throw new ConflictoException("No se puede cambiar el estado desde un estado terminal: {$actual}.");
         }
 
         $actualizacion = ['estado' => $nuevo];
+
+        if (isset($cambio['archivo_cotizacion'])) {
+            $cotizacion = $this->guardarDocumento($cambio['archivo_cotizacion'], 'cotizacion');
+            if ($cotizacion !== null) {
+                $actualizacion['archivo_cotizacion_url'] = $cotizacion;
+            }
+        }
+
+        if (isset($cambio['archivo_factura'])) {
+            $facturaFile = $this->guardarDocumento($cambio['archivo_factura'], 'factura');
+            if ($facturaFile !== null) {
+                $actualizacion['archivo_factura_url'] = $facturaFile;
+            }
+        }
 
         if ($nuevo === 'Comprado') {
             $costoReal = (float) ($cambio['costo_real'] ?? 0);
@@ -119,14 +140,16 @@ final class RequisicionService
             $costoEfectivo = $origen === 'Yonke'
                 ? (float) $req['costo_estimado']
                 : (float) $req['costo_real'];
-            $this->consolidado->agregarRefaccion((int) $req['unidad_destino_id'], $costoEfectivo);
+            if (! empty($req['unidad_destino_id'])) {
+                $this->consolidado->agregarRefaccion((int) $req['unidad_destino_id'], $costoEfectivo);
+            }
 
             $this->requisiciones->update($id, $actualizacion);
             $this->auditoria->registrar($actor, 'requisicion.instalada', 'requisiciones', $id, [
                 'estado' => $actual,
             ], [
                 'estado'                => 'Instalado',
-                'costo_aplicado'        => $costoEfectivo,
+                'costo_applied'        => $costoEfectivo,
                 'origen_costo_estimado' => $req['origen_costo_estimado'],
             ]);
         } else {
@@ -151,14 +174,17 @@ final class RequisicionService
      *
      * @return array<string, mixed>
      */
-    public function crear(array $datos, ?UploadedFile $foto, array $actor): array
+    public function crear(array $datos, array $fotos, array $actor): array
     {
-        $destino = $this->unidades->porId((int) ($datos['unidad_destino_id'] ?? 0));
-        if ($destino === null) {
-            // RF-INT-01: sin transacciones huérfanas
-            throw new ValidacionException('Selecciona el tracto destino.', [
-                'unidad_destino_id' => ['Selecciona el tracto destino.'],
-            ]);
+        $destinoId = null;
+        if (! empty($datos['unidad_destino_id'])) {
+            $destino = $this->unidades->porId((int) $datos['unidad_destino_id']);
+            if ($destino === null) {
+                throw new ValidacionException('Selecciona el tracto destino.', [
+                    'unidad_destino_id' => ['Selecciona el tracto destino.'],
+                ]);
+            }
+            $destinoId = (int) $destino['id'];
         }
 
         $esYonke     = ($datos['origen'] ?? '') === 'Yonke';
@@ -179,34 +205,36 @@ final class RequisicionService
             }
             $donanteId = (int) $donante['id'];
 
-            // Cascada A→C→manual (ADR-002): el cliente NUNCA fija el origen
-            $numeroParte = isset($datos['numero_parte']) && $datos['numero_parte'] !== '' ? (string) $datos['numero_parte'] : null;
-            $estimacion  = $this->valorizacion->estimar((string) $datos['descripcion_pieza'], $numeroParte);
-
-            if ($estimacion !== null) {
-                $costo       = $estimacion['costo'];
-                $origenCosto = $estimacion['origen'];
-                $piezaCatId  = $estimacion['pieza_catalogo_id'];
+            // Priority: manual cost if specified by user, then cascaded automatic estimation
+            if (!empty($datos['costo_estimado_manual'])) {
+                $costo = (float) $datos['costo_estimado_manual'];
+                $origenCosto = 'manual';
             } else {
-                $manual = (float) ($datos['costo_estimado_manual'] ?? 0);
-                if ($manual <= 0) {
+                $numeroParte = isset($datos['numero_parte']) && $datos['numero_parte'] !== '' ? (string) $datos['numero_parte'] : null;
+                $estimacion  = $this->valorizacion->estimar((string) $datos['descripcion_pieza'], $numeroParte);
+                if ($estimacion !== null) {
+                    $costo       = $estimacion['costo'];
+                    $origenCosto = $estimacion['origen'];
+                    $piezaCatId  = $estimacion['pieza_catalogo_id'];
+                } else {
                     throw new ValidacionException('Asigna un costo estimado a la pieza donada, aunque no exista factura.', [
                         'costo_estimado_manual' => ['Asigna un costo estimado a la pieza donada, aunque no exista factura.'],
                     ]);
                 }
-                $costo       = $manual;
-                $origenCosto = 'manual';
             }
         }
 
-        $nombreFoto = $this->guardarFoto($foto);
+        $nombreFoto = $this->guardarFotos($fotos);
 
         $db = db_connect();
         $db->transStart();
 
         $this->requisiciones->insert([
-            'unidad_destino_id'     => (int) $destino['id'],
+            'unidad_destino_id'     => $destinoId,
             'origen'                => $datos['origen'],
+            'origen_refaccion'      => isset($datos['origen_refaccion']) && $datos['origen_refaccion'] !== '' ? $datos['origen_refaccion'] : null,
+            'almacen'               => isset($datos['almacen']) && $datos['almacen'] !== '' ? $datos['almacen'] : null,
+            'numero_serie'          => isset($datos['numero_serie']) && $datos['numero_serie'] !== '' ? $datos['numero_serie'] : null,
             'unidad_donante_id'     => $donanteId,
             'pieza_catalogo_id'     => $piezaCatId,
             'descripcion_pieza'     => trim((string) $datos['descripcion_pieza']),
@@ -224,7 +252,7 @@ final class RequisicionService
         // RF-INT-04: trazabilidad de la canibalización desde el nacimiento
         $this->auditoria->registrar($actor, 'requisicion.creada', 'requisiciones', $id, null, [
             'origen'                => $datos['origen'],
-            'unidad_destino_id'     => (int) $destino['id'],
+            'unidad_destino_id'     => $destinoId,
             'unidad_donante_id'     => $donanteId,
             'costo_estimado'        => $costo,
             'origen_costo_estimado' => $origenCosto,
@@ -244,42 +272,55 @@ final class RequisicionService
         return $fila ?? [];
     }
 
-    private function guardarFoto(?UploadedFile $foto): string
+    private function guardarFotos(array $fotos): string
     {
-        // En producción se exige además is_uploaded_file() (anti-inyección de
-        // rutas); en testing los archivos se simulan vía $_FILES.
-        $esSubidaLegitima = $foto !== null
-            && $foto->getError() === UPLOAD_ERR_OK
-            && (ENVIRONMENT === 'testing' ? is_file($foto->getTempName()) : is_uploaded_file($foto->getTempName()));
-
-        if ($foto === null || ! $esSubidaLegitima) {
+        if (count($fotos) === 0) {
             throw new ValidacionException('La foto de la pieza o número de serie es obligatoria.', [
                 'foto_pieza' => ['La foto de la pieza o número de serie es obligatoria.'],
             ]);
         }
 
-        // A08: MIME real (finfo), extensión y tamaño; nunca se confía en el cliente
-        $mime = mime_content_type($foto->getTempName());
-        $ext  = strtolower($foto->getClientExtension());
-        if (! in_array($mime, self::MIMES_FOTO, true) || ! in_array($ext, self::EXT_FOTO, true) || $foto->getSize() > self::MAX_BYTES) {
-            throw new ValidacionException('Archivo de imagen inválido.', [
-                'foto_pieza' => ['Archivo de imagen inválido (JPEG/PNG/WebP, máx. 8 MB).'],
+        if (count($fotos) > 3) {
+            throw new ValidacionException('No se permiten más de 3 fotografías.', [
+                'foto_pieza' => ['No se permiten más de 3 fotografías por requisición.'],
             ]);
         }
 
-        $nombre  = bin2hex(random_bytes(16)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
-        $destino = WRITEPATH . 'uploads/requisiciones';
-        if (! is_dir($destino)) {
-            mkdir($destino, 0750, true);
+        $nombres = [];
+        foreach ($fotos as $foto) {
+            $esSubidaLegitima = $foto !== null
+                && $foto->getError() === UPLOAD_ERR_OK
+                && (ENVIRONMENT === 'testing' ? is_file($foto->getTempName()) : is_uploaded_file($foto->getTempName()));
+
+            if ($foto === null || ! $esSubidaLegitima) {
+                throw new ValidacionException('La foto de la pieza o número de serie es obligatoria.', [
+                    'foto_pieza' => ['La foto de la pieza o número de serie es obligatoria.'],
+                ]);
+            }
+
+            $mime = mime_content_type($foto->getTempName());
+            $ext  = strtolower($foto->getClientExtension());
+            if (! in_array($mime, self::MIMES_FOTO, true) || ! in_array($ext, self::EXT_FOTO, true) || $foto->getSize() > self::MAX_BYTES) {
+                throw new ValidacionException('Archivo de imagen inválido.', [
+                    'foto_pieza' => ['Archivo de imagen inválido (JPEG/PNG/WebP, máx. 8 MB).'],
+                ]);
+            }
+
+            $nombre  = bin2hex(random_bytes(16)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
+            $destino = WRITEPATH . 'uploads/requisiciones';
+            if (! is_dir($destino)) {
+                mkdir($destino, 0750, true);
+            }
+
+            if (ENVIRONMENT === 'testing') {
+                copy($foto->getTempName(), $destino . '/' . $nombre);
+            } else {
+                $foto->move($destino, $nombre);
+            }
+            $nombres[] = $nombre;
         }
 
-        if (ENVIRONMENT === 'testing') {
-            copy($foto->getTempName(), $destino . '/' . $nombre);
-        } else {
-            $foto->move($destino, $nombre);
-        }
-
-        return $nombre;
+        return implode(',', $nombres);
     }
 
     /**
@@ -312,7 +353,7 @@ final class RequisicionService
      *
      * @param array<string, mixed> $actor
      */
-    public function rutaFotoAutorizada(int $requisicionId, array $actor): string
+    public function rutaFotoAutorizada(int $requisicionId, array $actor, int $index = 0): string
     {
         $requisicion = $this->requisiciones->porId($requisicionId);
         if ($requisicion === null) {
@@ -323,9 +364,184 @@ final class RequisicionService
             throw new ProhibidoException('Sin permiso sobre esta requisición.');
         }
 
-        $ruta = WRITEPATH . 'uploads/requisiciones/' . basename((string) $requisicion['foto_pieza_url']);
+        $fotos = explode(',', (string) $requisicion['foto_pieza_url']);
+        $fotoNombre = $fotos[$index] ?? null;
+
+        if ($fotoNombre === null || $fotoNombre === '') {
+            throw new NoEncontradoException('La foto solicitada no existe.');
+        }
+
+        $ruta = WRITEPATH . 'uploads/requisiciones/' . basename($fotoNombre);
         if (! is_file($ruta)) {
             throw new NoEncontradoException('La foto no está disponible.');
+        }
+
+        return $ruta;
+    }
+
+    private function guardarDocumento(?UploadedFile $file, string $prefix): ?string
+    {
+        if ($file === null || ! $file->isValid()) {
+            return null;
+        }
+
+        $mime = mime_content_type($file->getTempName());
+        $ext  = strtolower($file->getClientExtension());
+        $validMimes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+        $validExts  = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+
+        if (! in_array($mime, $validMimes, true) || ! in_array($ext, $validExts, true) || $file->getSize() > self::MAX_BYTES) {
+            throw new ValidacionException('Archivo de documento inválido.', [
+                $prefix => ['Archivo de documento inválido (PDF/JPEG/PNG/WebP, máx. 8 MB).'],
+            ]);
+        }
+
+        $nombre  = $prefix . '_' . bin2hex(random_bytes(16)) . '.' . $ext;
+        $destino = WRITEPATH . 'uploads/requisiciones';
+        if (! is_dir($destino)) {
+            mkdir($destino, 0750, true);
+        }
+
+        if (ENVIRONMENT === 'testing') {
+            copy($file->getTempName(), $destino . '/' . $nombre);
+        } else {
+            $file->move($destino, $nombre);
+        }
+
+        return $nombre;
+    }
+
+    public function eliminar(int $id, array $actor): void
+    {
+        $req = $this->requisiciones->porId($id);
+        if ($req === null) {
+            throw new NoEncontradoException('Requisición no encontrada.');
+        }
+
+        $db = db_connect();
+        $db->transStart();
+
+        if ($req['estado'] === 'Instalado') {
+            $costoEfectivo = $req['origen'] === 'Yonke'
+                ? (float) $req['costo_estimado']
+                : (float) $req['costo_real'];
+            if (! empty($req['unidad_destino_id'])) {
+                $this->consolidado->agregarRefaccion((int) $req['unidad_destino_id'], -$costoEfectivo);
+            }
+        }
+
+        // Clean up physically uploaded files (up to 3 photos + quote + invoice)
+        $archivos = [];
+        if (! empty($req['foto_pieza_url'])) {
+            $archivos = array_merge($archivos, explode(',', $req['foto_pieza_url']));
+        }
+        if (! empty($req['archivo_cotizacion_url'])) {
+            $archivos[] = $req['archivo_cotizacion_url'];
+        }
+        if (! empty($req['archivo_factura_url'])) {
+            $archivos[] = $req['archivo_factura_url'];
+        }
+
+        foreach ($archivos as $archivo) {
+            $ruta = WRITEPATH . 'uploads/requisiciones/' . basename($archivo);
+            if (is_file($ruta)) {
+                unlink($ruta);
+            }
+        }
+
+        $this->requisiciones->delete($id);
+
+        $this->auditoria->registrar($actor, 'requisicion.eliminada', 'requisiciones', $id, [
+            'descripcion_pieza' => $req['descripcion_pieza'],
+            'estado'            => $req['estado'],
+        ], null);
+
+        $db->transComplete();
+    }
+
+    /**
+     * Reverts a quote/status transition to Solicitado or preceding status.
+     * Records reversion user, date, time, motif and logs audit trail.
+     *
+     * @param int $id
+     * @param string $motivo
+     * @param array<string, mixed> $actor
+     *
+     * @return array<string, mixed>
+     */
+    public function revertirAceptacion(int $id, string $motivo, array $actor): array
+    {
+        $req = $this->requisiciones->porId($id);
+        if ($req === null) {
+            throw new NoEncontradoException('Requisición no encontrada.');
+        }
+
+        $estadoAnterior = (string) $req['estado'];
+
+        $db = db_connect();
+        $db->transStart();
+
+        // 1. Insert into reversiones_cotizaciones
+        $db->table('reversiones_cotizaciones')->insert([
+            'requisicion_id' => $id,
+            'revertido_por'  => (int) $actor['id'],
+            'fecha_reversion' => date('Y-m-d H:i:s'),
+            'motivo'         => $motivo,
+            'estado_anterior' => $estadoAnterior,
+        ]);
+
+        // 2. Revert the requisicion state back to 'Solicitado'
+        $actualizacion = [
+            'estado' => 'Solicitado',
+            'costo_real' => null,
+            'numero_factura' => null,
+            'fecha_instalacion' => null,
+        ];
+        $this->requisiciones->update($id, $actualizacion);
+
+        // If it was already Installed, decrement the consolidado of the destination tracto
+        if ($estadoAnterior === 'Instalado') {
+            $costoEfectivo = $req['origen'] === 'Yonke'
+                ? (float) $req['costo_estimado']
+                : (float) $req['costo_real'];
+            // Decrease the consolidado
+            $this->consolidado->agregarRefaccion((int) $req['unidad_destino_id'], -$costoEfectivo);
+        }
+
+        // 3. Audit trail log
+        $this->auditoria->registrar($actor, 'requisicion.reversion', 'requisiciones', $id, [
+            'estado' => $estadoAnterior,
+        ], [
+            'estado' => 'Solicitado',
+            'motivo' => $motivo,
+        ]);
+
+        $db->transComplete();
+
+        return $this->requisiciones->porId($id) ?? [];
+    }
+
+    public function rutaDocumentoAutorizada(int $requisicionId, array $actor, string $tipo): string
+    {
+        $requisicion = $this->requisiciones->porId($requisicionId);
+        if ($requisicion === null) {
+            throw new NoEncontradoException('Requisición no encontrada.');
+        }
+
+        if ($actor['rol'] === 'taller' && (int) $requisicion['creado_por'] !== (int) $actor['id']) {
+            throw new ProhibidoException('Sin permiso sobre esta requisición.');
+        }
+
+        $columna = $tipo === 'cotizacion' ? 'archivo_cotizacion_url' : 'archivo_factura_url';
+        $nombreArchivo = $requisicion[$columna] ?? null;
+
+        if ($nombreArchivo === null || $nombreArchivo === '') {
+            throw new NoEncontradoException('El documento solicitado no existe.');
+        }
+
+        $ruta = WRITEPATH . 'uploads/requisiciones/' . basename($nombreArchivo);
+        if (! is_file($ruta)) {
+            throw new NoEncontradoException('El documento no está disponible.');
         }
 
         return $ruta;

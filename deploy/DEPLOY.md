@@ -1,6 +1,6 @@
-# Despliegue de Warhorse en Hostinger (hosting compartido)
+# Despliegue de Warhorse en Site5 (hosting compartido)
 
-Dominio temporal: **https://slategrey-skunk-457118.hostingersite.com/**
+Dominio temporal: **https://warhorse.dataholics.com.mx/**
 
 El proyecto son dos piezas que van al **mismo dominio**: el SPA (React, ya
 compilado) y la API (CodeIgniter 4). El SPA pide siempre `/api/v1/...` sobre el
@@ -10,7 +10,7 @@ mismo origen, así que no hay CORS ni subdominios: todo vive bajo un solo docroo
 
 ## 1. Estructura de carpetas en el hosting
 
-En Hostinger tu home es algo como `/home/uXXXXXXXXX/`. Dentro está `public_html`
+En Site5 tu home es algo como `/home/uXXXXXXXXX/`. Dentro está `public_html`
 (el docroot del dominio). La app de CI4 va **fuera** de `public_html` por
 seguridad (así el código, el `.env` y las fotos no son accesibles por URL).
 
@@ -112,7 +112,7 @@ cada 5 minutos:
 ```
 */5 * * * * cd /home/uXXXXXXXXX/warhorse_app && /usr/bin/php8.3 spark queue:work --stop-when-empty >/dev/null 2>&1
 ```
-Ajusta la ruta de `php8.3` a la que muestre hPanel. No es crítico: las
+Ajusta la ruta de `php8.3` a la que muestre cPanel. No es crítico: las
 requisiciones se crean igual aunque el cron no corra (el aviso solo queda en
 cola).
 
@@ -120,7 +120,7 @@ cola).
 
 ## 8. Verificación (en este orden)
 
-1. Abre `https://slategrey-skunk-457118.hostingersite.com/` → debe cargar el
+1. Abre `https://warhorse.dataholics.com.mx/` → debe cargar el
    login del Hub (no un listado de archivos ni un 500).
 2. Abre `https://.../api/v1/auth/me` directo en el navegador → debe responder
    **401** con JSON `{"error":"unauthenticated",...}` (eso confirma que la API

@@ -26,27 +26,38 @@ final class DashboardService
     /**
      * @return array<string, mixed>
      */
-    public function armar(?string $seleccion): array
+    public function armar(?string $seleccion, ?string $tipo = null): array
     {
         $parametros = $this->parametros->obtener();
 
-        // RF-DASH-01: agregado O(1) sobre el consolidado de tractores activos
-        $kpis = Bd::fila(
-            db_connect()->table('consolidado_unidad c')
-                ->select('COALESCE(SUM(c.total_diesel),0) diesel, COALESCE(SUM(c.total_refacciones),0) refacciones, COALESCE(SUM(c.total_taller),0) taller, COALESCE(SUM(c.costo_real_acumulado),0) costo_real_acumulado')
-                ->join('unidades u', 'u.id = c.unidad_id')
-                ->where('u.estado', 'Activo')
-                ->where('u.tipo', 'Tractor'),
-        ) ?? ['diesel' => 0, 'refacciones' => 0, 'taller' => 0, 'costo_real_acumulado' => 0];
+        // RF-DASH-01: aggregated O(1) on consolidado of active units matching selected type
+        $kpisQuery = db_connect()->table('consolidado_unidad c')
+            ->select('COALESCE(SUM(c.total_diesel),0) diesel, COALESCE(SUM(c.total_refacciones),0) refacciones, COALESCE(SUM(c.total_taller),0) taller, COALESCE(SUM(c.costo_real_acumulado),0) costo_real_acumulado')
+            ->join('unidades u', 'u.id = c.unidad_id')
+            ->where('u.estado', 'Activo');
+
+        if ($tipo !== null && $tipo !== 'Todos') {
+            $kpisQuery->where('u.tipo', $tipo);
+        } else if ($tipo === null) {
+            $kpisQuery->where('u.tipo', 'Tractor');
+        }
+
+        $kpis = Bd::fila($kpisQuery) ?? ['diesel' => 0, 'refacciones' => 0, 'taller' => 0, 'costo_real_acumulado' => 0];
+
+        $rankingQuery = db_connect()->table('consolidado_unidad c')
+            ->select('u.id, u.id_unidad, u.valor_referencia, c.costo_real_acumulado costo_total')
+            ->join('unidades u', 'u.id = c.unidad_id')
+            ->where('u.estado', 'Activo');
+
+        if ($tipo !== null && $tipo !== 'Todos') {
+            $rankingQuery->where('u.tipo', $tipo);
+        } else if ($tipo === null) {
+            $rankingQuery->where('u.tipo', 'Tractor');
+        }
 
         $filas = Bd::filas(
-            db_connect()->table('consolidado_unidad c')
-                ->select('u.id, u.id_unidad, u.valor_referencia, c.costo_real_acumulado costo_total')
-                ->join('unidades u', 'u.id = c.unidad_id')
-                ->where('u.estado', 'Activo')
-                ->where('u.tipo', 'Tractor')
-                ->orderBy('c.costo_real_acumulado', 'DESC')
-                ->orderBy('u.id_unidad', 'ASC'),
+            $rankingQuery->orderBy('c.costo_real_acumulado', 'DESC')
+                ->orderBy('u.id_unidad', 'ASC')
         );
 
         $ranking = [];
@@ -61,8 +72,17 @@ final class DashboardService
 
         $elegida = null;
         if ($seleccion !== null) {
-            $candidata = array_values(array_filter($filas, static fn (array $f): bool => (string) $f['id_unidad'] === $seleccion));
-            $elegida   = $candidata[0] ?? null;
+            // Find unit in database (globally, so it's not locked if they select a unit of another type/state)
+            $db = db_connect();
+            $candidataGlobal = Bd::fila(
+                $db->table('consolidado_unidad c')
+                    ->select('u.id, u.id_unidad, u.valor_referencia, c.costo_real_acumulado costo_total')
+                    ->join('unidades u', 'u.id = c.unidad_id')
+                    ->where('u.id_unidad', $seleccion)
+            );
+            if ($candidataGlobal !== null) {
+                $elegida = $candidataGlobal;
+            }
         }
         $elegida ??= $filas[0] ?? null;
 

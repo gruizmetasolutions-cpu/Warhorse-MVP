@@ -20,7 +20,7 @@ final class RespuestasApi
         string $mensaje,
         ?array $fields = null,
     ): ResponseInterface {
-        $cuerpo = ['error' => $codigo, 'message' => $mensaje];
+        $cuerpo = ['error' => $codigo, 'message' => $mensaje, 'real_status' => $status];
         if ($fields !== null) {
             $cuerpo['fields'] = $fields;
         }

@@ -12,12 +12,12 @@ namespace App\Libraries;
  */
 final class Permisos
 {
-    public const MODULOS = ['dashboard', 'requisicion', 'taller', 'compras', 'catalogo', 'diesel', 'usuarios'];
+    public const MODULOS = ['dashboard', 'requisicion', 'taller', 'compras', 'catalogo', 'diesel', 'usuarios', 'reportes'];
 
     private const MATRIZ = [
-        'admin'   => ['dashboard', 'requisicion', 'taller', 'compras', 'catalogo', 'diesel', 'usuarios'],
+        'admin'   => ['dashboard', 'requisicion', 'taller', 'compras', 'catalogo', 'diesel', 'usuarios', 'reportes'],
         'taller'  => ['requisicion', 'taller', 'catalogo'],
-        'compras' => ['compras', 'catalogo'],
+        'compras' => ['compras', 'catalogo', 'reportes'],
         'diesel'  => ['diesel', 'catalogo'],
     ];
 

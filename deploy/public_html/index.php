@@ -4,7 +4,7 @@ use CodeIgniter\Boot;
 use Config\Paths;
 
 /*
- * Front controller de producción para hosting compartido (Hostinger).
+ * Front controller de producción para hosting compartido (Site5).
  *
  * El código de la aplicación (app/, vendor/, writable/, .env) vive FUERA del
  * webroot, en ~/warhorse_app/ (hermano de public_html). Este archivo es lo
@@ -21,6 +21,9 @@ if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
 
 // Ruta a este front controller
 define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR);
+
+// Normalize SCRIPT_NAME for shared hosting rewrite rules
+$_SERVER['SCRIPT_NAME'] = '/index.php';
 
 if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
     chdir(FCPATH);

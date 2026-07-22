@@ -33,7 +33,7 @@ final class UnidadesController extends BaseController
             $porPag = min(100, max(1, (int) ($request->getGet('per_page') ?? 25)));
         }
 
-        if ($estado !== null && ! in_array($estado, ['Activo', 'Yonke', 'Inactivo'], true)) {
+        if ($estado !== null && ! in_array($estado, ['Activo', 'Yonke', 'Inactivo', 'Vendido'], true)) {
             return RespuestasApi::error(422, 'validation', 'Estado de unidad inválido.', ['estado' => ['in_list']]);
         }
 
@@ -65,8 +65,8 @@ final class UnidadesController extends BaseController
 
         if (! $this->validateData($datos, [
             'id_unidad'        => 'required|string|max_length[20]',
-            'tipo'             => 'required|in_list[Tractor,Caja,Thermo]',
-            'estado'           => 'permit_empty|in_list[Activo,Yonke,Inactivo]',
+            'tipo'             => 'required|in_list[Tractor,Caja,Thermo,Servicio]',
+            'estado'           => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
             'fecha_alta'       => 'required|valid_date[Y-m-d]',
             'valor_referencia' => 'permit_empty|decimal|greater_than_equal_to[0]',
         ])) {
@@ -90,7 +90,7 @@ final class UnidadesController extends BaseController
         $cambio  = $request instanceof IncomingRequest ? (array) $request->getJSON(true) : [];
 
         if (! $this->validateData($cambio, [
-            'estado'           => 'permit_empty|in_list[Activo,Yonke,Inactivo]',
+            'estado'           => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
             'valor_referencia' => 'permit_empty|decimal|greater_than_equal_to[0]',
         ]) || $cambio === []) {
             $errores = $this->validator?->getErrors() ?? [];

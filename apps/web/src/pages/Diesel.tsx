@@ -1,38 +1,172 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Kicker from '../components/Kicker'
+import { SortTh, TablaFooter, TablaToolbar } from '../components/TablaControls'
 import { ApiError, getDiesel, registrarCarga, type CargaDieselApi } from '../lib/api'
 import { useDemo } from '../lib/demo'
-import { card, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
+import { card, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, theadRow } from '../lib/estilos'
+import { useTabla } from '../lib/useTabla'
 
 const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
+
+function RendimientoChart({ cargas, unidad }: { cargas: CargaDieselApi[], unidad: string }) {
+  const points = useMemo(() => {
+    return [...cargas]
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+      .map((c) => ({
+        fecha: c.fecha,
+        kml: c.litros > 0 ? c.km_recorridos / c.litros : 0,
+      }))
+      .filter((p) => p.kml > 0)
+  }, [cargas])
+
+  if (points.length < 2) {
+    return (
+      <div style={{ ...card, padding: 22, textAlign: 'center', color: '#6F6A60', background: '#fff', borderRadius: 12, fontSize: 14, animation: 'fadeUp 0.4s ease' }}>
+        ℹ️ Se necesitan al menos 2 registros de carga para trazar la tendencia de rendimiento km/L de la unidad {unidad}.
+      </div>
+    )
+  }
+
+  const kmls = points.map((p) => p.kml)
+  const minKml = Math.max(0, Math.min(...kmls) - 0.5)
+  const maxKml = Math.max(...kmls) + 0.5
+  const range = maxKml - minKml || 1
+
+  const width = 640
+  const height = 180
+  const paddingX = 45
+  const paddingY = 20
+
+  const chartWidth = width - paddingX * 2
+  const chartHeight = height - paddingY * 2
+
+  const getX = (index: number) => paddingX + (index / (points.length - 1)) * chartWidth
+  const getY = (val: number) => paddingY + chartHeight - ((val - minKml) / range) * chartHeight
+
+  let dLine = ''
+  let dArea = ''
+  points.forEach((p, idx) => {
+    const x = getX(idx)
+    const y = getY(p.kml)
+    if (idx === 0) {
+      dLine = `M ${x} ${y}`
+      dArea = `M ${x} ${height - paddingY} L ${x} ${y}`
+    } else {
+      dLine += ` L ${x} ${y}`
+      dArea += ` L ${x} ${y}`
+    }
+    if (idx === points.length - 1) {
+      dArea += ` L ${x} ${height - paddingY} Z`
+    }
+  })
+
+  return (
+    <div style={{ ...card, padding: '18px 22px', animation: 'fadeUp 0.4s ease' }}>
+      <h3 style={{ ...h3Titulo, fontSize: 16, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        Tendencia de Rendimiento: {unidad} (km/L)
+      </h3>
+      <div style={{ overflowX: 'auto' }}>
+        <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ minWidth: 580 }}>
+          <defs>
+            <linearGradient id="naranjaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F2620F" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#F2620F" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+          
+          {/* Horizontal lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
+            const y = paddingY + chartHeight * ratio
+            const val = maxKml - ratio * range
+            return (
+              <g key={i}>
+                <line x1={paddingX} y1={y} x2={width - paddingX} y2={y} stroke="#E7E0D2" strokeDasharray="4 4" />
+                <text x={paddingX - 12} y={y + 4} textAnchor="end" fontSize="10.5" fill="#8A8374" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {val.toFixed(1)}
+                </text>
+              </g>
+            )
+          })}
+
+          <path d={dArea} fill="url(#naranjaGrad)" />
+          <path d={dLine} fill="none" stroke="#F2620F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Dots & Labels */}
+          {points.map((p, idx) => {
+            const x = getX(idx)
+            const y = getY(p.kml)
+            return (
+              <g key={idx}>
+                <circle cx={x} cy={y} r="5" fill="#16191E" stroke="#F2620F" strokeWidth="2.5" />
+                <text x={x} y={y - 10} textAnchor="middle" fontSize="10.5" fontWeight="800" fill="#16191E">
+                  {p.kml.toFixed(1)}
+                </text>
+                <text x={x} y={height - 4} textAnchor="middle" fontSize="10" fill="#8A8374" fontWeight="700">
+                  {p.fecha.substring(5)}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+    </div>
+  )
+}
 
 export default function Diesel() {
   const { unidades, toast } = useDemo()
   const [cargas, setCargas] = useState<CargaDieselApi[]>([])
   const [unidadId, setUnidadId] = useState('')
-  const [fecha, setFecha] = useState('')
-  const [litros, setLitros] = useState('')
-  const [costo, setCosto] = useState('')
-  const [km, setKm] = useState('')
-  const [error, setError] = useState('')
+  const [fecha, setFecha]       = useState('')
+  const [litros, setLitros]     = useState('')
+  const [costo, setCosto]       = useState('')
+  const [km, setKm]             = useState('')
+  const [error, setError]       = useState('')
   const [enviando, setEnviando] = useState(false)
+
+  // filters
+  const [filtroUnidad, setFiltroUnidad] = useState('Todas')
+  const [busqueda, setBusqueda]         = useState('')
 
   const cargar = useCallback(async () => {
     setCargas(await getDiesel())
   }, [])
 
-  useEffect(() => {
-    void cargar()
-  }, [cargar])
+  useEffect(() => { void cargar() }, [cargar])
+
+  const unidadesEnCargas = useMemo(() => {
+    const seen = new Set<string>()
+    cargas.forEach((c) => seen.add(c.id_unidad))
+    return Array.from(seen).sort()
+  }, [cargas])
+
+  const cargasFiltradas = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    return cargas.filter((c) => {
+      if (filtroUnidad !== 'Todas' && c.id_unidad !== filtroUnidad) return false
+      if (q && !c.id_unidad.toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [cargas, filtroUnidad, busqueda])
+
+  const ctrl = useTabla(
+    cargasFiltradas,
+    'fecha',
+    'desc',
+    useCallback((row, col) => {
+      if (col === 'kml') return row.litros > 0 ? row.km_recorridos / row.litros : 0
+      return (row as unknown as Record<string, unknown>)[col] as string | number
+    }, []),
+  )
 
   const registrar = async () => {
     setError('')
     if (!unidadId) return setError('Selecciona la unidad que cargó diésel.')
-    if (!fecha) return setError('Captura la fecha de la carga.')
+    if (!fecha)    return setError('Captura la fecha de la carga.')
     if (litros === '') return setError('Captura los litros cargados.')
-    if (costo === '') return setError('Captura el costo total de la carga.')
-    if (km === '') return setError('Captura los kilómetros recorridos desde la última carga.')
+    if (costo === '')  return setError('Captura el costo total de la carga.')
+    if (km === '')     return setError('Captura los kilómetros recorridos desde la última carga.')
     setEnviando(true)
     try {
       const carga = await registrarCarga({
@@ -68,6 +202,7 @@ export default function Diesel() {
         </p>
       </div>
 
+      {/* ── Registrar carga ── */}
       <div data-tour="diesel" style={{ ...card, animation: 'fadeUp 0.4s ease' }}>
         <h3 style={{ ...h3Titulo, margin: '0 0 14px' }}>Registrar carga</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, alignItems: 'end' }}>
@@ -78,7 +213,7 @@ export default function Diesel() {
               {unidades
                 .filter((u) => u.estado === 'Activo')
                 .map((u) => (
-                  <option key={u.id} value={String(u.id)}>{u.id_unidad + ' · ' + u.tipo}</option>
+                  <option key={u.id} value={String(u.id)}>{u.id_unidad + ' · ' + (u.tipo === 'Servicio' ? 'Camioneta de servicio' : u.tipo)}</option>
                 ))}
             </select>
           </label>
@@ -114,21 +249,38 @@ export default function Diesel() {
         )}
       </div>
 
-      <div style={{ ...card, padding: '6px 20px 14px', overflowX: 'auto', animation: 'fadeUp 0.45s ease' }}>
-        <h3 style={{ ...h3Titulo, margin: '14px 0' }}>Cargas recientes</h3>
+      {/* ── Rendimiento Chart (Only when a specific unit is filtered) ── */}
+      {filtroUnidad !== 'Todas' && (
+        <RendimientoChart cargas={cargasFiltradas} unidad={filtroUnidad} />
+      )}
+
+      {/* ── Cargas recientes ── */}
+      <div style={{ ...card, padding: '14px 20px', overflowX: 'auto', animation: 'fadeUp 0.45s ease' }}>
+        <h3 style={{ ...h3Titulo, margin: '0 0 12px' }}>Cargas recientes</h3>
+
+        <TablaToolbar
+          ctrl={ctrl}
+          filtros={[{ value: 'Todas' }, ...unidadesEnCargas.map((u) => ({ value: u }))]}
+          filtroActivo={filtroUnidad}
+          onFiltro={(f) => setFiltroUnidad(f)}
+          busqueda={busqueda}
+          onBusqueda={setBusqueda}
+          busquedaPlaceholder="Buscar unidad…"
+        />
+
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
           <thead>
             <tr style={theadRow}>
-              <th style={thCell}>Unidad</th>
-              <th style={thCell}>Fecha</th>
-              <th style={{ ...thCell, textAlign: 'right' }}>Litros</th>
-              <th style={{ ...thCell, textAlign: 'right' }}>Costo</th>
-              <th style={{ ...thCell, textAlign: 'right' }}>Km recorridos</th>
-              <th style={{ ...thCell, textAlign: 'right' }}>km/L</th>
+              <SortTh col="id_unidad"    label="Unidad"         sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+              <SortTh col="fecha"        label="Fecha"          sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+              <SortTh col="litros"       label="Litros"         sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
+              <SortTh col="costo_total"  label="Costo"          sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
+              <SortTh col="km_recorridos" label="Km recorridos" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
+              <SortTh col="kml"          label="km/L"           sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
             </tr>
           </thead>
           <tbody>
-            {cargas.map((c) => (
+            {ctrl.filasPagina.map((c) => (
               <tr key={c.id} className="hv-fila">
                 <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17 }}>{c.id_unidad}</td>
                 <td style={{ ...tdCell, whiteSpace: 'nowrap' }}>{c.fecha}</td>
@@ -142,11 +294,14 @@ export default function Diesel() {
             ))}
           </tbody>
         </table>
-        {cargas.length === 0 && (
+
+        {ctrl.total === 0 && (
           <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
-            Sin cargas registradas todavía.
+            Sin cargas que coincidan con los filtros.
           </div>
         )}
+
+        <TablaFooter ctrl={ctrl} />
       </div>
     </>
   )

@@ -15,7 +15,7 @@ export default defineConfig({
   // `php spark serve` es monohilo: los specs se ejecutan en serie para no
   // saturar el servidor de desarrollo con peticiones concurrentes.
   workers: 1,
-  // La BD de desarrollo es remota (Hostinger): el login puede tardar >5s
+  // La BD de desarrollo es remota (Site5): el login puede tardar >5s
   expect: { timeout: 15_000 },
   use: {
     baseURL: 'http://localhost:5173',

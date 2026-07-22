@@ -20,6 +20,7 @@
     background: #F3EFE7;
     font-family: Barlow, sans-serif;
     color: #16191E;
+    overflow-x: hidden;
   }
   * {
     box-sizing: border-box;

@@ -1,13 +1,16 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import Camion from '../components/Camion'
 import Kicker from '../components/Kicker'
-import { ApiError, actualizarUnidad, crearUnidad, type UnidadApi } from '../lib/api'
+import { SortTh, TablaFooter, TablaToolbar } from '../components/TablaControls'
+import { ApiError, actualizarUnidad, crearUnidad, getArticulosAlmacen, actualizarArticuloAlmacen, type UnidadApi, type ArticuloAlmacenApi } from '../lib/api'
 import { useDemo } from '../lib/demo'
-import { badge, card, estadoUnidadColors, FD, filtroPill, fmt, h2Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
+import { badge, card, estadoUnidadColors, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
+import { useTabla } from '../lib/useTabla'
 import type { EstadoUnidad, TipoUnidad } from '../lib/types'
 
-const filtros: ('Todos' | EstadoUnidad)[] = ['Todos', 'Activo', 'Yonke', 'Inactivo']
+type FiltroEstado = 'Todos' | EstadoUnidad
+type FiltroTipo   = 'Todos' | TipoUnidad
 
 const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
@@ -22,17 +25,66 @@ interface Alta {
 
 const altaVacia: Alta = { id_unidad: '', tipo: 'Tractor', estado: 'Activo', fecha_alta: '', valor_referencia: '' }
 
+const TIPOS: FiltroTipo[] = ['Todos', 'Tractor', 'Caja', 'Thermo', 'Servicio']
+const ESTADOS: FiltroEstado[] = ['Todos', 'Activo', 'Yonke', 'Inactivo', 'Vendido']
+
 export default function Catalogo() {
   const { sesion, unidades, recargarUnidades, toast } = useDemo()
   const navigate = useNavigate()
-  const [filtro, setFiltro] = useState<'Todos' | EstadoUnidad>('Todos')
-  const [alta, setAlta] = useState<Alta | null>(null)
+  
+  // Tab State
+  const [tabActiva, setTabActiva] = useState<'flota' | 'almacen'>('flota')
+  const [articulos, setArticulos] = useState<ArticuloAlmacenApi[]>([])
+  const [cargandoAlmacen, setCargandoAlmacen] = useState(false)
+  const [editarArticulo, setEditarArticulo] = useState<{ id: number; nombre: string; stock_minimo: string; stock_maximo: string } | null>(null)
+
+  const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('Todos')
+  const [filtroTipo, setFiltroTipo]     = useState<FiltroTipo>('Todos')
+  const [alta, setAlta]   = useState<Alta | null>(null)
   const [editar, setEditar] = useState<{ unidad: UnidadApi; estado: EstadoUnidad; valor: string } | null>(null)
   const [error, setError] = useState('')
+  
   const esAdmin = sesion?.rol === 'admin'
+  const esCompras = sesion?.rol === 'compras'
 
-  const filas = unidades.filter((t) => filtro === 'Todos' || t.estado === filtro)
-  const nYonke = unidades.filter((t) => t.estado === 'Yonke').length
+  const filtered = useMemo(
+    () =>
+      unidades.filter(
+        (t) =>
+          (filtroEstado === 'Todos' || t.estado === filtroEstado) &&
+          (filtroTipo   === 'Todos' || t.tipo   === filtroTipo),
+      ),
+    [unidades, filtroEstado, filtroTipo],
+  )
+
+  const ctrl = useTabla(
+    filtered,
+    'id_unidad',
+    'asc',
+    useCallback((row, col) => {
+      if (col === 'costo') return row.costo_real_acumulado ?? 0
+      return (row as unknown as Record<string, unknown>)[col] as string | number
+    }, []),
+  )
+
+  const cargarAlmacen = useCallback(async () => {
+    setCargandoAlmacen(true)
+    try {
+      setArticulos(await getArticulosAlmacen())
+    } catch (e) {
+      toast('No se pudo cargar el inventario de almacén.')
+    } finally {
+      setCargandoAlmacen(false)
+    }
+  }, [toast])
+
+  useEffect(() => {
+    if (tabActiva === 'almacen') {
+      void cargarAlmacen()
+    }
+  }, [tabActiva, cargarAlmacen])
+
+
 
   const guardarAlta = async () => {
     if (!alta) return
@@ -70,6 +122,26 @@ export default function Catalogo() {
       setEditar(null)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'No se pudo actualizar la unidad.')
+    }
+  }
+
+  const guardarEdicionArticulo = async () => {
+    if (!editarArticulo) return
+    setError('')
+    try {
+      const min = editarArticulo.stock_minimo === '' ? null : Number(editarArticulo.stock_minimo)
+      const max = editarArticulo.stock_maximo === '' ? null : Number(editarArticulo.stock_maximo)
+      
+      if (min !== null && max !== null && min > max) {
+        return setError('El stock mínimo no puede ser mayor que el stock máximo.')
+      }
+
+      await actualizarArticuloAlmacen(editarArticulo.id, { stock_minimo: min, stock_maximo: max })
+      await cargarAlmacen()
+      toast(`${editarArticulo.nombre} configurado correctamente`)
+      setEditarArticulo(null)
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'No se pudo configurar el inventario.')
     }
   }
 
@@ -118,91 +190,204 @@ export default function Catalogo() {
     <>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', animation: 'fadeUp 0.35s ease' }}>
         <div>
-          <Kicker texto="Flota" />
-          <h2 style={h2Titulo}>Catálogo de Unidades</h2>
+          <Kicker texto="Catálogos" />
+          <h2 style={h2Titulo}>Gestión de Catálogos</h2>
           <p style={subTitulo}>
-            {nYonke + ' unidades Yonke disponibles como donantes ahora mismo · ' + unidades.length + ' unidades en total'}
+            Administración centralizada de la flota de unidades y existencias límites del almacén general.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          {filtros.map((f) => (
-            <button key={f} onClick={() => setFiltro(f)} className="hv-borde-ink" style={filtroPill(filtro === f)}>
-              {f}
-            </button>
-          ))}
-          {esAdmin && (
-            <button
-              onClick={() => {
-                setError('')
-                setAlta({ ...altaVacia })
-              }}
-              className="hv-naranja"
-              style={{ padding: '9px 18px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 15, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
-            >
-              + Agregar unidad
-            </button>
+      </div>
+
+      {/* Tabs navigation */}
+      <div style={{ display: 'flex', gap: 10, borderBottom: '1px solid #D8D2C4', paddingBottom: 0, marginTop: 12, marginBottom: 18, animation: 'fadeUp 0.38s ease' }}>
+        <button
+          onClick={() => setTabActiva('flota')}
+          className="hv-op85"
+          style={{
+            padding: '12px 18px', background: 'transparent', border: 'none',
+            borderBottom: tabActiva === 'flota' ? '3px solid #F2620F' : '3px solid transparent',
+            color: tabActiva === 'flota' ? '#F2620F' : '#6F6A60', fontWeight: 700, fontSize: 14.5, cursor: 'pointer',
+            transition: 'all 0.2s ease', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: FD
+          }}
+        >
+          🚚 Flota de Unidades
+        </button>
+        <button
+          onClick={() => setTabActiva('almacen')}
+          className="hv-op85"
+          style={{
+            padding: '12px 18px', background: 'transparent', border: 'none',
+            borderBottom: tabActiva === 'almacen' ? '3px solid #F2620F' : '3px solid transparent',
+            color: tabActiva === 'almacen' ? '#F2620F' : '#6F6A60', fontWeight: 700, fontSize: 14.5, cursor: 'pointer',
+            transition: 'all 0.2s ease', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: FD
+          }}
+        >
+          📦 Inventario de Almacén
+        </button>
+      </div>
+
+      {tabActiva === 'flota' ? (
+        <div data-tour="catalogo" style={{ ...card, padding: '14px 20px', overflowX: 'auto', animation: 'fadeUp 0.4s ease' }}>
+          <TablaToolbar
+            ctrl={ctrl}
+            filtros={ESTADOS.map((f) => ({ value: f }))}
+            filtroActivo={filtroEstado}
+            onFiltro={(f) => setFiltroEstado(f as FiltroEstado)}
+            rightSlot={
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {TIPOS.filter(t => t !== 'Todos').map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { setFiltroTipo(filtroTipo === t ? 'Todos' : t); ctrl.resetPage() }}
+                    className="hv-borde-ink"
+                    style={{
+                      padding: '7px 12px',
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: filtroTipo === t ? '#F2620F' : '#fff',
+                      color: filtroTipo === t ? '#fff' : '#4A4438',
+                      border: filtroTipo === t ? '1px solid #F2620F' : '1px solid #D8D2C4',
+                    }}
+                  >
+                    {t === 'Servicio' ? 'Servicio' : t}
+                  </button>
+                ))}
+                {esAdmin && (
+                  <button
+                    onClick={() => { setError(''); setAlta({ ...altaVacia }) }}
+                    className="hv-naranja"
+                    style={{ padding: '9px 18px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 15, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+                  >
+                    + Agregar unidad
+                  </button>
+                )}
+              </div>
+            }
+          />
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 560 }}>
+            <thead>
+              <tr style={theadRow}>
+                <SortTh col="id_unidad" label="Unidad"              sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="tipo"      label="Tipo"                sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="estado"    label="Estado"              sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="costo"     label="Costo total acumulado" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
+                <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }} />
+              </tr>
+            </thead>
+            <tbody>
+              {ctrl.filasPagina.map((t) => {
+                const c = estadoUnidadColors[t.estado] ?? estadoUnidadColors.Activo
+                return (
+                  <tr key={t.id} className="hv-fila">
+                    <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17, color: '#16191E' }}>{t.id_unidad}</td>
+                    <td style={tdCell}>{t.tipo === 'Servicio' ? 'Camioneta de servicio' : t.tipo}</td>
+                    <td style={tdCell}>
+                      <span style={badge(c[0], c[1], c[2])}>{t.estado}</span>
+                    </td>
+                    <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {t.costo_real_acumulado ? fmt(t.costo_real_acumulado) : '—'}
+                    </td>
+                    <td style={{ ...tdCell, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {esAdmin && (
+                        <button
+                          onClick={() => { setError(''); setEditar({ unidad: t, estado: t.estado, valor: t.valor_referencia === null ? '' : String(t.valor_referencia) }) }}
+                          className="hv-inkfill"
+                          style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', marginRight: 8 }}
+                        >
+                          Editar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => navigate('/ficha/' + t.id_unidad)}
+                        className="hv-inkfill"
+                        style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                      >
+                        Ver ficha
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+          {ctrl.total === 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: 30, color: '#6F6A60', fontSize: 14 }}>
+              <Camion stroke="#16191E" strokeWidth={3} style={{ width: 120, opacity: 0.35 }} />
+              Aún no hay unidades en esta vista.
+            </div>
+          )}
+
+          <TablaFooter ctrl={ctrl} />
+        </div>
+      ) : (
+        <div style={{ ...card, padding: '14px 20px', overflowX: 'auto', animation: 'fadeUp 0.4s ease' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, borderBottom: '1px solid #EFEAE0', paddingBottom: 10 }}>
+            <h3 style={h3Titulo}>Catálogo de Artículos y Existencias Límites</h3>
+            <span style={{ fontSize: 13, color: '#8A8374', fontWeight: 600 }}>{articulos.length} artículos en almacén</span>
+          </div>
+
+          {cargandoAlmacen ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#6F6A60', fontSize: 15 }}>
+              Cargando catálogo de almacén...
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
+              <thead>
+                <tr style={theadRow}>
+                  <th style={thCell}>Artículo</th>
+                  <th style={thCell}>Número de Parte</th>
+                  <th style={{ ...thCell, textAlign: 'right' }}>Precio de Referencia</th>
+                  <th style={{ ...thCell, textAlign: 'right' }}>Mín. Existencias</th>
+                  <th style={{ ...thCell, textAlign: 'right' }}>Máx. Existencias</th>
+                  <th style={{ ...thCell, padding: '12px 10px', borderBottom: '2px solid #16191E' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {articulos.map((art) => (
+                  <tr key={art.id} className="hv-fila">
+                    <td style={{ ...tdCell, fontWeight: 600, color: '#16191E' }}>{art.nombre_normalizado}</td>
+                    <td style={tdCell}>{art.numero_parte ?? '—'}</td>
+                    <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {art.precio_referencia ? fmt(art.precio_referencia) : '—'}
+                    </td>
+                    <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#B4430A' }}>
+                      {art.stock_minimo ?? '—'}
+                    </td>
+                    <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#2C7A44' }}>
+                      {art.stock_maximo ?? '—'}
+                    </td>
+                    <td style={{ ...tdCell, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {(esAdmin || esCompras) && (
+                        <button
+                          onClick={() => {
+                            setError('')
+                            setEditarArticulo({
+                              id: art.id,
+                              nombre: art.nombre_normalizado,
+                              stock_minimo: art.stock_minimo === null ? '' : String(art.stock_minimo),
+                              stock_maximo: art.stock_maximo === null ? '' : String(art.stock_maximo),
+                            })
+                          }}
+                          className="hv-inkfill"
+                          style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                        >
+                          Configurar Mín/Máx
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-      </div>
+      )}
 
-      <div data-tour="catalogo" style={{ ...card, padding: '6px 20px 14px', overflowX: 'auto', animation: 'fadeUp 0.4s ease' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 560 }}>
-          <thead>
-            <tr style={theadRow}>
-              <th style={thCell}>Unidad</th>
-              <th style={thCell}>Tipo</th>
-              <th style={thCell}>Estado</th>
-              <th style={{ ...thCell, textAlign: 'right' }}>Costo total acumulado</th>
-              <th style={thCell}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filas.map((t) => {
-              const c = estadoUnidadColors[t.estado]
-              return (
-                <tr key={t.id} className="hv-fila">
-                  <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17, color: '#16191E' }}>{t.id_unidad}</td>
-                  <td style={tdCell}>{t.tipo}</td>
-                  <td style={tdCell}>
-                    <span style={badge(c[0], c[1], c[2])}>{t.estado}</span>
-                  </td>
-                  <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                    {t.costo_real_acumulado ? fmt(t.costo_real_acumulado) : '—'}
-                  </td>
-                  <td style={{ ...tdCell, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {esAdmin && (
-                      <button
-                        onClick={() => {
-                          setError('')
-                          setEditar({ unidad: t, estado: t.estado, valor: t.valor_referencia === null ? '' : String(t.valor_referencia) })
-                        }}
-                        className="hv-inkfill"
-                        style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', marginRight: 8 }}
-                      >
-                        Editar
-                      </button>
-                    )}
-                    <button
-                      onClick={() => navigate('/ficha/' + t.id_unidad)}
-                      className="hv-inkfill"
-                      style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
-                    >
-                      Ver ficha
-                    </button>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        {filas.length === 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: 30, color: '#6F6A60', fontSize: 14 }}>
-            <Camion stroke="#16191E" strokeWidth={3} style={{ width: 120, opacity: 0.35 }} />
-            Aún no hay unidades en esta vista.
-          </div>
-        )}
-      </div>
-
+      {/* Modals */}
       {alta &&
         modal(
           'Agregar unidad',
@@ -215,17 +400,19 @@ export default function Catalogo() {
               <label style={etiqueta}>
                 Tipo
                 <select style={campo} value={alta.tipo} onChange={(e) => setAlta({ ...alta, tipo: e.target.value as TipoUnidad })}>
-                  <option>Tractor</option>
-                  <option>Caja</option>
-                  <option>Thermo</option>
+                  <option value="Tractor">Tractor</option>
+                  <option value="Caja">Caja</option>
+                  <option value="Thermo">Thermo</option>
+                  <option value="Servicio">Camioneta de servicio</option>
                 </select>
               </label>
               <label style={etiqueta}>
                 Estado
                 <select style={campo} value={alta.estado} onChange={(e) => setAlta({ ...alta, estado: e.target.value as EstadoUnidad })}>
-                  <option>Activo</option>
-                  <option>Yonke</option>
-                  <option>Inactivo</option>
+                  <option value="Activo">Activo</option>
+                  <option value="Yonke">Yonke</option>
+                  <option value="Inactivo">Inactivo</option>
+                  <option value="Vendido">Vendido</option>
                 </select>
               </label>
             </div>
@@ -249,9 +436,10 @@ export default function Catalogo() {
             <label style={etiqueta}>
               Estado
               <select style={campo} value={editar.estado} onChange={(e) => setEditar({ ...editar, estado: e.target.value as EstadoUnidad })}>
-                <option>Activo</option>
-                <option>Yonke</option>
-                <option>Inactivo</option>
+                <option value="Activo">Activo</option>
+                <option value="Yonke">Yonke</option>
+                <option value="Inactivo">Inactivo</option>
+                <option value="Vendido">Vendido</option>
               </select>
             </label>
             <label style={etiqueta}>
@@ -261,6 +449,23 @@ export default function Catalogo() {
           </>,
           () => void guardarEdicion(),
           () => setEditar(null),
+        )}
+
+      {editarArticulo &&
+        modal(
+          'Limites de existencias para: ' + editarArticulo.nombre,
+          <>
+            <label style={etiqueta}>
+              Stock Mínimo
+              <input type="number" min={0} placeholder="Ej. 5" style={campo} value={editarArticulo.stock_minimo} onChange={(e) => setEditarArticulo({ ...editarArticulo, stock_minimo: e.target.value })} />
+            </label>
+            <label style={etiqueta}>
+              Stock Máximo
+              <input type="number" min={0} placeholder="Ej. 20" style={campo} value={editarArticulo.stock_maximo} onChange={(e) => setEditarArticulo({ ...editarArticulo, stock_maximo: e.target.value })} />
+            </label>
+          </>,
+          () => void guardarEdicionArticulo(),
+          () => setEditarArticulo(null),
         )}
     </>
   )

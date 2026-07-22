@@ -27,6 +27,9 @@ export default function Dashboard() {
   const [umbralForm, setUmbralForm] = useState('')
   const [ventanaForm, setVentanaForm] = useState('')
   const [errorModal, setErrorModal] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
+  const [tipoUnidad, setTipoUnidad] = useState('Todos')
 
   const cargar = useCallback(async (seleccion: string) => {
     setDash(await getDashboard(seleccion || undefined))
@@ -95,7 +98,27 @@ export default function Dashboard() {
           <h2 style={h2Titulo}>Tablero Directivo</h2>
           <p style={subTitulo}>¿Vale la pena meterle más lana a este tracto? Haz clic en una barra para analizarlo.</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #D8D2C4', borderRadius: 9, padding: '9px 16px', fontSize: 14 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 9, padding: '12px 16px', fontSize: 13.5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>Desde:</span>
+            <input type="date" style={{ padding: '6px 10px', border: '1px solid #D8D2C4', borderRadius: 6, fontSize: 13 }} value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>Hasta:</span>
+            <input type="date" style={{ padding: '6px 10px', border: '1px solid #D8D2C4', borderRadius: 6, fontSize: 13 }} value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>Tipo:</span>
+            <select style={{ padding: '6px 10px', border: '1px solid #D8D2C4', borderRadius: 6, fontSize: 13, background: '#FAF7F0' }} value={tipoUnidad} onChange={(e) => setTipoUnidad(e.target.value)}>
+              <option>Todos</option>
+              <option>Tractor</option>
+              <option>Caja</option>
+              <option>Thermo</option>
+              <option>Servicio</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'none', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #D8D2C4', borderRadius: 9, padding: '9px 16px', fontSize: 14 }}>
           Periodo:{' '}
           <strong style={{ fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.04em' }}>JULIO 2026</strong>
           <span style={{ color: '#8A8374', fontSize: 11 }}>▾</span>
@@ -114,46 +137,48 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 16, alignItems: 'stretch', animation: 'fadeUp 0.45s ease' }}>
-        <div data-tour="barras" style={{ ...card, gridColumn: '1/-1' }}>
+        <div data-tour="barras" style={{ ...card, gridColumn: '1/-1', overflow: 'hidden', minWidth: 0, maxWidth: '100%', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 18px' }}>
             <h3 style={h3Titulo}>Gasto consolidado por tracto</h3>
             <Ayuda tip="Suma de diésel + refacciones + taller por unidad en el periodo. La barra rayada marca el tracto más caro. Clic en una barra = analizar esa unidad." />
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(10px,3vw,34px)', height: 210, padding: '0 6px', borderBottom: '2px solid #16191E' }}>
-            {barras.map((t) => {
-              const esSel = t.id_unidad === sel?.id_unidad
-              const h = Math.max(8, Math.round((t.costo_total / maxCosto) * 140))
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setSelTractoId(t.id_unidad)}
-                  title={'Analizar ' + t.id_unidad}
-                  className="hv-op85"
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, height: '100%' }}
-                >
-                  <span style={{ fontFamily: FD, fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#16191E' }}>
-                    {fmt(t.costo_total)}
-                  </span>
-                  <span
-                    style={{
-                      width: 'min(58px,100%)', height: h, borderRadius: '4px 4px 0 0',
-                      background: t.critico ? 'repeating-linear-gradient(135deg,#F2620F 0 10px,#D9550C 10px 20px)' : '#16191E',
-                      outline: esSel ? '3px solid #F2620F' : 'none', outlineOffset: 2,
-                      transition: 'height 0.3s ease', transformOrigin: 'bottom', animation: 'growBar 0.5s ease',
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontFamily: FD, fontSize: 15, fontWeight: esSel ? 700 : 600, letterSpacing: '0.06em',
-                      color: esSel ? '#F2620F' : '#6F6A60',
-                      borderBottom: esSel ? '3px solid #F2620F' : '3px solid transparent', paddingBottom: 2,
-                    }}
+          <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 3, height: 222, width: '100%', minWidth: 0, padding: '10px 2px 12px 2px', borderBottom: '2px solid #16191E', overflow: 'hidden' }}>
+              {barras.map((t) => {
+                const esSel = t.id_unidad === sel?.id_unidad
+                const h = Math.max(8, Math.round((t.costo_total / maxCosto) * 140))
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelTractoId(t.id_unidad)}
+                    title={'Analizar ' + t.id_unidad}
+                    className="hv-op85"
+                    style={{ flex: '1 1 0', minWidth: 0, maxWidth: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 5, background: 'none', border: 'none', cursor: 'pointer', padding: '0 1px', height: '100%' }}
                   >
-                    {t.id_unidad}
-                  </span>
-                </button>
-              )
-            })}
+                    <span style={{ display: 'block', width: '100%', textAlign: 'center', fontFamily: FD, fontSize: 10.5, lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#16191E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {fmt(t.costo_total)}
+                    </span>
+                    <span
+                      style={{
+                        width: '100%', maxWidth: 24, minWidth: 12, height: h, borderRadius: '4px 4px 0 0',
+                        background: t.critico ? 'repeating-linear-gradient(135deg,#F2620F 0 10px,#D9550C 10px 20px)' : '#16191E',
+                        outline: esSel ? '3px solid #F2620F' : 'none', outlineOffset: 2,
+                        transition: 'height 0.3s ease', transformOrigin: 'bottom', animation: 'growBar 0.5s ease',
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontFamily: FD, fontSize: 10.5, fontWeight: esSel ? 700 : 600, letterSpacing: '0.03em',
+                        color: esSel ? '#F2620F' : '#6F6A60',
+                        borderBottom: esSel ? '3px solid #F2620F' : '3px solid transparent', paddingBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+                      }}
+                    >
+                      {t.id_unidad}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 

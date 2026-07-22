@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Kicker from '../components/Kicker'
+import { SortTh, TablaFooter, TablaToolbar } from '../components/TablaControls'
 import { ApiError, getTaller, liberarUnidad, registrarIngreso, type RegistroTallerApi } from '../lib/api'
 import { useDemo } from '../lib/demo'
-import { badge, card, critStyle, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, thCell, theadRow, urgColors } from '../lib/estilos'
+import { badge, card, critStyle, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, theadRow, urgColors } from '../lib/estilos'
+import { useTabla } from '../lib/useTabla'
 
 const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
@@ -10,36 +12,75 @@ const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap:
 type Criticidad = 'Rápida' | 'Media' | 'Crítico'
 const criticidades: Criticidad[] = ['Rápida', 'Media', 'Crítico']
 
+type FiltroCrit = 'Todos' | Criticidad
+type FiltroLib  = 'Todos' | 'Total' | 'Mejoralito'
+
 export default function Taller() {
   const { unidades, toast } = useDemo()
   const [registros, setRegistros] = useState<RegistroTallerApi[]>([])
-  const [unidadId, setUnidadId] = useState('')
+  const [unidadId, setUnidadId]   = useState('')
   const [fechaIngreso, setFechaIngreso] = useState('')
-  const [diagnostico, setDiagnostico] = useState('')
-  const [criticidad, setCriticidad] = useState<Criticidad>('Media')
+  const [diagnostico, setDiagnostico]  = useState('')
+  const [criticidad, setCriticidad]    = useState<Criticidad>('Media')
   const [error, setError] = useState('')
-  const [liberar, setLiberar] = useState<RegistroTallerApi | null>(null)
-  const [tipo, setTipo] = useState<'Total' | 'Parcial'>('Total')
+  const [liberar, setLiberar]     = useState<RegistroTallerApi | null>(null)
+  const [tipo, setTipo]           = useState<'Total' | 'Parcial'>('Total')
   const [fechaSalida, setFechaSalida] = useState('')
-  const [costo, setCosto] = useState('')
+  const [costo, setCosto]         = useState('')
   const [pendientes, setPendientes] = useState('')
   const [errorModal, setErrorModal] = useState('')
+
+  // historial filters
+  const [filtroCrit, setFiltroCrit] = useState<FiltroCrit>('Todos')
+  const [filtroLib,  setFiltroLib]  = useState<FiltroLib>('Todos')
+  const [busqueda,   setBusqueda]   = useState('')
 
   const cargar = useCallback(async () => {
     setRegistros(await getTaller())
   }, [])
 
-  useEffect(() => {
-    void cargar()
-  }, [cargar])
+  useEffect(() => { void cargar() }, [cargar])
 
-  const enTaller = registros.filter((r) => r.tipo_liberacion === null)
-  const historial = registros.filter((r) => r.tipo_liberacion !== null)
+  const enTaller  = useMemo(() => registros.filter((r) => r.tipo_liberacion === null), [registros])
+  const historialBase = useMemo(() => registros.filter((r) => r.tipo_liberacion !== null), [registros])
+
+  const historialFiltrado = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    return historialBase.filter((r) => {
+      if (filtroCrit !== 'Todos' && r.criticidad !== filtroCrit) return false
+      if (filtroLib !== 'Todos') {
+        const lib = r.tipo_liberacion === 'Total' ? 'Total' : 'Mejoralito'
+        if (lib !== filtroLib) return false
+      }
+      if (q && !r.id_unidad.toLowerCase().includes(q) && !r.diagnostico.toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [historialBase, filtroCrit, filtroLib, busqueda])
+
+  const ctrlHistorial = useTabla(
+    historialFiltrado,
+    'fecha_ingreso',
+    'desc',
+    useCallback((row, col) => {
+      if (col === 'dias') return row.dias_en_taller ?? 0
+      if (col === 'costo') return Number(row.costo_taller) ?? 0
+      return (row as unknown as Record<string, unknown>)[col] as string | number
+    }, []),
+  )
 
   const ingresar = async () => {
     setError('')
-    if (!unidadId) return setError('Selecciona la unidad que ingresa a taller.')
-    if (!fechaIngreso) return setError('Captura la fecha de ingreso.')
+    if (!unidadId)        return setError('Selecciona la unidad que ingresa a taller.')
+    if (!fechaIngreso)    return setError('Captura la fecha de ingreso.')
+    
+    // Future date validation client-side
+    const selectedDate = new Date(fechaIngreso + 'T00:00:00')
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (selectedDate > today) {
+      return setError('La fecha de ingreso no puede ser mayor a la fecha actual.')
+    }
+
     if (!diagnostico.trim()) return setError('Describe el diagnóstico principal.')
     try {
       await registrarIngreso({
@@ -98,6 +139,7 @@ export default function Taller() {
         </p>
       </div>
 
+      {/* ── Registrar ingreso ── */}
       <div data-tour="taller" style={{ ...card, animation: 'fadeUp 0.4s ease' }}>
         <h3 style={{ ...h3Titulo, margin: '0 0 14px' }}>Registrar ingreso</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, alignItems: 'end' }}>
@@ -158,16 +200,17 @@ export default function Taller() {
         )}
       </div>
 
+      {/* ── En taller ahora ── */}
       <div style={{ ...card, padding: '6px 20px 14px', overflowX: 'auto', animation: 'fadeUp 0.45s ease' }}>
         <h3 style={{ ...h3Titulo, margin: '14px 0' }}>En taller ahora</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
           <thead>
             <tr style={theadRow}>
-              <th style={thCell}>Unidad</th>
-              <th style={thCell}>Ingreso</th>
-              <th style={thCell}>Diagnóstico</th>
-              <th style={thCell}>Criticidad</th>
-              <th style={thCell}></th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Unidad</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Ingreso</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Diagnóstico</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Criticidad</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }} />
             </tr>
           </thead>
           <tbody>
@@ -209,21 +252,53 @@ export default function Taller() {
         )}
       </div>
 
-      <div style={{ ...card, padding: '6px 20px 14px', overflowX: 'auto', animation: 'fadeUp 0.5s ease' }}>
-        <h3 style={{ ...h3Titulo, margin: '14px 0' }}>Historial de liberaciones</h3>
+      {/* ── Historial de liberaciones ── */}
+      <div style={{ ...card, padding: '14px 20px', overflowX: 'auto', animation: 'fadeUp 0.5s ease' }}>
+        <h3 style={{ ...h3Titulo, margin: '0 0 12px' }}>Historial de liberaciones</h3>
+
+        <TablaToolbar
+          ctrl={ctrlHistorial}
+          filtros={(['Todos', 'Total', 'Mejoralito'] as FiltroLib[]).map((f) => ({ value: f }))}
+          filtroActivo={filtroLib}
+          onFiltro={(f) => setFiltroLib(f as FiltroLib)}
+          busqueda={busqueda}
+          onBusqueda={setBusqueda}
+          busquedaPlaceholder="Buscar unidad o diagnóstico…"
+          rightSlot={
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#8A8374', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Criticidad</span>
+              {(['Todos', 'Rápida', 'Media', 'Crítico'] as FiltroCrit[]).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => { setFiltroCrit(c); ctrlHistorial.resetPage() }}
+                  className="hv-borde-ink"
+                  style={{
+                    padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    background: filtroCrit === c ? '#16191E' : '#fff',
+                    color: filtroCrit === c ? '#F3EFE7' : '#4A4438',
+                    border: filtroCrit === c ? '1px solid #16191E' : '1px solid #D8D2C4',
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          }
+        />
+
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 720 }}>
           <thead>
             <tr style={theadRow}>
-              <th style={thCell}>Unidad</th>
-              <th style={thCell}>Ingreso</th>
-              <th style={thCell}>Diagnóstico</th>
-              <th style={thCell}>Liberación</th>
-              <th style={{ ...thCell, textAlign: 'right' }}>Días</th>
-              <th style={{ ...thCell, textAlign: 'right' }}>Costo taller</th>
+              <SortTh col="id_unidad"     label="Unidad"       sortCol={ctrlHistorial.sortCol} sortDir={ctrlHistorial.sortDir} onSort={ctrlHistorial.toggleSort} />
+              <SortTh col="fecha_ingreso" label="Ingreso"      sortCol={ctrlHistorial.sortCol} sortDir={ctrlHistorial.sortDir} onSort={ctrlHistorial.toggleSort} />
+              <SortTh col="diagnostico"   label="Diagnóstico"  sortCol={ctrlHistorial.sortCol} sortDir={ctrlHistorial.sortDir} onSort={ctrlHistorial.toggleSort} />
+              <SortTh col="tipo_liberacion" label="Liberación" sortCol={ctrlHistorial.sortCol} sortDir={ctrlHistorial.sortDir} onSort={ctrlHistorial.toggleSort} />
+              <SortTh col="dias"          label="Días"         sortCol={ctrlHistorial.sortCol} sortDir={ctrlHistorial.sortDir} onSort={ctrlHistorial.toggleSort} style={{ textAlign: 'right' }} />
+              <SortTh col="costo"         label="Costo taller" sortCol={ctrlHistorial.sortCol} sortDir={ctrlHistorial.sortDir} onSort={ctrlHistorial.toggleSort} style={{ textAlign: 'right' }} />
             </tr>
           </thead>
           <tbody>
-            {historial.map((r) => (
+            {ctrlHistorial.filasPagina.map((r) => (
               <tr key={r.id} className="hv-fila">
                 <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17 }}>{r.id_unidad}</td>
                 <td style={{ ...tdCell, whiteSpace: 'nowrap' }}>{r.fecha_ingreso}</td>
@@ -248,13 +323,17 @@ export default function Taller() {
             ))}
           </tbody>
         </table>
-        {historial.length === 0 && (
+
+        {ctrlHistorial.total === 0 && (
           <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
-            Sin liberaciones registradas todavía.
+            Sin liberaciones que coincidan con los filtros.
           </div>
         )}
+
+        <TablaFooter ctrl={ctrlHistorial} />
       </div>
 
+      {/* ── Modal liberar ── */}
       {liberar && (
         <div
           onClick={() => setLiberar(null)}

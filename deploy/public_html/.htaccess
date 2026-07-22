@@ -6,6 +6,7 @@ ServerSignature Off
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteBase /
 
     # ------------------------------------------------------------------
     # CRÍTICO en hosting compartido (LiteSpeed/CGI): reinyecta el header
@@ -16,9 +17,9 @@ ServerSignature Off
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
     # 1) Toda la API la maneja CodeIgniter (front controller index.php).
-    #    CI4 lee la URI original (/api/v1/...) y hace match con sus rutas.
+    #    Forzamos SCRIPT_NAME=/index.php para que CI4 no elimine /api/ del URI.
     RewriteCond %{REQUEST_URI} ^/api(/.*)?$
-    RewriteRule ^ index.php [L]
+    RewriteRule ^ index.php [E=SCRIPT_NAME:/index.php,L]
 
     # 2) Archivos y carpetas reales del SPA (assets, favicon, etc.): directo.
     RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -29,14 +30,18 @@ ServerSignature Off
     RewriteRule ^ index.html [L]
 </IfModule>
 
-# ------------------------------------------------------------------
-# Cabeceras de seguridad (respaldan al filtro de la API para los
-# estáticos del SPA). La API además las emite por su cuenta.
-# ------------------------------------------------------------------
+# Evita que se cachee el index.html para siempre servir el bundle correcto
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "DENY"
     Header always set Referrer-Policy "no-referrer"
+    
+    # No guardar caché de index.html
+    <FilesMatch "index\.html$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires 0
+    </FilesMatch>
 </IfModule>
 
 # Cachea los assets hasheados del SPA (nombres con hash = inmutables)

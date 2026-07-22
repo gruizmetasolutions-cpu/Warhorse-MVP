@@ -32,11 +32,14 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
 
   if (respuesta.status === 204) return undefined as T
 
-  const cuerpo: unknown = await respuesta.json().catch(() => null)
-  if (!respuesta.ok) {
+  const cuerpo: any = await respuesta.json().catch(() => null)
+  const isRealError = cuerpo && typeof cuerpo === 'object' && 'real_status' in cuerpo && cuerpo.real_status >= 400
+
+  if (!respuesta.ok || isRealError) {
+    const status = isRealError ? cuerpo.real_status : respuesta.status
     const err = (cuerpo ?? {}) as { error?: string; message?: string; fields?: Record<string, string[]> }
     throw new ApiError(
-      respuesta.status,
+      status,
       err.error ?? 'server_error',
       err.message ?? 'Error del servidor.',
       err.fields,
@@ -106,6 +109,7 @@ export interface UnidadApi {
   valor_referencia: number | null
   costo_real_acumulado: number
   candidata_reincidencia: boolean
+  fecha_alta?: string | null
 }
 
 export async function getUnidades(estado?: EstadoUnidad): Promise<UnidadApi[]> {
@@ -139,7 +143,7 @@ export interface RequisicionApi {
   id: number
   estado: string
   origen: Origen
-  unidad_destino_id: number
+  unidad_destino_id: number | null
   unidad_donante_id: number | null
   descripcion_pieza: string
   numero_parte: string | null
@@ -149,29 +153,45 @@ export interface RequisicionApi {
   costo_real: number | null
   foto_pieza_url: string
   fecha_solicitud: string
+  origen_refaccion?: string | null
+  almacen?: string | null
+  numero_serie?: string | null
+  archivo_cotizacion_url?: string | null
+  archivo_factura_url?: string | null
+  numero_factura?: string | null
 }
 
 export interface NuevaRequisicionApi {
-  unidad_destino_id: number
+  unidad_destino_id: number | null
   origen: Origen
   unidad_donante_id: number | null
   descripcion_pieza: string
   numero_parte: string | null
   urgencia: Urgencia
   costo_estimado_manual: number | null
-  foto: File
+  fotos: File[]
+  origen_refaccion?: string
+  almacen?: string
+  numero_serie?: string
 }
 
 export function crearRequisicion(datos: NuevaRequisicionApi): Promise<RequisicionApi> {
   const fd = new FormData()
-  fd.set('unidad_destino_id', String(datos.unidad_destino_id))
+  if (datos.unidad_destino_id !== null) fd.set('unidad_destino_id', String(datos.unidad_destino_id))
   fd.set('origen', datos.origen)
   if (datos.unidad_donante_id !== null) fd.set('unidad_donante_id', String(datos.unidad_donante_id))
   fd.set('descripcion_pieza', datos.descripcion_pieza)
   if (datos.numero_parte) fd.set('numero_parte', datos.numero_parte)
   fd.set('urgencia', datos.urgencia)
   if (datos.costo_estimado_manual !== null) fd.set('costo_estimado_manual', String(datos.costo_estimado_manual))
-  fd.set('foto_pieza', datos.foto)
+  if (datos.origen_refaccion) fd.set('origen_refaccion', datos.origen_refaccion)
+  if (datos.almacen) fd.set('almacen', datos.almacen)
+  if (datos.numero_serie) fd.set('numero_serie', datos.numero_serie)
+  
+  if (datos.fotos[0]) fd.set('foto_pieza', datos.fotos[0])
+  if (datos.fotos[1]) fd.set('foto_pieza_2', datos.fotos[1])
+  if (datos.fotos[2]) fd.set('foto_pieza_3', datos.fotos[2])
+  
   return pedir<RequisicionApi>('/requisiciones', { method: 'POST', body: fd })
 }
 
@@ -190,11 +210,40 @@ export async function getColaCompras(estado?: EstadoRequisicion): Promise<FilaCo
 
 export function avanzarEstado(
   id: number,
-  cambio: { estado: EstadoRequisicion; costo_real?: number; numero_factura?: string },
+  cambio: {
+    estado: EstadoRequisicion
+    costo_real?: number
+    numero_factura?: string
+    archivo_cotizacion?: File | null
+    archivo_factura?: File | null
+  },
 ): Promise<RequisicionApi> {
+  const hasFiles = cambio.archivo_cotizacion || cambio.archivo_factura
+  if (hasFiles) {
+    const fd = new FormData()
+    fd.set('estado', cambio.estado)
+    if (cambio.costo_real !== undefined) fd.set('costo_real', String(cambio.costo_real))
+    if (cambio.numero_factura !== undefined) fd.set('numero_factura', cambio.numero_factura)
+    if (cambio.archivo_cotizacion) fd.set('archivo_cotizacion', cambio.archivo_cotizacion)
+    if (cambio.archivo_factura) fd.set('archivo_factura', cambio.archivo_factura)
+    return pedir<RequisicionApi>(`/compras/requisiciones/${id}/estado`, {
+      method: 'PATCH',
+      body: fd,
+    })
+  }
   return pedir<RequisicionApi>(`/compras/requisiciones/${id}/estado`, {
     method: 'PATCH',
     body: JSON.stringify(cambio),
+  })
+}
+
+export function revertirCotizacion(
+  id: number,
+  datos: { motivo: string }
+): Promise<RequisicionApi> {
+  return pedir<RequisicionApi>(`/compras/requisiciones/${id}/revertir`, {
+    method: 'POST',
+    body: JSON.stringify(datos),
   })
 }
 
@@ -388,5 +437,58 @@ export interface FichaApi {
 }
 
 export function getFicha(id: number): Promise<FichaApi> {
-  return pedir<FichaApi>(`/unidades/${id}/ficha`)
+  const bust = id ? "" : "";
+  return pedir<FichaApi>(`/unidades/${id}/ficha` + bust)
 }
+
+export interface ArticuloAlmacenApi {
+  id: number
+  nombre_normalizado: string
+  numero_parte: string | null
+  precio_referencia: number | null
+  stock_minimo: number | null
+  stock_maximo: number | null
+}
+
+export function eliminarRequisicion(id: number): Promise<void> {
+  return pedir<void>(`/requisiciones/${id}`, { method: 'DELETE' })
+}
+
+export async function getArticulosAlmacen(): Promise<ArticuloAlmacenApi[]> {
+  const r = await pedir<{ data: ArticuloAlmacenApi[] }>('/almacen/articulos')
+  return r.data
+}
+
+export function actualizarArticuloAlmacen(
+  id: number,
+  datos: { stock_minimo: number | null; stock_maximo: number | null }
+): Promise<ArticuloAlmacenApi> {
+  return pedir<ArticuloAlmacenApi>(`/almacen/articulos/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(datos),
+  })
+}
+
+export async function getFotoRequisicion(id: number, index: number = 0): Promise<string> {
+  const headers: Record<string, string> = {}
+  if (tokenActual) {
+    headers['Authorization'] = `Bearer ${tokenActual}`
+  }
+  const respuesta = await fetch(`${BASE}/requisiciones/${id}/foto?index=${index}`, { headers })
+  if (!respuesta.ok) throw new Error('No se pudo descargar la foto.')
+  const blob = await respuesta.blob()
+  return URL.createObjectURL(blob)
+}
+
+export async function getDocumentoRequisicion(id: number, tipo: 'cotizacion' | 'factura'): Promise<string> {
+  const headers: Record<string, string> = {}
+  if (tokenActual) {
+    headers['Authorization'] = `Bearer ${tokenActual}`
+  }
+  const respuesta = await fetch(`${BASE}/requisiciones/${id}/documento/${tipo}`, { headers })
+  if (!respuesta.ok) throw new Error('No se pudo descargar el documento.')
+  const blob = await respuesta.blob()
+  return URL.createObjectURL(blob)
+}
+
+

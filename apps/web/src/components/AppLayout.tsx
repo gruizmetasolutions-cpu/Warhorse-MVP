@@ -12,6 +12,7 @@ const navDefs = [
   { id: 'diesel', label: 'Diésel' },
   { id: 'catalogo', label: 'Catálogo' },
   { id: 'usuarios', label: 'Usuarios' },
+  { id: 'reportes', label: 'Reportes' },
 ]
 
 export default function AppLayout() {
@@ -29,7 +30,7 @@ export default function AppLayout() {
     pathname.startsWith('/' + id) || (id === 'dashboard' && pathname.startsWith('/ficha'))
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'stretch' }}>
+    <div style={{ minHeight: '100vh', width: '100%', maxWidth: '100%', display: 'flex', alignItems: 'stretch', overflowX: 'hidden' }}>
       <aside
         style={{
           width: 236, flex: 'none', background: '#14181D', color: '#F3EFE7',
@@ -105,8 +106,8 @@ export default function AppLayout() {
 
       <main
         style={{
-          flex: 1, minWidth: 0, padding: 30, maxWidth: 1240, margin: '0 auto',
-          display: 'flex', flexDirection: 'column', gap: 22, alignSelf: 'flex-start', width: '100%',
+          flex: '1 1 auto', minWidth: 0, width: '100%', maxWidth: '100%', padding: 30, margin: '0 auto',
+          display: 'flex', flexDirection: 'column', gap: 22, alignSelf: 'flex-start', overflowX: 'hidden', boxSizing: 'border-box',
         }}
       >
         <Outlet />

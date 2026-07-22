@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router'
 import './styles/tokens.css'
 import App from './routes'
 
+console.log("Hub v1.0.1")
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
@@ -11,3 +13,4 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+

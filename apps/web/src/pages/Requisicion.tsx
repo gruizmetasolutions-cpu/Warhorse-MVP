@@ -17,7 +17,12 @@ export default function Requisicion() {
   const [pieza, setPieza] = useState('')
   const [costo, setCosto] = useState('')
   const [urgencia, setUrgencia] = useState<Urgencia>('Media')
-  const [foto, setFoto] = useState<File | null>(null)
+  const [fotos, setFotos] = useState<File[]>([])
+  const [paraInventario, setParaInventario] = useState(false)
+  const [origenRefaccion, setOrigenRefaccion] = useState('')
+  const [almacen, setAlmacen] = useState('')
+  const [numeroSerie, setNumeroSerie] = useState('')
+  const [dragOver, setDragOver] = useState(false)
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -35,27 +40,53 @@ export default function Requisicion() {
 
   const limpiarError = () => setError('')
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(true)
+  }
+
+  const handleDragLeave = () => {
+    setDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    if (e.dataTransfer.files) {
+      const files = Array.from(e.dataTransfer.files)
+      if (fotos.length + files.length > 3) {
+        setError('La carga de evidencias está limitada a un máximo de 3 fotografías.')
+        return
+      }
+      setFotos((prev) => [...prev, ...files])
+      limpiarError()
+    }
+  }
+
   const enviar = async () => {
-    // Validación inmediata en cliente (mensajes del demo); el backend
-    // re-valida todo server-side (doc 04)
-    if (!destino) return setError('Selecciona el tracto destino.')
+    if (!paraInventario && !destino) return setError('Selecciona el tracto destino.')
     if (!pieza.trim()) return setError('Describe la pieza solicitada.')
+    if (pieza.trim().length > 350) return setError('La descripción de la pieza no puede exceder los 350 caracteres.')
     if (esYonke && !donante) return setError('El origen Yonke obliga a registrar la unidad donante.')
-    if (!foto) return setError('La foto de la pieza o número de serie es obligatoria.')
+    if (fotos.length === 0) return setError('La foto de la pieza o número de serie es obligatoria.')
+    if (fotos.length > 3) return setError('La carga de evidencias está limitada a un máximo de 3 fotografías.')
 
     setEnviando(true)
     try {
       const creada = await crearRequisicion({
-        unidad_destino_id: Number(destino),
+        unidad_destino_id: paraInventario ? null : Number(destino),
         origen,
         unidad_donante_id: esYonke ? Number(donante) : null,
         descripcion_pieza: pieza.trim(),
         numero_parte: null,
         urgencia,
         costo_estimado_manual: costo === '' ? null : Number(costo),
-        foto,
+        fotos,
+        origen_refaccion: origenRefaccion.trim() || undefined,
+        almacen: almacen.trim() || undefined,
+        numero_serie: numeroSerie.trim() || undefined,
       })
-      setDestino(''); setDonante(''); setPieza(''); setCosto(''); setUrgencia('Media'); setOrigen('Compra'); setFoto(null); setError('')
+      setDestino(''); setDonante(''); setPieza(''); setCosto(''); setUrgencia('Media'); setOrigen('Compra'); setFotos([]); setError(''); setOrigenRefaccion(''); setAlmacen(''); setNumeroSerie(''); setParaInventario(false)
       const detalleCosto = creada.costo_estimado !== null
         ? ` Costo estimado: ${fmt(creada.costo_estimado)} (${creada.origen_costo_estimado}).`
         : ''
@@ -80,19 +111,37 @@ export default function Requisicion() {
         <p style={subTitulo}>Solicitud completa con foto y origen de la pieza, para que Compras no tenga que pedir más datos.</p>
       </div>
       <div data-tour="reqform" style={{ background: '#fff', border: '1px solid #E7E0D2', borderRadius: 14, padding: 26, boxShadow: '0 1px 2px rgba(20,24,29,0.05)', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <label style={etiqueta}>
-          Tracto destino
-          <select
-            value={destino}
-            onChange={(e) => { setDestino(e.target.value); limpiarError() }}
-            style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
-          >
-            <option value="">Selecciona unidad…</option>
-            {destinoOpts.map((t) => (
-              <option key={t.id} value={String(t.id)}>{t.id_unidad + ' · ' + t.tipo}</option>
-            ))}
-          </select>
+        
+        {/* Nullable Destination trigger */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none', fontSize: 14, fontWeight: 700, color: '#16191E' }}>
+          <input
+            type="checkbox"
+            checked={paraInventario}
+            onChange={(e) => {
+              setParaInventario(e.target.checked)
+              if (e.target.checked) setDestino('')
+              limpiarError()
+            }}
+            style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#F2620F' }}
+          />
+          📦 Agregar directamente al inventario general del almacén
         </label>
+
+        {!paraInventario && (
+          <label style={etiqueta}>
+            Tracto destino
+            <select
+              value={destino}
+              onChange={(e) => { setDestino(e.target.value); limpiarError() }}
+              style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+            >
+              <option value="">Selecciona unidad…</option>
+              {destinoOpts.map((t) => (
+                <option key={t.id} value={String(t.id)}>{t.id_unidad + ' · ' + (t.tipo === 'Servicio' ? 'Camioneta de servicio' : t.tipo)}</option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 600 }}>Origen de la refacción</span>
@@ -123,7 +172,7 @@ export default function Requisicion() {
               <span style={ayudaCampo}>Solo unidades con estado Yonke pueden donar piezas.</span>
             </label>
             <label style={etiqueta}>
-              Costo estimado (MXN)
+              Costo estimado o Valor de mercado (MXN)
               <input
                 type="number"
                 value={costo}
@@ -133,54 +182,125 @@ export default function Requisicion() {
                 style={{ padding: 12, border: '1px solid #F0C4A4', borderRadius: 9, fontSize: 15, background: '#fff' }}
               />
               <span style={ayudaCampo}>
-                Si la pieza tiene histórico de compra o catálogo, el sistema calcula el estimado solo;
-                si no, captúralo aquí — así el costo real del tracto no se pierde (ADR-002).
+                Registra el costo referencial o valor comercial estimado de esta pieza.
               </span>
             </label>
           </div>
         )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <label style={etiqueta}>
+            Origen de la Refacción
+            <input
+              type="text"
+              value={origenRefaccion}
+              onChange={(e) => { setOrigenRefaccion(e.target.value); limpiarError() }}
+              placeholder="Ej. Nacional, Importado, Local"
+              style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+            />
+          </label>
+          <label style={etiqueta}>
+            Almacén (Origen/Destino)
+            <input
+              type="text"
+              value={almacen}
+              onChange={(e) => { setAlmacen(e.target.value); limpiarError() }}
+              placeholder="Ej. Almacén Central"
+              style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+            />
+          </label>
+        </div>
+
+        <label style={etiqueta}>
+          Número de Serie
+          <input
+            type="text"
+            value={numeroSerie}
+            onChange={(e) => { setNumeroSerie(e.target.value); limpiarError() }}
+            placeholder="Ej. SN-98234-XYZ"
+            style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+          />
+        </label>
 
         <label style={etiqueta}>
           Descripción de la pieza
           <input
             type="text"
             value={pieza}
+            maxLength={350}
             onChange={(e) => { setPieza(e.target.value); limpiarError() }}
-            placeholder="Ej. Turbo, número de parte si se conoce"
+            placeholder="Ej. Turbo, número de parte si se conoce (máx. 350 caracteres)"
             style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
           />
-          <span style={ayudaCampo}>Entre más completa, menos idas y vueltas con Compras.</span>
+          <span style={{ ...ayudaCampo, display: 'flex', justifyContent: 'space-between' }}>
+            <span>Entre más completa, menos idas y vueltas con Compras.</span>
+            <span>{pieza.length} / 350</span>
+          </span>
         </label>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600 }}>
-            Foto de la pieza o número de serie <span style={{ color: '#F2620F' }}>*</span>
-            <Ayuda tip="Obligatoria: evita compras a ciegas. Compras ve la pieza o su número de serie exacto antes de cotizar." />
+            Evidencias Fotográficas <span style={{ color: '#F2620F' }}>*</span>
+            <Ayuda tip="Obligatoria: hasta un máximo de 3 fotografías de la pieza o su número de serie." />
           </span>
           <input
             id="foto-pieza"
             type="file"
             accept="image/jpeg,image/png,image/webp"
             capture="environment"
+            multiple
             style={{ display: 'none' }}
-            onChange={(e) => { setFoto(e.target.files?.[0] ?? null); limpiarError() }}
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              if (fotos.length + files.length > 3) {
+                setError('La carga de evidencias está limitada a un máximo de 3 fotografías.')
+                return
+              }
+              setFotos((prev) => [...prev, ...files])
+              limpiarError()
+            }}
           />
           <label
             htmlFor="foto-pieza"
             className="hv-borde-naranja-solo"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             style={{
-              border: '2px dashed ' + (foto ? '#3FA65C' : '#C9C2B2'),
-              background: foto ? '#F0F7F1' : '#FAF7F0',
-              borderRadius: 10, padding: 16, cursor: 'pointer', textAlign: 'left', width: '100%', display: 'block',
+              border: '2px dashed ' + (fotos.length > 0 ? '#3FA65C' : (dragOver ? '#F2620F' : '#C9C2B2')),
+              background: fotos.length > 0 ? '#F0F7F1' : (dragOver ? '#FDF3EC' : '#FAF7F0'),
+              borderRadius: 10, padding: 24, cursor: 'pointer', textAlign: 'center', width: '100%', display: 'block',
+              transition: 'all 0.25s ease'
             }}
           >
-            {foto ? (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 44, height: 44, borderRadius: 8, background: 'repeating-linear-gradient(45deg,#EFE7D8,#EFE7D8 6px,#F8F4EB 6px,#F8F4EB 12px)', border: '1px solid #D8D2C4', flex: 'none' }} />
-                <span style={{ fontSize: 14, color: '#16191E', fontWeight: 600 }}>{foto.name} adjunta ✓</span>
-              </span>
+            {fotos.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {fotos.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, padding: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 34, height: 34, borderRadius: 6, background: 'repeating-linear-gradient(45deg,#EFE7D8,#EFE7D8 6px,#F8F4EB 6px,#F8F4EB 12px)', border: '1px solid #D8D2C4' }} />
+                      <span style={{ fontSize: 13.5, color: '#16191E', fontWeight: 600 }}>{f.name} ({Math.round(f.size/1024)} KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setFotos((prev) => prev.filter((_, idx) => idx !== i))
+                      }}
+                      style={{ background: 'transparent', border: 'none', color: '#C53030', fontWeight: 700, cursor: 'pointer', padding: '4px 8px' }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                ))}
+                {fotos.length < 3 && <span style={{ fontSize: 12.5, color: '#6F6A60', fontWeight: 600, marginTop: 4 }}>+ Agregar otra fotografía (máx. 3)</span>}
+              </div>
             ) : (
-              <span style={{ fontSize: 14, color: '#6F6A60' }}>📷 Toca para adjuntar fotografía (obligatorio)</span>
+              <span style={{ fontSize: 14, color: '#6F6A60', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span>📷 Toca para adjuntar fotografía (máx. 3)</span>
+                <span style={{ fontSize: 12, opacity: 0.8 }}>o arrastra y suelta tu archivo aquí (Drag and Drop)</span>
+              </span>
             )}
           </label>
           <span style={{ fontSize: 12.5, color: '#6F6A60' }}>

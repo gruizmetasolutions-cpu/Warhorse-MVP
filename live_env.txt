@@ -1,0 +1,26 @@
+#--------------------------------------------------------------------
+# ENVIRONMENT
+#--------------------------------------------------------------------
+CI_ENVIRONMENT = production
+
+#--------------------------------------------------------------------
+# DATABASE
+#--------------------------------------------------------------------
+database.default.hostname = 127.0.0.1
+database.default.database = noodluis_warhorse
+database.default.username = noodluis_DEV_Warhorse
+database.default.password = wAb~YlfTVjVD
+database.default.DBDriver = MySQLi
+database.default.port = 3306
+
+#--------------------------------------------------------------------
+# DEPLOYMENT / SERVER
+#--------------------------------------------------------------------
+encryption.key = hex2bin:fd36f4b007f1376ffbb34199a1f3d0201881246c6ed28792b1987ced66011192
+app.baseURL = 'https://warhorse.dataholics.com.mx/'
+app.indexPage = ''
+app.uriProtocol = 'REQUEST_URI'
+ftp.server = 'ftp.dataholics.com.mx'
+ftp.user = 'DEV_warhorse@warhorse.dataholics.com.mx'
+ftp.password = '2k@r~mD5K.Y?'
+ftp.port = 21
