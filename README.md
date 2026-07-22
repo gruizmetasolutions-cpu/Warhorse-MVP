@@ -1,5 +1,9 @@
 # Warhorse — Hub Consolidador de Gastos por Tracto
 
+> [!IMPORTANT]
+> **ÚLTIMA VERSIÓN PUBLICADA Y ACTIVA EN PRODUCCIÓN (`REVIEW7-21`)**: 
+> Esta versión (Sprint 6 Upgrades) incluye el control de límites de almacén, asignación directa a inventario general, flujo extendido de compras (*En trayecto*, adjuntos de facturas/cotizaciones), filtros por día/mes, gráfica de tendencias de diésel km/L y módulo de reportes CSV. Desplegada y activa en producción en Site5 (`https://warhorse.dataholics.com.mx/`).
+
 Monorepo del sistema (WarHorse México · Dataholics). Documentación completa en
 [`WarhorseDocs/`](WarhorseDocs/README.md) — leer `WarhorseDocs/CLAUDE.md` antes de tocar código.
 

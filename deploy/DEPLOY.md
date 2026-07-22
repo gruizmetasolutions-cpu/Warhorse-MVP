@@ -1,5 +1,9 @@
 # Despliegue de Warhorse en Site5 (hosting compartido)
 
+> [!IMPORTANT]
+> **ÚLTIMA VERSIÓN PUBLICADA Y ACTIVA EN PRODUCCIÓN (`REVIEW7-21`)**: 
+> Esta guía corresponde a la rama `REVIEW7-21` (Sprint 6 Upgrades) publicada y activa en producción (`https://warhorse.dataholics.com.mx/`).
+
 Dominio temporal: **https://warhorse.dataholics.com.mx/**
 
 El proyecto son dos piezas que van al **mismo dominio**: el SPA (React, ya

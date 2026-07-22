@@ -1,5 +1,9 @@
 # Playbook de Despliegue en Site5 (Production) — Warhorse
 
+> [!IMPORTANT]
+> **ÚLTIMA VERSIÓN PUBLICADA Y ACTIVA EN PRODUCCIÓN (`REVIEW7-21`)**: 
+> Este playbook corresponde al estado desplegado activo en la rama `REVIEW7-21` (Sprint 6 Upgrades) en el dominio `https://warhorse.dataholics.com.mx/`.
+
 Este documento describe la arquitectura final de despliegue, el paso a paso detallado para publicar la aplicación de forma limpia y sin errores en **Site5.com**, y las lecciones aprendidas durante la configuración del entorno compartido.
 
 ---
