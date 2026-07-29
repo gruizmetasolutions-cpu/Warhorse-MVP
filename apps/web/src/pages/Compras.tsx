@@ -236,8 +236,9 @@ export default function Compras() {
       case 'En aprobación':
         return { texto: '→ En pago', ejecutar: () => void avanzar(q, 'En pago') }
       case 'En pago':
-        return { texto: '→ En recolección', ejecutar: () => void avanzar(q, 'En recolección') }
+        return null // Handled with dual buttons in the TD
       case 'En recolección':
+      case 'Bajo pedido':
         return {
           texto: '→ Cotizado',
           ejecutar: () => {
@@ -420,7 +421,24 @@ export default function Compras() {
                   </td>
                   <td style={{ ...tdCell, color: '#6F6A60', whiteSpace: 'nowrap' }}>{q.fecha_solicitud}</td>
                   <td style={{ ...tdCell, display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {accion ? (
+                    {q.estado === 'En pago' ? (
+                      <>
+                        <button
+                          onClick={() => void avanzar(q, 'En recolección')}
+                          className="hv-inkfill"
+                          style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          → Recolección
+                        </button>
+                        <button
+                          onClick={() => void avanzar(q, 'Bajo pedido')}
+                          className="hv-inkfill"
+                          style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          → Bajo pedido
+                        </button>
+                      </>
+                    ) : accion ? (
                       <button
                         onClick={accion.ejecutar}
                         className="hv-inkfill"

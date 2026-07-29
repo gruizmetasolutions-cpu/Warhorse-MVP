@@ -31,12 +31,13 @@ final class RequisicionesController extends BaseController
 
         if (! $this->validateData($datos, [
             'unidad_destino_id'     => 'permit_empty|is_natural_no_zero',
-            'origen'                => 'required|in_list[Compra,Yonke]',
+            'origen'                => 'required|in_list[Compra,Yonke,Inventario]',
+            'pieza_catalogo_id'     => 'permit_empty|is_natural_no_zero',
             'origen_refaccion'      => 'permit_empty|string|max_length[180]',
             'almacen'               => 'permit_empty|string|max_length[100]',
             'numero_serie'          => 'permit_empty|string|max_length[80]',
             'descripcion_pieza'     => 'required|string|max_length[350]',
-            'urgencia'              => 'permit_empty|in_list[Rápida,Media,Crítica]',
+            'urgencia'              => 'permit_empty|in_list[Bajo,Medio,Crítico,Inmediato]',
             'numero_parte'          => 'permit_empty|string|max_length[80]',
             'costo_estimado_manual' => 'permit_empty|decimal|greater_than[0]',
         ])) {

@@ -1,7 +1,7 @@
-import { useState, type CSSProperties } from 'react'
+import { useState, useEffect, type CSSProperties } from 'react'
 import Ayuda from '../components/Ayuda'
 import Kicker from '../components/Kicker'
-import { ApiError, crearRequisicion } from '../lib/api'
+import { ApiError, crearRequisicion, getArticulosAlmacen, type ArticuloAlmacenApi } from '../lib/api'
 import { useDemo } from '../lib/demo'
 import { FD, fmt, h2Titulo, subTitulo, urgColors } from '../lib/estilos'
 import type { Origen, Urgencia } from '../lib/types'
@@ -16,7 +16,8 @@ export default function Requisicion() {
   const [donante, setDonante] = useState('')
   const [pieza, setPieza] = useState('')
   const [costo, setCosto] = useState('')
-  const [urgencia, setUrgencia] = useState<Urgencia>('Media')
+  const [urgencia, setUrgencia] = useState<Urgencia>('Medio')
+  const [numeroParte, setNumeroParte] = useState('')
   const [fotos, setFotos] = useState<File[]>([])
   const [paraInventario, setParaInventario] = useState(false)
   const [origenRefaccion, setOrigenRefaccion] = useState('')
@@ -25,11 +26,20 @@ export default function Requisicion() {
   const [dragOver, setDragOver] = useState(false)
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [articulos, setArticulos] = useState<ArticuloAlmacenApi[]>([])
+  const [selArticuloId, setSelArticuloId] = useState('')
+
+  useEffect(() => {
+    void getArticulosAlmacen().then(setArticulos)
+  }, [])
 
   // Catálogo VIVO (RF-UNI-01): los selectores leen de la API, no del mock
   const destinoOpts = unidades.filter((t) => t.estado === 'Activo')
   const donanteOpts = unidades.filter((t) => t.estado === 'Yonke')
   const esYonke = origen === 'Yonke'
+
+  const unidadSeleccionada = unidades.find((u) => String(u.id) === destino)
+  const esCajaOThermo = unidadSeleccionada?.tipo === 'Caja' || unidadSeleccionada?.tipo === 'Thermo'
 
   const origBtn = (act: boolean, acento: 'o' | 'b'): CSSProperties => ({
     padding: '13px 10px', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer',
@@ -64,10 +74,32 @@ export default function Requisicion() {
   }
 
   const enviar = async () => {
+    const esInventario = origen === 'Inventario'
     if (!paraInventario && !destino) return setError('Selecciona el tracto destino.')
-    if (!pieza.trim()) return setError('Describe la pieza solicitada.')
-    if (pieza.trim().length > 350) return setError('La descripción de la pieza no puede exceder los 350 caracteres.')
-    if (esYonke && !donante) return setError('El origen Yonke obliga a registrar la unidad donante.')
+    
+    let descripcionPieza = pieza.trim()
+    let sku = numeroParte.trim() || null
+    let piezaCatId: number | null = null
+
+    if (esInventario) {
+      if (!selArticuloId) return setError('Selecciona el artículo del inventario.')
+      const art = articulos.find(a => String(a.id) === selArticuloId)
+      if (!art) return setError('Artículo de catálogo inválido.')
+      if (art.stock_actual <= 0) return setError('No hay stock disponible en almacén para este artículo.')
+      descripcionPieza = art.nombre_normalizado
+      sku = art.numero_parte
+      piezaCatId = art.id
+    } else {
+      if (!descripcionPieza) return setError('Describe la pieza solicitada.')
+      if (descripcionPieza.length > 350) return setError('La descripción de la pieza no puede exceder los 350 caracteres.')
+      if (esYonke && !donante) return setError('El origen Yonke obliga a registrar la unidad donante.')
+      
+      // WH-004: part number is mandatory for Tractors/Service but optional for Cajas/Termos
+      if (!paraInventario && !esCajaOThermo && !sku) {
+        return setError('El Número de Parte / SKU es obligatorio para tractores o unidades de servicio.')
+      }
+    }
+    
     if (fotos.length === 0) return setError('La foto de la pieza o número de serie es obligatoria.')
     if (fotos.length > 3) return setError('La carga de evidencias está limitada a un máximo de 3 fotografías.')
 
@@ -77,8 +109,9 @@ export default function Requisicion() {
         unidad_destino_id: paraInventario ? null : Number(destino),
         origen,
         unidad_donante_id: esYonke ? Number(donante) : null,
-        descripcion_pieza: pieza.trim(),
-        numero_parte: null,
+        pieza_catalogo_id: piezaCatId,
+        descripcion_pieza: descripcionPieza,
+        numero_parte: sku,
         urgencia,
         costo_estimado_manual: costo === '' ? null : Number(costo),
         fotos,
@@ -86,7 +119,7 @@ export default function Requisicion() {
         almacen: almacen.trim() || undefined,
         numero_serie: numeroSerie.trim() || undefined,
       })
-      setDestino(''); setDonante(''); setPieza(''); setCosto(''); setUrgencia('Media'); setOrigen('Compra'); setFotos([]); setError(''); setOrigenRefaccion(''); setAlmacen(''); setNumeroSerie(''); setParaInventario(false)
+      setDestino(''); setDonante(''); setPieza(''); setCosto(''); setUrgencia('Medio'); setNumeroParte(''); setOrigen('Compra'); setFotos([]); setError(''); setOrigenRefaccion(''); setAlmacen(''); setNumeroSerie(''); setParaInventario(false); setSelArticuloId('')
       const detalleCosto = creada.costo_estimado !== null
         ? ` Costo estimado: ${fmt(creada.costo_estimado)} (${creada.origen_costo_estimado}).`
         : ''
@@ -145,15 +178,41 @@ export default function Requisicion() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 600 }}>Origen de la refacción</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button onClick={() => { setOrigen('Compra'); limpiarError() }} className="hv-borde-ink" style={origBtn(!esYonke, 'b')}>
-              🛒 Solicitud de Compra
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <button onClick={() => { setOrigen('Compra'); limpiarError() }} className="hv-borde-ink" style={origBtn(origen === 'Compra', 'b')}>
+              🛒 Compra
             </button>
-            <button onClick={() => { setOrigen('Yonke'); limpiarError() }} className="hv-borde-naranja-solo" style={origBtn(esYonke, 'o')}>
-              Canibalizado de Yonke
+            <button onClick={() => { setOrigen('Yonke'); limpiarError() }} className="hv-borde-naranja-solo" style={origBtn(origen === 'Yonke', 'o')}>
+              Yonke
+            </button>
+            <button onClick={() => { setOrigen('Inventario'); limpiarError() }} className="hv-borde-naranja-solo" style={origBtn(origen === 'Inventario', 'o')}>
+              📦 Inventario
             </button>
           </div>
         </div>
+
+        {origen === 'Inventario' && (
+          <div style={{ background: '#EAF5FF', border: '1px dashed #1A73E8', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <label style={etiqueta}>
+              Artículo de Inventario (Almacén)
+              <select
+                value={selArticuloId}
+                onChange={(e) => { setSelArticuloId(e.target.value); limpiarError() }}
+                style={{ padding: 12, border: '1px solid #B0D4FF', borderRadius: 9, fontSize: 15, background: '#fff', fontWeight: 600 }}
+              >
+                <option value="">Selecciona una refacción del stock…</option>
+                {articulos.map((a) => (
+                  <option key={a.id} value={String(a.id)}>
+                    {a.nombre_normalizado} {a.numero_parte ? `(${a.numero_parte})` : ''} · Stock: {a.stock_actual}
+                  </option>
+                ))}
+              </select>
+              <span style={ayudaCampo}>
+                Al enviar la requisición, se descontará automáticamente una pieza del stock de este artículo en almacén.
+              </span>
+            </label>
+          </div>
+        )}
 
         {esYonke && (
           <div style={{ background: '#FDF3EC', border: '1px dashed #F2620F', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -211,32 +270,59 @@ export default function Requisicion() {
           </label>
         </div>
 
-        <label style={etiqueta}>
-          Número de Serie
-          <input
-            type="text"
-            value={numeroSerie}
-            onChange={(e) => { setNumeroSerie(e.target.value); limpiarError() }}
-            placeholder="Ej. SN-98234-XYZ"
-            style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
-          />
-        </label>
+        {origen === 'Inventario' ? (
+          <label style={etiqueta}>
+            Número de Serie
+            <input
+              type="text"
+              value={numeroSerie}
+              onChange={(e) => { setNumeroSerie(e.target.value); limpiarError() }}
+              placeholder="Ej. SN-98234-XYZ"
+              style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+            />
+          </label>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <label style={etiqueta}>
+                Número de Serie
+                <input
+                  type="text"
+                  value={numeroSerie}
+                  onChange={(e) => { setNumeroSerie(e.target.value); limpiarError() }}
+                  placeholder="Ej. SN-98234-XYZ"
+                  style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+                />
+              </label>
+              <label style={etiqueta}>
+                Número de Parte / SKU {!paraInventario && !esCajaOThermo && <span style={{ color: '#F2620F' }}>*</span>}
+                <input
+                  type="text"
+                  value={numeroParte}
+                  onChange={(e) => { setNumeroParte(e.target.value); limpiarError() }}
+                  placeholder={esCajaOThermo ? "Opcional para Cajas/Termos" : "Obligatorio"}
+                  style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+                />
+              </label>
+            </div>
 
-        <label style={etiqueta}>
-          Descripción de la pieza
-          <input
-            type="text"
-            value={pieza}
-            maxLength={350}
-            onChange={(e) => { setPieza(e.target.value); limpiarError() }}
-            placeholder="Ej. Turbo, número de parte si se conoce (máx. 350 caracteres)"
-            style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
-          />
-          <span style={{ ...ayudaCampo, display: 'flex', justifyContent: 'space-between' }}>
-            <span>Entre más completa, menos idas y vueltas con Compras.</span>
-            <span>{pieza.length} / 350</span>
-          </span>
-        </label>
+            <label style={etiqueta}>
+              Descripción de la pieza
+              <input
+                type="text"
+                value={pieza}
+                maxLength={350}
+                onChange={(e) => { setPieza(e.target.value); limpiarError() }}
+                placeholder="Ej. Turbo, número de parte si se conoce (máx. 350 caracteres)"
+                style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+              />
+              <span style={{ ...ayudaCampo, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Entre más completa, menos idas y vueltas con Compras.</span>
+                <span>{pieza.length} / 350</span>
+              </span>
+            </label>
+          </>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600 }}>
@@ -311,7 +397,7 @@ export default function Requisicion() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 600 }}>Urgencia</span>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {(['Rápida', 'Media', 'Crítica'] as const).map((u) => {
+            {(['Bajo', 'Medio', 'Crítico', 'Inmediato'] as const).map((u) => {
               const act = urgencia === u
               const c = urgColors[u]
               return (

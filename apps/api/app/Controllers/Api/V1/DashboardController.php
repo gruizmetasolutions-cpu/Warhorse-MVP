@@ -19,13 +19,19 @@ final class DashboardController extends BaseController
         $request   = $this->request;
         $seleccion = null;
         $tipo      = null;
+        $desde     = null;
+        $hasta     = null;
         if ($request instanceof IncomingRequest) {
-            $valor     = $request->getGet('seleccion');
-            $seleccion = is_string($valor) && $valor !== '' ? $valor : null;
-            $valorTipo = $request->getGet('tipo');
-            $tipo      = is_string($valorTipo) && $valorTipo !== '' ? $valorTipo : null;
+            $valor      = $request->getGet('seleccion');
+            $seleccion  = is_string($valor) && $valor !== '' ? $valor : null;
+            $valorTipo  = $request->getGet('tipo');
+            $tipo       = is_string($valorTipo) && $valorTipo !== '' ? $valorTipo : null;
+            $valorDesde = $request->getGet('desde');
+            $desde      = is_string($valorDesde) && $valorDesde !== '' ? $valorDesde : null;
+            $valorHasta = $request->getGet('hasta');
+            $hasta      = is_string($valorHasta) && $valorHasta !== '' ? $valorHasta : null;
         }
 
-        return $this->response->setJSON((new DashboardService())->armar($seleccion, $tipo));
+        return $this->response->setJSON((new DashboardService())->armar($seleccion, $tipo, $desde, $hasta));
     }
 }

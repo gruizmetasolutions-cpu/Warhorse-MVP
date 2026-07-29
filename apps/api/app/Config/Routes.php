@@ -35,6 +35,12 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->get('requisiciones/(:num)/documento/(:alpha)', 'RequisicionesController::documento/$1/$2', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin', 'password-vigente']]);
     $routes->delete('requisiciones/(:num)', 'RequisicionesController::delete/$1', ['filter' => ['cors', 'api-auth', 'rbac:admin', 'throttle-mut', 'password-vigente']]);
 
+    // Ordenes de Trabajo / Reparaciones (WH-005)
+    $routes->get('taller/reparaciones', 'OrdenesTrabajoController::listar', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'password-vigente']]);
+    $routes->post('taller/reparaciones', 'OrdenesTrabajoController::crear', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
+    $routes->get('taller/responsables', 'OrdenesTrabajoController::responsables', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'password-vigente']]);
+    $routes->post('taller/responsables', 'OrdenesTrabajoController::crearResponsable', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
+
     // Panel de Compras (RF-COM-01..04): la cola la ven compras y admin; el
     // ciclo lo avanza SOLO compras (doc 05 §6)
     $routes->get('compras/requisiciones', 'ComprasController::index', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'password-vigente']]);
@@ -43,6 +49,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
 
     // Almacén / Inventario (REQ-001)
     $routes->get('almacen/articulos', 'AlmacenController::articulos', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'password-vigente']]);
+    $routes->post('almacen/articulos', 'AlmacenController::crear', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'throttle-mut', 'password-vigente']]);
     $routes->patch('almacen/articulos/(:num)', 'AlmacenController::actualizar/$1', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'throttle-mut', 'password-vigente']]);
 
     // Usuarios y permisos (RF-USR-01/02): solo Dirección

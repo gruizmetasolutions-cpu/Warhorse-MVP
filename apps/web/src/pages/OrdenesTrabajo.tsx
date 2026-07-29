@@ -1,0 +1,396 @@
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import Kicker from '../components/Kicker'
+import { SortTh, TablaFooter } from '../components/TablaControls'
+import { ApiError, getOrdenesTrabajo, crearOrdenTrabajo, getResponsablesTaller, crearResponsableTaller, type ResponsableTaller, type OrdenTrabajoApi } from '../lib/api'
+import { useDemo } from '../lib/demo'
+import { badge, card, FD, h2Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
+import { useTabla } from '../lib/useTabla'
+
+const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
+const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
+
+const ROLES_TECNICOS = ['Mecánico A', 'Mecánico B', 'Auxiliares', 'Termoquineros', 'Desponchadores']
+
+export default function OrdenesTrabajo() {
+  const { unidades, toast } = useDemo()
+  const [reparaciones, setReparaciones] = useState<OrdenTrabajoApi[]>([])
+  const [responsables, setResponsables] = useState<ResponsableTaller[]>([])
+  const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState('')
+
+  const modal = (titulo: string, contenido: ReactNode, onGuardar: () => void, onCerrar: () => void) => (
+    <div
+      onClick={onCerrar}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={titulo}
+        style={{ background: '#fff', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+      >
+        <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 14px' }}>
+          {titulo}
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{contenido}</div>
+        {error && (
+          <div role="alert" style={{ marginTop: 12, background: '#FBEBE8', border: '1px solid #E8A99D', color: '#9B2C2C', borderRadius: 9, padding: '12px 14px', fontSize: 14 }}>
+            {error}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button
+            onClick={onCerrar}
+            className="hv-crema"
+            style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onGuardar}
+            className="hv-naranja"
+            style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+          >
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Modals state
+  const [nuevaOT, setNuevaOT] = useState<boolean>(false)
+  const [nuevoResp, setNuevoResp] = useState<boolean>(false)
+
+  // Creation form state
+  const [unidadId, setUnidadId] = useState('')
+  const [responsableId, setResponsableId] = useState('')
+  const [diagnostico, setDiagnostico] = useState('')
+  const [materiales, setMateriales] = useState<{ pieza: string; cantidad: number }[]>([])
+  const [archivosEvidencia, setArchivosEvidencia] = useState<{ categoria: string; nombre: string }[]>([])
+
+  // Resp form state
+  const [respNombre, setRespNombre] = useState('')
+  const [respRol, setRespRol] = useState('Mecánico A')
+
+  const ctrl = useTabla(
+    reparaciones,
+    'created_at',
+    'desc',
+    useCallback((row, col) => {
+      if (col === 'unidad') return row.unidad.id_unidad
+      if (col === 'responsable') return row.responsable.nombre
+      return (row as unknown as Record<string, unknown>)[col] as string | number
+    }, [])
+  )
+
+  const cargar = useCallback(async () => {
+    setCargando(true)
+    try {
+      const [ops, resps] = await Promise.all([getOrdenesTrabajo(), getResponsablesTaller()])
+      setReparaciones(ops)
+      setResponsables(resps)
+    } catch (e) {
+      toast('No se pudieron cargar las órdenes de trabajo.')
+    } finally {
+      setCargando(false)
+    }
+  }, [toast])
+
+  useEffect(() => { void cargar() }, [cargar])
+
+  const handleCrearResponsable = async () => {
+    if (!respNombre.trim()) return setError('Ingresa el nombre del responsable.')
+    setError('')
+    try {
+      await crearResponsableTaller({ nombre: respNombre.trim(), rol: respRol })
+      toast(`Responsable "${respNombre}" agregado al taller.`)
+      setRespNombre('')
+      setNuevoResp(false)
+      const resps = await getResponsablesTaller()
+      setResponsables(resps)
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'No se pudo crear el responsable.')
+    }
+  }
+
+  const handleCrearOT = async () => {
+    if (!unidadId) return setError('Selecciona la unidad.')
+    if (!responsableId) return setError('Selecciona el técnico responsable.')
+    if (!diagnostico.trim()) return setError('Describe el diagnóstico o trabajo realizado.')
+    setError('')
+    try {
+      await crearOrdenTrabajo({
+        unidad_id: Number(unidadId),
+        responsable_id: Number(responsableId),
+        diagnostico: diagnostico.trim(),
+        materiales: materiales.filter(m => m.pieza.trim() !== ''),
+        archivos_evidencia: archivosEvidencia.map(a => ({ categoria: a.categoria, url: '#', nombre: a.nombre })),
+      })
+      toast('Orden de trabajo registrada exitosamente.')
+      setNuevaOT(false)
+      // Reset form
+      setUnidadId('')
+      setResponsableId('')
+      setDiagnostico('')
+      setMateriales([])
+      setArchivosEvidencia([])
+      await cargar()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'No se pudo registrar la orden de trabajo.')
+    }
+  }
+
+  const handleFileChange = (categoria: string, files: FileList | null) => {
+    if (!files) return
+    const nuevos = Array.from(files).map(f => ({ categoria, nombre: f.name }))
+    setArchivosEvidencia(prev => [...prev, ...nuevos])
+  }
+
+  const removeFile = (idx: number) => {
+    setArchivosEvidencia(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const addMaterialRow = () => {
+    setMateriales(prev => [...prev, { pieza: '', cantidad: 1 }])
+  }
+
+  const updateMaterialRow = (idx: number, campo: 'pieza' | 'cantidad', valor: any) => {
+    setMateriales(prev => prev.map((m, i) => {
+      if (i !== idx) return m
+      return { ...m, [campo]: campo === 'cantidad' ? Number(valor) : valor }
+    }))
+  }
+
+  const removeMaterialRow = (idx: number) => {
+    setMateriales(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', animation: 'fadeUp 0.35s ease' }}>
+        <div>
+          <Kicker texto="Mantenimiento" />
+          <h2 style={h2Titulo}>Órdenes de Trabajo y Reparaciones</h2>
+          <p style={subTitulo}>
+            Historial de mantenimiento sobre unidades, asignación de responsables por nivel técnico y gestión de evidencias para facturación.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => { setError(''); setNuevoResp(true) }}
+            className="hv-crema"
+            style={{ padding: '9px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          >
+            + Agregar Técnico
+          </button>
+          <button
+            onClick={() => { setError(''); setNuevaOT(true) }}
+            className="hv-naranja"
+            style={{ padding: '9px 18px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 15, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+          >
+            + Nueva Orden
+          </button>
+        </div>
+      </div>
+
+      <div style={{ ...card, padding: '14px 20px', overflowX: 'auto', marginTop: 18, animation: 'fadeUp 0.4s ease' }}>
+        {cargando ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#6F6A60', fontSize: 15 }}>
+            Cargando órdenes de trabajo...
+          </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 700 }}>
+            <thead>
+              <tr style={theadRow}>
+                <SortTh col="unidad"      label="Unidad"       sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="responsable" label="Responsable"  sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <th style={thCell}>Rol Técnico</th>
+                <th style={thCell}>Diagnóstico / Trabajo</th>
+                <th style={{ ...thCell, textAlign: 'center' }}>Materiales</th>
+                <th style={{ ...thCell, textAlign: 'center' }}>Evidencias</th>
+                <SortTh col="created_at"  label="Fecha Registro" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+              </tr>
+            </thead>
+            <tbody>
+              {ctrl.filasPagina.map((ot) => (
+                <tr key={ot.id} className="hv-fila">
+                  <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 16 }}>{ot.unidad.id_unidad}</td>
+                  <td style={{ ...tdCell, fontWeight: 600 }}>{ot.responsable.nombre}</td>
+                  <td style={tdCell}>
+                    <span style={badge('#E3ECF7', '#1B4E8C', '#9FC0E4')}>{ot.responsable.rol}</span>
+                  </td>
+                  <td style={{ ...tdCell, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ot.diagnostico}>
+                    {ot.diagnostico}
+                  </td>
+                  <td style={{ ...tdCell, textAlign: 'center' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#6F6A60' }}>
+                      {ot.materiales.length} pzs
+                    </span>
+                  </td>
+                  <td style={{ ...tdCell, textAlign: 'center' }}>
+                    <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                      {ot.archivos_evidencia.map((a, i) => (
+                        <span key={i} style={badge('#FDF3EC', '#B4430A', '#F2620F')} title={`${a.categoria}: ${a.nombre}`}>
+                          📎 {a.categoria}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={tdCell}>{ot.created_at}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {ctrl.total === 0 && !cargando && (
+          <div style={{ textAlign: 'center', padding: 30, color: '#6F6A60', fontSize: 14 }}>
+            No hay órdenes de trabajo registradas aún.
+          </div>
+        )}
+
+        <TablaFooter ctrl={ctrl} />
+      </div>
+
+      {/* ── Modal Nueva OT ── */}
+      {nuevaOT && (
+        <div
+          onClick={() => setNuevaOT(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            style={{ background: '#fff', borderRadius: 14, maxWidth: 540, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F' }}
+          >
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 14px' }}>
+              Registrar Orden de Trabajo
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <label style={etiqueta}>
+                Unidad / Caja
+                <select style={campo} value={unidadId} onChange={(e) => setUnidadId(e.target.value)}>
+                  <option value="">Selecciona unidad...</option>
+                  {unidades.map(u => (
+                    <option key={u.id} value={String(u.id)}>{u.id_unidad} ({u.tipo})</option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={etiqueta}>
+                Técnico Responsable
+                <select style={campo} value={responsableId} onChange={(e) => setResponsableId(e.target.value)}>
+                  <option value="">Selecciona responsable...</option>
+                  {responsables.map(r => (
+                    <option key={r.id} value={String(r.id)}>{r.nombre} ({r.rol})</option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={etiqueta}>
+                Diagnóstico / Detalles del Trabajo
+                <textarea style={{ ...campo, height: 80, resize: 'none' }} placeholder="Escribe el diagnóstico y trabajos realizados..." value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} />
+              </label>
+
+              <div style={{ borderTop: '1px solid #E7E0D2', paddingTop: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  Materiales / Refacciones Utilizadas
+                  <button onClick={addMaterialRow} style={{ background: 'transparent', border: 'none', color: '#F2620F', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                    + Agregar Fila
+                  </button>
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {materiales.map((m, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <input style={{ ...campo, flex: 3 }} placeholder="Nombre de refacción" value={m.pieza} onChange={(e) => updateMaterialRow(idx, 'pieza', e.target.value)} />
+                      <input type="number" min={1} style={{ ...campo, flex: 1 }} value={m.cantidad} onChange={(e) => updateMaterialRow(idx, 'cantidad', e.target.value)} />
+                      <button onClick={() => removeMaterialRow(idx)} style={{ background: 'transparent', border: 'none', color: '#C53030', fontWeight: 700, cursor: 'pointer' }}>
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid #E7E0D2', paddingTop: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, display: 'block', marginBottom: 8 }}>
+                  Evidencias Documentales Categorizadas
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: '#FAF7F0' }}>
+                    <span style={{ fontSize: 12 }}>Antes/Después</span>
+                    <input type="file" multiple style={{ display: 'none' }} onChange={(e) => handleFileChange('Antes/Después', e.target.files)} />
+                  </label>
+                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: '#FAF7F0' }}>
+                    <span style={{ fontSize: 12 }}>Lavado</span>
+                    <input type="file" style={{ display: 'none' }} onChange={(e) => handleFileChange('Lavado', e.target.files)} />
+                  </label>
+                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: '#FAF7F0' }}>
+                    <span style={{ fontSize: 12 }}>K9</span>
+                    <input type="file" style={{ display: 'none' }} onChange={(e) => handleFileChange('K9', e.target.files)} />
+                  </label>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {archivosEvidencia.map((a, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAF7F0', padding: '6px 10px', borderRadius: 6, fontSize: 12.5 }}>
+                      <span><strong>[{a.categoria}]</strong> {a.nombre}</span>
+                      <button onClick={() => removeFile(i)} style={{ background: 'transparent', border: 'none', color: '#C53030', cursor: 'pointer' }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div role="alert" style={{ marginTop: 12, background: '#FBEBE8', border: '1px solid #E8A99D', color: '#9B2C2C', borderRadius: 9, padding: '12px 14px', fontSize: 14 }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button
+                onClick={() => setNuevaOT(false)}
+                className="hv-crema"
+                style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCrearOT}
+                className="hv-naranja"
+                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+              >
+                Registrar Orden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Nuevo Responsable ── */}
+      {nuevoResp &&
+        modal(
+          'Agregar Técnico al Taller',
+          <>
+            <label style={etiqueta}>
+              Nombre Completo
+              <input style={campo} placeholder="Ej. Juan Pérez" value={respNombre} onChange={(e) => setRespNombre(e.target.value)} />
+            </label>
+            <label style={etiqueta}>
+              Rol / Especialidad
+              <select style={campo} value={respRol} onChange={(e) => setRespRol(e.target.value)}>
+                {ROLES_TECNICOS.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </label>
+          </>,
+          () => void handleCrearResponsable(),
+          () => setNuevoResp(false)
+        )}
+    </>
+  )
+}

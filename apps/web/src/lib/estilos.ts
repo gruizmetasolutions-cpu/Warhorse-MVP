@@ -19,8 +19,9 @@ export const badge = (bg: string, fg: string, br?: string): CSSProperties => ({
 })
 
 export const critStyle = (c: string): CSSProperties => {
+  if (c === 'Inmediato') return badge('#FBEBE8', '#C53030', '#FEB2B2')
   if (c === 'Crítico' || c === 'Crítica') return badge('#FDE8DC', '#B4430A', '#F2620F')
-  if (c === 'Media') return badge('#FBF3D9', '#8A6D1A', '#E0C36A')
+  if (c === 'Media' || c === 'Medio') return badge('#FBF3D9', '#8A6D1A', '#E0C36A')
   return badge('#E5F3E9', '#2C7A44', '#9FD4B0')
 }
 
@@ -30,6 +31,7 @@ export const estadoReqColors: Record<string, [string, string, string]> = {
   'En pago': ['#EAE6DC', '#4A4438', '#C9C2B2'],
   'En recolección': ['#EAE6DC', '#4A4438', '#C9C2B2'],
   'En trayecto': ['#FDF3EC', '#B4430A', '#F2620F'],
+  'Bajo pedido': ['#FBF3D9', '#8A6D1A', '#E0C36A'],
   'Más información': ['#FBF3D9', '#8A6D1A', '#E0C36A'],
   Cotizado: ['#FBF3D9', '#8A6D1A', '#E0C36A'],
   Comprado: ['#E3ECF7', '#1B4E8C', '#9FC0E4'],
@@ -46,6 +48,10 @@ export const estadoUnidadColors: Record<string, [string, string, string]> = {
 }
 
 export const urgColors: Record<string, [string, string, string]> = {
+  Bajo: ['#E5F3E9', '#2C7A44', '#9FD4B0'],
+  Medio: ['#FBF3D9', '#8A6D1A', '#E0C36A'],
+  Crítico: ['#FDE8DC', '#B4430A', '#F2620F'],
+  Inmediato: ['#FBEBE8', '#C53030', '#FEB2B2'],
   Rápida: ['#E5F3E9', '#2C7A44', '#3FA65C'],
   Media: ['#FBF3D9', '#8A6D1A', '#E0C36A'],
   Crítica: ['#FDE8DC', '#B4430A', '#F2620F'],

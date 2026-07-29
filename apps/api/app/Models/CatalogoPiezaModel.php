@@ -18,6 +18,8 @@ final class CatalogoPiezaModel extends Model
         'precio_referencia',
         'stock_minimo',
         'stock_maximo',
+        'stock_actual',
+        'validar_limites',
     ];
     protected $useTimestamps    = true;
 }

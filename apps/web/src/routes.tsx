@@ -13,6 +13,7 @@ import Diesel from './pages/Diesel'
 import Catalogo from './pages/Catalogo'
 import Usuarios from './pages/Usuarios'
 import Reportes from './pages/Reportes'
+import OrdenesTrabajo from './pages/OrdenesTrabajo'
 
 /**
  * Guarda por módulo (RF-USR-03): la visibilidad es UX; la seguridad real la
@@ -42,6 +43,7 @@ export function AppRoutes() {
         <Route path="/catalogo" element={<RutaModulo modulo="catalogo"><Catalogo /></RutaModulo>} />
         <Route path="/usuarios" element={<RutaModulo modulo="usuarios"><Usuarios /></RutaModulo>} />
         <Route path="/reportes" element={<RutaModulo modulo="reportes"><Reportes /></RutaModulo>} />
+        <Route path="/reparaciones" element={<RutaModulo modulo="reparaciones"><OrdenesTrabajo /></RutaModulo>} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

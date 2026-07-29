@@ -29,6 +29,18 @@ export default function Taller() {
   const [costo, setCosto]         = useState('')
   const [pendientes, setPendientes] = useState('')
   const [errorModal, setErrorModal] = useState('')
+  const [verDetalle, setVerDetalle] = useState<RegistroTallerApi | null>(null)
+  const [evidencias, setEvidencias] = useState<{ nombre: string; url: string }[]>([])
+
+  const evidenciasGuardadas = useMemo(() => {
+    if (!verDetalle) return []
+    try {
+      const data = localStorage.getItem('taller_evidencias_' + verDetalle.id)
+      return data ? JSON.parse(data) : []
+    } catch {
+      return []
+    }
+  }, [verDetalle])
 
   // historial filters
   const [filtroCrit, setFiltroCrit] = useState<FiltroCrit>('Todos')
@@ -116,6 +128,8 @@ export default function Taller() {
           ? `${liberar.id_unidad} liberada al 100%.`
           : `${liberar.id_unidad} liberada como mejoralito — se generó alerta de deuda técnica.`,
       )
+      localStorage.setItem('taller_evidencias_' + liberar.id, JSON.stringify(evidencias))
+      setEvidencias([])
       setLiberar(null)
       await cargar()
     } catch (e) {
@@ -215,7 +229,12 @@ export default function Taller() {
           </thead>
           <tbody>
             {enTaller.map((r) => (
-              <tr key={r.id} className="hv-fila">
+              <tr
+                key={r.id}
+                className="hv-fila"
+                onClick={() => setVerDetalle(r)}
+                style={{ cursor: 'pointer' }}
+              >
                 <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17 }}>{r.id_unidad}</td>
                 <td style={{ ...tdCell, whiteSpace: 'nowrap' }}>{r.fecha_ingreso}</td>
                 <td style={{ ...tdCell, fontWeight: 600 }}>
@@ -231,8 +250,9 @@ export default function Taller() {
                 </td>
                 <td style={{ ...tdCell, textAlign: 'right' }}>
                   <button
-                    onClick={() => {
-                      setErrorModal(''); setTipo('Total'); setFechaSalida(''); setCosto(''); setPendientes('')
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setErrorModal(''); setTipo('Total'); setFechaSalida(''); setCosto(''); setPendientes(''); setEvidencias([])
                       setLiberar(r)
                     }}
                     className="hv-inkfill"
@@ -299,7 +319,7 @@ export default function Taller() {
           </thead>
           <tbody>
             {ctrlHistorial.filasPagina.map((r) => (
-              <tr key={r.id} className="hv-fila">
+              <tr key={r.id} className="hv-fila" style={{ cursor: 'pointer' }} onClick={() => setVerDetalle(r)}>
                 <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17 }}>{r.id_unidad}</td>
                 <td style={{ ...tdCell, whiteSpace: 'nowrap' }}>{r.fecha_ingreso}</td>
                 <td style={{ ...tdCell, fontWeight: 600 }}>
@@ -404,6 +424,62 @@ export default function Taller() {
                   </span>
                 </label>
               )}
+              <div style={{ borderTop: '1px solid #E7E0D2', paddingTop: 10, marginTop: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, display: 'block', marginBottom: 8 }}>
+                  Evidencias de Reparación (Antes/Después, Lavado, K9)
+                </span>
+                <input
+                  id="evidencia-reparacion"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? [])
+                    if (evidencias.length + files.length > 3) {
+                      toast('La carga de evidencias está limitada a un máximo de 3 fotografías.')
+                      return
+                    }
+                    files.forEach(file => {
+                      const reader = new FileReader()
+                      reader.onload = (evt) => {
+                        const base64 = evt.target?.result as string
+                        setEvidencias(prev => [...prev, { nombre: file.name, url: base64 }])
+                      }
+                      reader.readAsDataURL(file)
+                    })
+                  }}
+                />
+                <label
+                  htmlFor="evidencia-reparacion"
+                  className="hv-borde-naranja-solo"
+                  style={{
+                    border: '2px dashed #C9C2B2',
+                    background: '#FAF7F0',
+                    borderRadius: 10, padding: 14, cursor: 'pointer', textAlign: 'center', width: '100%', display: 'block',
+                    transition: 'all 0.25s ease', fontSize: 13, fontWeight: 600, color: '#6F6A60'
+                  }}
+                >
+                  📷 Seleccionar fotografías de evidencia (máx. 3)
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {evidencias.map((ev, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAF7F0', padding: '6px 10px', borderRadius: 6, fontSize: 12.5 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <img src={ev.url} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover' }} />
+                        <span>{ev.nombre}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEvidencias(prev => prev.filter((_, idx) => idx !== i))}
+                        style={{ background: 'transparent', border: 'none', color: '#C53030', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
             {errorModal && (
               <div role="alert" style={{ marginTop: 12, background: '#FBEBE8', border: '1px solid #E8A99D', color: '#9B2C2C', borderRadius: 9, padding: '12px 14px', fontSize: 14 }}>
@@ -424,6 +500,142 @@ export default function Taller() {
                 style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
               >
                 Liberar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {verDetalle && (
+        <div
+          onClick={() => setVerDetalle(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={'Detalle de liberación - ' + verDetalle.id_unidad}
+            style={{ background: '#fff', borderRadius: 14, maxWidth: 520, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+          >
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 14px' }}>
+              Ficha de Liberación - {verDetalle.id_unidad}
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <label style={etiqueta}>
+                  Unidad
+                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15, fontWeight: 600 }}>
+                    {verDetalle.id_unidad}
+                  </div>
+                </label>
+                <label style={etiqueta}>
+                  Criticidad
+                  <div style={{ padding: 6 }}>
+                    <span style={critStyle(verDetalle.criticidad)}>{verDetalle.criticidad}</span>
+                  </div>
+                </label>
+              </div>
+
+              <label style={etiqueta}>
+                Diagnóstico / Trabajo Realizado
+                <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                  {verDetalle.diagnostico}
+                </div>
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <label style={etiqueta}>
+                  Fecha de Ingreso
+                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15 }}>
+                    {verDetalle.fecha_ingreso}
+                  </div>
+                </label>
+                <label style={etiqueta}>
+                  Fecha de Salida
+                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15 }}>
+                    {verDetalle.fecha_salida ?? '—'}
+                  </div>
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <label style={etiqueta}>
+                  Días en Taller
+                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15 }}>
+                    {verDetalle.dias_en_taller !== null ? verDetalle.dias_en_taller + (verDetalle.dias_en_taller === 1 ? ' día' : ' días') : '—'}
+                  </div>
+                </label>
+                <label style={etiqueta}>
+                  Costo de Taller (MXN)
+                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15, fontWeight: 700 }}>
+                    {fmt(Number(verDetalle.costo_taller))}
+                  </div>
+                </label>
+              </div>
+
+              <label style={etiqueta}>
+                Tipo de Liberación
+                <div style={{ padding: 6 }}>
+                  <span
+                    style={
+                      verDetalle.tipo_liberacion === null
+                        ? badge('#E9F5FE', '#1A73E8', '#1A73E8')
+                        : verDetalle.tipo_liberacion === 'Total'
+                        ? badge('#E5F3E9', '#2C7A44', '#9FD4B0')
+                        : badge('#FDE8DC', '#B4430A', '#F2620F')
+                    }
+                  >
+                    {verDetalle.tipo_liberacion === null
+                      ? 'En taller / Activo'
+                      : verDetalle.tipo_liberacion === 'Total'
+                      ? 'Reparación Total'
+                      : 'Parcial (Mejoralito)'}
+                  </span>
+                </div>
+              </label>
+
+              {verDetalle.pendientes && verDetalle.pendientes.length > 0 && (
+                <label style={etiqueta}>
+                  Pendientes de Deuda Técnica
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, background: '#FDF3EC', border: '1px dashed #F2620F', borderRadius: 9 }}>
+                    {verDetalle.pendientes.map((p, i) => (
+                      <div key={i} style={{ fontSize: 14, color: '#B4430A', fontWeight: 600 }}>
+                        ⚠️ {p}
+                      </div>
+                    ))}
+                  </div>
+                </label>
+              )}
+
+              {evidenciasGuardadas && evidenciasGuardadas.length > 0 && (
+                <label style={etiqueta}>
+                  Evidencias de la Reparación
+                  <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+                    {evidenciasGuardadas.map((ev: { nombre: string; url: string }, i: number) => (
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                        <img
+                          src={ev.url}
+                          alt={ev.nombre}
+                          style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #D8D2C4' }}
+                        />
+                        <span style={{ fontSize: 11, color: '#6F6A60', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                          {ev.nombre}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </label>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+              <button
+                onClick={() => setVerDetalle(null)}
+                className="hv-naranja"
+                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+              >
+                Cerrar
               </button>
             </div>
           </div>

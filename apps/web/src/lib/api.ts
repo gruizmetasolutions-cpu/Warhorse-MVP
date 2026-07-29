@@ -110,6 +110,7 @@ export interface UnidadApi {
   costo_real_acumulado: number
   candidata_reincidencia: boolean
   fecha_alta?: string | null
+  vencimiento_documentacion?: string | null
 }
 
 export async function getUnidades(estado?: EstadoUnidad): Promise<UnidadApi[]> {
@@ -124,6 +125,7 @@ export interface NuevaUnidad {
   estado: EstadoUnidad
   fecha_alta: string
   valor_referencia: number | null
+  vencimiento_documentacion?: string | null
 }
 
 export function crearUnidad(datos: NuevaUnidad): Promise<UnidadApi> {
@@ -132,7 +134,7 @@ export function crearUnidad(datos: NuevaUnidad): Promise<UnidadApi> {
 
 export function actualizarUnidad(
   id: number,
-  cambio: { estado?: EstadoUnidad; valor_referencia?: number },
+  cambio: { estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null },
 ): Promise<UnidadApi> {
   return pedir<UnidadApi>(`/unidades/${id}`, { method: 'PATCH', body: JSON.stringify(cambio) })
 }
@@ -165,6 +167,7 @@ export interface NuevaRequisicionApi {
   unidad_destino_id: number | null
   origen: Origen
   unidad_donante_id: number | null
+  pieza_catalogo_id?: number | null
   descripcion_pieza: string
   numero_parte: string | null
   urgencia: Urgencia
@@ -180,6 +183,7 @@ export function crearRequisicion(datos: NuevaRequisicionApi): Promise<Requisicio
   if (datos.unidad_destino_id !== null) fd.set('unidad_destino_id', String(datos.unidad_destino_id))
   fd.set('origen', datos.origen)
   if (datos.unidad_donante_id !== null) fd.set('unidad_donante_id', String(datos.unidad_donante_id))
+  if (datos.pieza_catalogo_id) fd.set('pieza_catalogo_id', String(datos.pieza_catalogo_id))
   fd.set('descripcion_pieza', datos.descripcion_pieza)
   if (datos.numero_parte) fd.set('numero_parte', datos.numero_parte)
   fd.set('urgencia', datos.urgencia)
@@ -340,9 +344,14 @@ export interface DashboardApi {
   parametros: { umbral_pct: number; ventana_meses: number }
 }
 
-export function getDashboard(seleccion?: string): Promise<DashboardApi> {
-  const filtro = seleccion ? `?seleccion=${encodeURIComponent(seleccion)}` : ''
-  return pedir<DashboardApi>(`/dashboard${filtro}`)
+export function getDashboard(seleccion?: string, tipo?: string, desde?: string, hasta?: string): Promise<DashboardApi> {
+  const params = new URLSearchParams()
+  if (seleccion) params.append('seleccion', seleccion)
+  if (tipo) params.append('tipo', tipo)
+  if (desde) params.append('desde', desde)
+  if (hasta) params.append('hasta', hasta)
+  const qs = params.toString() ? '?' + params.toString() : ''
+  return pedir<DashboardApi>(`/dashboard${qs}`)
 }
 
 export function ajustarParametros(datos: { umbral_pct: number; ventana_meses: number }): Promise<{ umbral_pct: number; ventana_meses: number }> {
@@ -448,6 +457,8 @@ export interface ArticuloAlmacenApi {
   precio_referencia: number | null
   stock_minimo: number | null
   stock_maximo: number | null
+  stock_actual: number
+  validar_limites: boolean
 }
 
 export function eliminarRequisicion(id: number): Promise<void> {
@@ -461,10 +472,25 @@ export async function getArticulosAlmacen(): Promise<ArticuloAlmacenApi[]> {
 
 export function actualizarArticuloAlmacen(
   id: number,
-  datos: { stock_minimo: number | null; stock_maximo: number | null }
+  datos: { stock_minimo?: number | null; stock_maximo?: number | null; stock_actual?: number; validar_limites?: boolean }
 ): Promise<ArticuloAlmacenApi> {
   return pedir<ArticuloAlmacenApi>(`/almacen/articulos/${id}`, {
     method: 'PATCH',
+    body: JSON.stringify(datos),
+  })
+}
+
+export function crearArticuloAlmacen(datos: {
+  nombre_normalizado: string
+  numero_parte?: string | null
+  precio_referencia: number
+  stock_minimo?: number | null
+  stock_maximo?: number | null
+  stock_actual?: number
+  validar_limites?: boolean
+}): Promise<ArticuloAlmacenApi> {
+  return pedir<ArticuloAlmacenApi>('/almacen/articulos', {
+    method: 'POST',
     body: JSON.stringify(datos),
   })
 }
@@ -485,10 +511,59 @@ export async function getDocumentoRequisicion(id: number, tipo: 'cotizacion' | '
   if (tokenActual) {
     headers['Authorization'] = `Bearer ${tokenActual}`
   }
-  const respuesta = await fetch(`${BASE}/requisiciones/${id}/documento/${tipo}`, { headers })
-  if (!respuesta.ok) throw new Error('No se pudo descargar el documento.')
-  const blob = await respuesta.blob()
+  const response = await fetch(`${BASE}/requisiciones/${id}/documento/${tipo}`, { headers })
+  if (!response.ok) throw new Error('No se pudo descargar el documento.')
+  const blob = await response.blob()
   return URL.createObjectURL(blob)
 }
+
+// ---- Órdenes de Trabajo & Personal de Taller (WH-005) ----
+
+export interface ResponsableTaller {
+  id: number
+  nombre: string
+  rol: 'Mecánico A' | 'Mecánico B' | 'Auxiliares' | 'Termoquineros' | 'Desponchadores'
+}
+
+export interface OrdenTrabajoApi {
+  id: number
+  diagnostico: string
+  materiales: Array<{ pieza: string; cantidad: number }>
+  archivos_evidencia: Array<{ categoria: string; url: string; nombre: string }>
+  created_at: string
+  unidad: {
+    id_unidad: string
+    tipo: string
+  }
+  responsable: {
+    nombre: string
+    rol: string
+  }
+}
+
+export async function getResponsablesTaller(): Promise<ResponsableTaller[]> {
+  const r = await pedir<{ data: ResponsableTaller[] }>('/taller/responsables')
+  return r.data
+}
+
+export function crearResponsableTaller(datos: { nombre: string; rol: string }): Promise<{ id: number }> {
+  return pedir<{ id: number }>('/taller/responsables', { method: 'POST', body: JSON.stringify(datos) })
+}
+
+export async function getOrdenesTrabajo(): Promise<OrdenTrabajoApi[]> {
+  const r = await pedir<{ data: OrdenTrabajoApi[] }>('/taller/reparaciones')
+  return r.data
+}
+
+export function crearOrdenTrabajo(datos: {
+  unidad_id: number
+  responsable_id: number
+  diagnostico: string
+  materiales?: Array<{ pieza: string; cantidad: number }>
+  archivos_evidencia?: Array<{ categoria: string; url: string; nombre: string }>
+}): Promise<{ id: number }> {
+  return pedir<{ id: number }>('/taller/reparaciones', { method: 'POST', body: JSON.stringify(datos) })
+}
+
 
 

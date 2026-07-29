@@ -48,11 +48,12 @@ final class UnidadService
         $db->transStart();
 
         $this->unidades->insert([
-            'id_unidad'        => $datos['id_unidad'],
-            'tipo'             => $datos['tipo'],
-            'estado'           => $datos['estado'] ?? 'Activo',
-            'fecha_alta'       => $datos['fecha_alta'],
-            'valor_referencia' => $datos['valor_referencia'] ?? null,
+            'id_unidad'                 => $datos['id_unidad'],
+            'tipo'                      => $datos['tipo'],
+            'estado'                    => $datos['estado'] ?? 'Activo',
+            'fecha_alta'                => $datos['fecha_alta'],
+            'valor_referencia'          => $datos['valor_referencia'] ?? null,
+            'vencimiento_documentacion' => $datos['vencimiento_documentacion'] ?? null,
         ]);
         $id = (int) $this->unidades->getInsertID();
 
@@ -111,6 +112,16 @@ final class UnidadService
             ]);
         }
 
+        if (array_key_exists('vencimiento_documentacion', $cambio)
+            && $cambio['vencimiento_documentacion'] !== $unidad['vencimiento_documentacion']) {
+            $this->unidades->update($id, ['vencimiento_documentacion' => $cambio['vencimiento_documentacion']]);
+            $this->auditoria->registrar($actor, 'unidad.vencimiento_documentacion', 'unidades', $id, [
+                'vencimiento_documentacion' => $unidad['vencimiento_documentacion'],
+            ], [
+                'vencimiento_documentacion' => $cambio['vencimiento_documentacion'],
+            ]);
+        }
+
         $db->transComplete();
 
         return $this->conConsolidado($id);
@@ -136,7 +147,8 @@ final class UnidadService
             'fecha_alta'             => (string) $unidad['fecha_alta'],
             'valor_referencia'       => $unidad['valor_referencia'] === null ? null : (float) $unidad['valor_referencia'],
             'costo_real_acumulado'   => $kpis['costo_real_acumulado'],
-            'candidata_reincidencia' => (bool) $unidad['candidata_reincidencia'],
+            'candidata_reincidencia'     => (bool) $unidad['candidata_reincidencia'],
+            'vencimiento_documentacion' => $unidad['vencimiento_documentacion'] === null ? null : (string) $unidad['vencimiento_documentacion'],
         ];
     }
 }

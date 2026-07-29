@@ -12,11 +12,11 @@ namespace App\Libraries;
  */
 final class Permisos
 {
-    public const MODULOS = ['dashboard', 'requisicion', 'taller', 'compras', 'catalogo', 'diesel', 'usuarios', 'reportes'];
+    public const MODULOS = ['dashboard', 'requisicion', 'taller', 'compras', 'catalogo', 'diesel', 'usuarios', 'reportes', 'reparaciones'];
 
     private const MATRIZ = [
-        'admin'   => ['dashboard', 'requisicion', 'taller', 'compras', 'catalogo', 'diesel', 'usuarios', 'reportes'],
-        'taller'  => ['requisicion', 'taller', 'catalogo'],
+        'admin'   => ['dashboard', 'requisicion', 'taller', 'compras', 'catalogo', 'diesel', 'usuarios', 'reportes', 'reparaciones'],
+        'taller'  => ['requisicion', 'taller', 'catalogo', 'reparaciones'],
         'compras' => ['compras', 'catalogo', 'reportes'],
         'diesel'  => ['diesel', 'catalogo'],
     ];

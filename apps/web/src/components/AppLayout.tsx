@@ -13,6 +13,7 @@ const navDefs = [
   { id: 'catalogo', label: 'Catálogo' },
   { id: 'usuarios', label: 'Usuarios' },
   { id: 'reportes', label: 'Reportes' },
+  { id: 'reparaciones', label: 'Reparaciones' },
 ]
 
 export default function AppLayout() {
@@ -35,7 +36,7 @@ export default function AppLayout() {
         style={{
           width: 236, flex: 'none', background: '#14181D', color: '#F3EFE7',
           display: 'flex', flexDirection: 'column', padding: '0 0 18px', gap: 22,
-          position: 'sticky', top: 0, height: '100vh',
+          position: 'sticky', top: 0, height: '100vh', overflowY: 'auto',
         }}
       >
         <div style={{ height: 6, background: 'repeating-linear-gradient(135deg,#F2620F 0 12px,#14181D 12px 24px)' }} />

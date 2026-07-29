@@ -89,7 +89,7 @@ final class RequisicionService
         $estadosValidos = [
             'Solicitado', 'En aprobación', 'En pago', 'En recolección',
             'Más información', 'Cancelado', 'Rechazado', 'Instalado',
-            'Cotizado', 'Comprado', 'En trayecto'
+            'Cotizado', 'Comprado', 'En trayecto', 'Bajo pedido'
         ];
 
         if (! in_array($nuevo, $estadosValidos, true)) {
@@ -187,13 +187,35 @@ final class RequisicionService
             $destinoId = (int) $destino['id'];
         }
 
-        $esYonke     = ($datos['origen'] ?? '') === 'Yonke';
-        $donanteId   = null;
-        $costo       = null;
-        $origenCosto = null;
-        $piezaCatId  = null;
+        $esYonke      = ($datos['origen'] ?? '') === 'Yonke';
+        $esInventario = ($datos['origen'] ?? '') === 'Inventario';
+        $donanteId    = null;
+        $costo        = null;
+        $origenCosto  = null;
+        $piezaCatId   = null;
+        $pieza        = null;
 
-        if ($esYonke) {
+        if ($esInventario) {
+            if (empty($datos['pieza_catalogo_id'])) {
+                throw new ValidacionException('El origen Inventario exige seleccionar una pieza del catálogo.', [
+                    'pieza_catalogo_id' => ['El origen Inventario exige seleccionar una pieza del catálogo.'],
+                ]);
+            }
+            $pieza = db_connect()->table('catalogo_piezas')->where('id', (int) $datos['pieza_catalogo_id'])->get()->getRowArray();
+            if ($pieza === null) {
+                throw new ValidacionException('Artículo de catálogo inválido.', [
+                    'pieza_catalogo_id' => ['Artículo de catálogo inválido.'],
+                ]);
+            }
+            if ($pieza['stock_actual'] <= 0) {
+                throw new ValidacionException('No hay stock disponible en almacén para este artículo.', [
+                    'pieza_catalogo_id' => ['No hay stock disponible en almacén para este artículo.'],
+                ]);
+            }
+            $piezaCatId = (int) $pieza['id'];
+            $costo = (float) ($pieza['precio_referencia'] ?? 0);
+            $origenCosto = 'catalogo';
+        } else if ($esYonke) {
             if (empty($datos['unidad_donante_id'])) {
                 throw new ValidacionException('El origen Yonke obliga a registrar la unidad donante.', [
                     'unidad_donante_id' => ['El origen Yonke obliga a registrar la unidad donante.'],
@@ -229,6 +251,12 @@ final class RequisicionService
         $db = db_connect();
         $db->transStart();
 
+        if ($esInventario) {
+            $db->table('catalogo_piezas')
+                ->where('id', $piezaCatId)
+                ->update(['stock_actual' => $pieza['stock_actual'] - 1]);
+        }
+
         $this->requisiciones->insert([
             'unidad_destino_id'     => $destinoId,
             'origen'                => $datos['origen'],
@@ -240,14 +268,20 @@ final class RequisicionService
             'descripcion_pieza'     => trim((string) $datos['descripcion_pieza']),
             'numero_parte'          => isset($datos['numero_parte']) && $datos['numero_parte'] !== '' ? $datos['numero_parte'] : null,
             'foto_pieza_url'        => $nombreFoto,
-            'urgencia'              => $datos['urgencia'] ?? 'Media',
+            'urgencia'              => $datos['urgencia'] ?? 'Medio',
             'costo_estimado'        => $costo,
             'origen_costo_estimado' => $origenCosto,
-            'estado'                => 'Solicitado',
+            'costo_real'            => $esInventario ? $costo : null,
+            'estado'                => $esInventario ? 'Instalado' : 'Solicitado',
             'fecha_solicitud'       => date('Y-m-d'),
+            'fecha_instalacion'     => $esInventario ? date('Y-m-d') : null,
             'creado_por'            => (int) $actor['id'],
         ]);
         $id = (int) $this->requisiciones->getInsertID();
+
+        if ($esInventario && $destinoId !== null && $costo > 0) {
+            $this->consolidado->agregarRefaccion($destinoId, $costo);
+        }
 
         // RF-INT-04: trazabilidad de la canibalización desde el nacimiento
         $this->auditoria->registrar($actor, 'requisicion.creada', 'requisiciones', $id, null, [
@@ -262,7 +296,7 @@ final class RequisicionService
         service('queue')->push('notificaciones', 'notificar-compras', [
             'requisicion_id'    => $id,
             'descripcion_pieza' => trim((string) $datos['descripcion_pieza']),
-            'urgencia'          => (string) ($datos['urgencia'] ?? 'Media'),
+            'urgencia'          => (string) ($datos['urgencia'] ?? 'Medio'),
         ]);
 
         $db->transComplete();

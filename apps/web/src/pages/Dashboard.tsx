@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router'
 import Ayuda from '../components/Ayuda'
 import Kicker from '../components/Kicker'
-import { ApiError, ajustarParametros, getDashboard, getSaludDatos, type DashboardApi, type SaludDatosApi, type Veredicto } from '../lib/api'
+import { ApiError, ajustarParametros, getDashboard, type DashboardApi, type Veredicto } from '../lib/api'
 import { useDemo } from '../lib/demo'
 import { card, FD, fmt, h2Titulo, h3Titulo, subTitulo } from '../lib/estilos'
 
@@ -22,7 +22,6 @@ export default function Dashboard() {
   const { selTractoId, setSelTractoId, toast } = useDemo()
   const navigate = useNavigate()
   const [dash, setDash] = useState<DashboardApi | null>(null)
-  const [salud, setSalud] = useState<SaludDatosApi | null>(null)
   const [ajustar, setAjustar] = useState(false)
   const [umbralForm, setUmbralForm] = useState('')
   const [ventanaForm, setVentanaForm] = useState('')
@@ -31,17 +30,13 @@ export default function Dashboard() {
   const [fechaHasta, setFechaHasta] = useState('')
   const [tipoUnidad, setTipoUnidad] = useState('Todos')
 
-  const cargar = useCallback(async (seleccion: string) => {
-    setDash(await getDashboard(seleccion || undefined))
+  const cargar = useCallback(async (seleccion: string, tipo: string, desde: string, hasta: string) => {
+    setDash(await getDashboard(seleccion || undefined, tipo === 'Todos' ? undefined : tipo, desde || undefined, hasta || undefined))
   }, [])
 
   useEffect(() => {
-    void cargar(selTractoId)
-  }, [cargar, selTractoId])
-
-  useEffect(() => {
-    void getSaludDatos().then(setSalud)
-  }, [])
+    void cargar(selTractoId, tipoUnidad, fechaDesde, fechaHasta)
+  }, [cargar, selTractoId, tipoUnidad, fechaDesde, fechaHasta])
 
   if (!dash) return null
 
@@ -79,7 +74,7 @@ export default function Dashboard() {
       await ajustarParametros({ umbral_pct: Number(umbralForm), ventana_meses: Number(ventanaForm) })
       setAjustar(false)
       toast('Parámetros actualizados — veredictos recalculados.')
-      await cargar(selTractoId)
+      await cargar(selTractoId, tipoUnidad, fechaDesde, fechaHasta)
     } catch (e) {
       if (e instanceof ApiError) {
         const campos = e.fields ? Object.values(e.fields).flat() : []
@@ -138,9 +133,30 @@ export default function Dashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 16, alignItems: 'stretch', animation: 'fadeUp 0.45s ease' }}>
         <div data-tour="barras" style={{ ...card, gridColumn: '1/-1', overflow: 'hidden', minWidth: 0, maxWidth: '100%', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 18px' }}>
-            <h3 style={h3Titulo}>Gasto consolidado por tracto</h3>
-            <Ayuda tip="Suma de diésel + refacciones + taller por unidad en el periodo. La barra rayada marca el tracto más caro. Clic en una barra = analizar esa unidad." />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, margin: '0 0 18px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 style={h3Titulo}>Gasto consolidado por tracto</h3>
+              <Ayuda tip="Suma de diésel + refacciones + taller por unidad en el periodo. Clic en una barra o selecciónala en el buscador para analizarla." />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>Analizar Unidad:</span>
+              <select
+                style={{ padding: '6px 12px', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 13, background: '#fff', fontWeight: 600 }}
+                value={sel?.id_unidad ?? ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setSelTractoId(e.target.value)
+                  }
+                }}
+              >
+                <option value="">Selecciona una unidad...</option>
+                {barras.map((b) => (
+                  <option key={b.id} value={b.id_unidad}>
+                    {b.id_unidad} ({fmt(b.costo_total)})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 3, height: 222, width: '100%', minWidth: 0, padding: '10px 2px 12px 2px', borderBottom: '2px solid #16191E', overflow: 'hidden' }}>
@@ -250,11 +266,11 @@ export default function Dashboard() {
           <p style={{ margin: 0, fontSize: 14.5, color: '#16191E', lineHeight: 1.55 }}>{sel?.razon ?? 'Sin unidades activas que analizar.'}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
             <button
-              onClick={() => sel && navigate('/ficha/' + sel.id_unidad)}
+              onClick={() => navigate('/catalogo')}
               className="hv-ficha"
               style={{ padding: '11px 20px', background: '#16191E', color: '#F3EFE7', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
-              Ver ficha completa →
+              Revisar unidades →
             </button>
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: '#8A8374' }}>
               Umbral {dash.parametros.umbral_pct}% · Ventana {dash.parametros.ventana_meses} meses
@@ -268,38 +284,6 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
-        {salud && (
-          <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h3 style={h3Titulo}>Salud de datos</h3>
-              <Ayuda tip="El mayor riesgo del Hub es de adopción: si el piso no registra, el ROI miente. Estas métricas miden si los datos llegan completos (SRS §9)." />
-            </div>
-            {[
-              { label: 'Requisiciones con foto y origen', pct: salud.requisiciones.pct, sub: `${salud.requisiciones.con_foto_y_origen} de ${salud.requisiciones.total}` },
-              { label: 'Liberaciones con tipo', pct: salud.liberaciones.pct, sub: `${salud.liberaciones.con_tipo} de ${salud.liberaciones.total}` },
-              {
-                label: 'Yonke con costo asignado',
-                pct: salud.yonke.pct,
-                sub: `${salud.yonke.total} · catalogo ${salud.yonke.por_origen.catalogo} · última compra ${salud.yonke.por_origen.ultima_compra} · manual ${salud.yonke.por_origen.manual}`,
-              },
-            ].map((m) => (
-              <div key={m.label} style={{ display: 'flex', alignItems: 'baseline', gap: 10, borderBottom: '1px solid #EFEAE0', paddingBottom: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{m.label}</div>
-                  <div style={{ fontSize: 12.5, color: '#6F6A60' }}>{m.sub}</div>
-                </div>
-                <span
-                  style={{
-                    fontFamily: FD, fontWeight: 700, fontSize: 24, fontVariantNumeric: 'tabular-nums',
-                    color: m.pct >= 90 ? '#2C7A44' : m.pct >= 60 ? '#8A6D1A' : '#B4430A',
-                  }}
-                >
-                  {m.pct}%
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {ajustar && (

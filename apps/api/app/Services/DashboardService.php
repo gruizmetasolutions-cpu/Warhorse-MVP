@@ -26,72 +26,131 @@ final class DashboardService
     /**
      * @return array<string, mixed>
      */
-    public function armar(?string $seleccion, ?string $tipo = null): array
+    public function armar(?string $seleccion, ?string $tipo = null, ?string $desde = null, ?string $hasta = null): array
     {
         $parametros = $this->parametros->obtener();
+        $db = db_connect();
 
-        // RF-DASH-01: aggregated O(1) on consolidado of active units matching selected type
-        $kpisQuery = db_connect()->table('consolidado_unidad c')
-            ->select('COALESCE(SUM(c.total_diesel),0) diesel, COALESCE(SUM(c.total_refacciones),0) refacciones, COALESCE(SUM(c.total_taller),0) taller, COALESCE(SUM(c.costo_real_acumulado),0) costo_real_acumulado')
-            ->join('unidades u', 'u.id = c.unidad_id')
+        // 1. Get diesel costs per unit in date range
+        $dieselQuery = $db->table('registros_diesel')
+            ->select('unidad_id, SUM(costo_total) total')
+            ->groupBy('unidad_id');
+        if ($desde) $dieselQuery->where('fecha >=', $desde);
+        if ($hasta) $dieselQuery->where('fecha <=', $hasta);
+        $dieselRows = Bd::filas($dieselQuery);
+        $dieselMap = [];
+        foreach ($dieselRows as $dr) {
+            $dieselMap[(int)$dr['unidad_id']] = (float)$dr['total'];
+        }
+
+        // 2. Get refacciones costs per unit in date range
+        $refaccionesQuery = $db->table('requisiciones')
+            ->select('unidad_destino_id, SUM(COALESCE(costo_real, costo_estimado)) total')
+            ->where('estado', 'Instalado')
+            ->groupBy('unidad_destino_id');
+        if ($desde) $refaccionesQuery->where('fecha_solicitud >=', $desde);
+        if ($hasta) $refaccionesQuery->where('fecha_solicitud <=', $hasta);
+        $refaccionesRows = Bd::filas($refaccionesQuery);
+        $refMap = [];
+        foreach ($refaccionesRows as $rr) {
+            if ($rr['unidad_destino_id'] !== null) {
+                $refMap[(int)$rr['unidad_destino_id']] = (float)$rr['total'];
+            }
+        }
+
+        // 3. Get workshop costs per unit in date range
+        $tallerQuery = $db->table('registros_taller')
+            ->select('unidad_id, SUM(costo_taller) total')
+            ->groupBy('unidad_id');
+        if ($desde) $tallerQuery->where('fecha_salida >=', $desde);
+        if ($hasta) $tallerQuery->where('fecha_salida <=', $hasta);
+        $tallerRows = Bd::filas($tallerQuery);
+        $tallerMap = [];
+        foreach ($tallerRows as $tr) {
+            $tallerMap[(int)$tr['unidad_id']] = (float)$tr['total'];
+        }
+
+        // 4. Query active units filtered by type
+        $unidadesQuery = $db->table('unidades u')
+            ->select('u.id, u.id_unidad, u.valor_referencia, u.tipo')
             ->where('u.estado', 'Activo');
 
         if ($tipo !== null && $tipo !== 'Todos') {
-            $kpisQuery->where('u.tipo', $tipo);
+            $unidadesQuery->where('u.tipo', $tipo);
         } else if ($tipo === null) {
-            $kpisQuery->where('u.tipo', 'Tractor');
+            $unidadesQuery->where('u.tipo', 'Tractor');
         }
 
-        $kpis = Bd::fila($kpisQuery) ?? ['diesel' => 0, 'refacciones' => 0, 'taller' => 0, 'costo_real_acumulado' => 0];
+        $unidadesList = Bd::filas($unidadesQuery);
 
-        $rankingQuery = db_connect()->table('consolidado_unidad c')
-            ->select('u.id, u.id_unidad, u.valor_referencia, c.costo_real_acumulado costo_total')
-            ->join('unidades u', 'u.id = c.unidad_id')
-            ->where('u.estado', 'Activo');
-
-        if ($tipo !== null && $tipo !== 'Todos') {
-            $rankingQuery->where('u.tipo', $tipo);
-        } else if ($tipo === null) {
-            $rankingQuery->where('u.tipo', 'Tractor');
-        }
-
-        $filas = Bd::filas(
-            $rankingQuery->orderBy('c.costo_real_acumulado', 'DESC')
-                ->orderBy('u.id_unidad', 'ASC')
-        );
-
+        $dieselKpi = 0.0;
+        $refKpi = 0.0;
+        $tallerKpi = 0.0;
         $ranking = [];
-        foreach ($filas as $i => $f) {
+
+        foreach ($unidadesList as $u) {
+            $uid = (int)$u['id'];
+            $d = $dieselMap[$uid] ?? 0.0;
+            $r = $refMap[$uid] ?? 0.0;
+            $t = $tallerMap[$uid] ?? 0.0;
+
+            $dieselKpi += $d;
+            $refKpi += $r;
+            $tallerKpi += $t;
+
             $ranking[] = [
-                'id'          => (int) $f['id'],
-                'id_unidad'   => (string) $f['id_unidad'],
-                'costo_total' => (float) $f['costo_total'],
-                'critico'     => $i === 0,
+                'id'          => $uid,
+                'id_unidad'   => (string)$u['id_unidad'],
+                'costo_total' => $d + $r + $t,
+                'critico'     => false,
             ];
         }
 
+        // Sort ranking by cost total descending
+        usort($ranking, static fn($a, $b) => $b['costo_total'] <=> $a['costo_total']);
+
+        // Mark the first one as critico
+        foreach ($ranking as $idx => &$item) {
+            $item['critico'] = $idx === 0 && $item['costo_total'] > 0;
+        }
+        unset($item);
+
+        // Find selection details
         $elegida = null;
         if ($seleccion !== null) {
-            // Find unit in database (globally, so it's not locked if they select a unit of another type/state)
-            $db = db_connect();
-            $candidataGlobal = Bd::fila(
-                $db->table('consolidado_unidad c')
-                    ->select('u.id, u.id_unidad, u.valor_referencia, c.costo_real_acumulado costo_total')
-                    ->join('unidades u', 'u.id = c.unidad_id')
+            $elegida = Bd::fila(
+                $db->table('unidades u')
+                    ->select('u.id, u.id_unidad, u.valor_referencia')
                     ->where('u.id_unidad', $seleccion)
             );
-            if ($candidataGlobal !== null) {
-                $elegida = $candidataGlobal;
-            }
         }
-        $elegida ??= $filas[0] ?? null;
+        
+        if ($elegida === null && count($ranking) > 0) {
+            // Default selection is the first unit in the filtered list
+            $firstId = $ranking[0]['id'];
+            $elegida = Bd::fila(
+                $db->table('unidades u')
+                    ->select('u.id, u.id_unidad, u.valor_referencia')
+                    ->where('u.id', $firstId)
+            );
+        }
+
+        // Calculate selected unit's total filtered cost
+        if ($elegida !== null) {
+            $selId = (int)$elegida['id'];
+            $dSel = $dieselMap[$selId] ?? 0.0;
+            $rSel = $refMap[$selId] ?? 0.0;
+            $tSel = $tallerMap[$selId] ?? 0.0;
+            
+            $elegida['costo_total'] = $dSel + $rSel + $tSel;
+        }
 
         return [
             'kpis' => [
-                'diesel'               => (float) $kpis['diesel'],
-                'refacciones'          => (float) $kpis['refacciones'],
-                'taller'               => (float) $kpis['taller'],
-                'costo_real_acumulado' => (float) $kpis['costo_real_acumulado'],
+                'diesel'               => $dieselKpi,
+                'refacciones'          => $refKpi,
+                'taller'               => $tallerKpi,
+                'costo_real_acumulado' => $dieselKpi + $refKpi + $tallerKpi,
             ],
             'ranking'    => $ranking,
             'seleccion'  => $elegida === null ? null : $this->analizarUnidad($elegida, $parametros),

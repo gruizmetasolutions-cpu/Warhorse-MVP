@@ -41,13 +41,14 @@ final class UnidadesController extends BaseController
 
         return $this->response->setJSON([
             'data' => array_map(static fn (array $u): array => [
-                'id'                     => (int) $u['id'],
-                'id_unidad'              => (string) $u['id_unidad'],
-                'tipo'                   => (string) $u['tipo'],
-                'estado'                 => (string) $u['estado'],
-                'valor_referencia'       => $u['valor_referencia'] === null ? null : (float) $u['valor_referencia'],
-                'costo_real_acumulado'   => (float) $u['costo_real_acumulado'],
-                'candidata_reincidencia' => (bool) $u['candidata_reincidencia'],
+                'id'                        => (int) $u['id'],
+                'id_unidad'                 => (string) $u['id_unidad'],
+                'tipo'                      => (string) $u['tipo'],
+                'estado'                    => (string) $u['estado'],
+                'valor_referencia'          => $u['valor_referencia'] === null ? null : (float) $u['valor_referencia'],
+                'costo_real_acumulado'      => (float) $u['costo_real_acumulado'],
+                'candidata_reincidencia'    => (bool) $u['candidata_reincidencia'],
+                'vencimiento_documentacion' => $u['vencimiento_documentacion'] === null ? null : (string) $u['vencimiento_documentacion'],
             ], $listado['data']),
             'meta' => [
                 'page'        => $pagina,
@@ -64,11 +65,12 @@ final class UnidadesController extends BaseController
         $datos   = $request instanceof IncomingRequest ? (array) $request->getJSON(true) : [];
 
         if (! $this->validateData($datos, [
-            'id_unidad'        => 'required|string|max_length[20]',
-            'tipo'             => 'required|in_list[Tractor,Caja,Thermo,Servicio]',
-            'estado'           => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
-            'fecha_alta'       => 'required|valid_date[Y-m-d]',
-            'valor_referencia' => 'permit_empty|decimal|greater_than_equal_to[0]',
+            'id_unidad'                 => 'required|string|max_length[20]',
+            'tipo'                      => 'required|in_list[Tractor,Caja,Thermo,Servicio]',
+            'estado'                    => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
+            'fecha_alta'                => 'required|valid_date[Y-m-d]',
+            'valor_referencia'          => 'permit_empty|decimal|greater_than_equal_to[0]',
+            'vencimiento_documentacion' => 'permit_empty|valid_date[Y-m-d]',
         ])) {
             $errores = $this->validator?->getErrors() ?? [];
 
@@ -90,8 +92,9 @@ final class UnidadesController extends BaseController
         $cambio  = $request instanceof IncomingRequest ? (array) $request->getJSON(true) : [];
 
         if (! $this->validateData($cambio, [
-            'estado'           => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
-            'valor_referencia' => 'permit_empty|decimal|greater_than_equal_to[0]',
+            'estado'                    => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
+            'valor_referencia'          => 'permit_empty|decimal|greater_than_equal_to[0]',
+            'vencimiento_documentacion' => 'permit_empty|valid_date[Y-m-d]',
         ]) || $cambio === []) {
             $errores = $this->validator?->getErrors() ?? [];
 
