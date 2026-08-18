@@ -8,7 +8,7 @@ import { badge, card, FD, h2Titulo, h3Titulo, subTitulo, tdCell, thCell, theadRo
 import type { Rol } from '../lib/types'
 
 const rolNombres: Record<Rol, string> = { admin: 'Dirección (Admin)', taller: 'Taller', compras: 'Compras', diesel: 'Control de Diésel' }
-const avatarColors: Record<Rol, string> = { admin: '#16191E', taller: '#F2620F', compras: '#3FA65C', diesel: '#8A6D1A' }
+const avatarColors: Record<Rol, string> = { admin: '#16191E', taller: '#C5A059', compras: '#3FA65C', diesel: '#8A6D1A' }
 const roles = Object.keys(rolNombres) as Rol[]
 
 const modulos = [
@@ -117,20 +117,20 @@ export default function Usuarios() {
               value={nuevoNombre}
               onChange={(e) => setNuevoNombre(e.target.value)}
               placeholder="Nombre del nuevo usuario"
-              style={{ padding: '9px 12px', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, background: '#FAF7F0', minWidth: 190 }}
+              style={{ padding: '9px 12px', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)', minWidth: 190 }}
             />
             <input
               type="email"
               value={nuevoEmail}
               onChange={(e) => setNuevoEmail(e.target.value)}
               placeholder="Correo del nuevo usuario"
-              style={{ padding: '9px 12px', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, background: '#FAF7F0', minWidth: 190 }}
+              style={{ padding: '9px 12px', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)', minWidth: 190 }}
             />
             <select
               value={nuevoRol}
               onChange={(e) => setNuevoRol(e.target.value as Rol)}
               aria-label="Rol del nuevo usuario"
-              style={{ padding: '9px 12px', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, background: '#FAF7F0' }}
+              style={{ padding: '9px 12px', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)' }}
             >
               {roles.map((r) => (
                 <option key={r} value={r}>{rolNombres[r]}</option>
@@ -139,7 +139,7 @@ export default function Usuarios() {
             <button
               onClick={() => void agregarUsuario()}
               className="hv-naranja"
-              style={{ padding: '9px 18px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 15, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+              style={{ padding: '9px 18px', background: 'var(--accent-gold)', color: 'var(--text-main)', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 15, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
               + Agregar
             </button>
@@ -164,7 +164,7 @@ export default function Usuarios() {
                       <span
                         style={{
                           width: 34, height: 34, borderRadius: '50%', background: avatarColors[u.rol],
-                          color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 12.5, fontWeight: 700, flex: 'none', opacity: u.activo ? 1 : 0.45,
                         }}
                       >
@@ -173,13 +173,13 @@ export default function Usuarios() {
                       <span style={{ fontWeight: 700 }}>{u.nombre}</span>
                     </div>
                   </td>
-                  <td style={{ ...tdCell, color: '#6F6A60', whiteSpace: 'nowrap' }}>{u.email}</td>
+                  <td style={{ ...tdCell, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{u.email}</td>
                   <td style={tdCell}>
                     <select
                       value={u.rol}
                       aria-label={'Rol de ' + u.nombre}
                       onChange={(e) => void cambiarRol(u, e.target.value as Rol)}
-                      style={{ padding: '8px 10px', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 13.5, background: '#FAF7F0' }}
+                      style={{ padding: '8px 10px', border: '1px solid var(--border-color)', borderRadius: 7, fontSize: 13.5, background: 'var(--bg-input)' }}
                     >
                       {roles.map((r) => (
                         <option key={r} value={r}>{rolNombres[r]}</option>
@@ -218,7 +218,7 @@ export default function Usuarios() {
           <h3 style={h3Titulo}>Permisos por rol</h3>
           <Ayuda tip="Los permisos aplican por rol, no por persona: al cambiar el rol de un usuario, hereda estos accesos de inmediato. La matriz es fija; el backend la re-verifica en cada acción." />
         </div>
-        <p style={{ margin: '0 0 14px', fontSize: 13, color: '#6F6A60' }}>
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-muted)' }}>
           Matriz de solo lectura (RF-USR-03): qué módulos ve cada rol. Para cambiar los accesos de una
           persona, cámbiale el rol arriba.
         </p>
@@ -237,7 +237,7 @@ export default function Usuarios() {
                 <tr key={m.id} className="hv-fila">
                   <td style={{ ...tdCell, fontWeight: 600 }}>
                     {m.label}
-                    <div style={{ fontWeight: 400, fontSize: 12.5, color: '#6F6A60' }}>{m.desc}</div>
+                    <div style={{ fontWeight: 400, fontSize: 12.5, color: 'var(--text-muted)' }}>{m.desc}</div>
                   </td>
                   {roles.map((r) => {
                     const on = matriz[r].includes(m.id)
@@ -277,26 +277,26 @@ export default function Usuarios() {
       {creado && (
         <div
           onClick={() => setCreado(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={'Credenciales de ' + creado.nombre}
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 460, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 460, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059', animation: 'fadeUp 0.2s ease' }}
           >
-            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 6px' }}>
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 6px' }}>
               Usuario creado ✓
             </h3>
-            <p style={{ margin: '0 0 14px', fontSize: 14, color: '#4A4438' }}>
+            <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--text-muted)' }}>
               {creado.nombre} · {creado.email} · {rolNombres[creado.rol]}
             </p>
-            <p style={{ margin: '0 0 8px', fontSize: 13.5, color: '#6F6A60' }}>
+            <p style={{ margin: '0 0 8px', fontSize: 13.5, color: 'var(--text-muted)' }}>
               Entrégale esta contraseña temporal. <strong>No se volverá a mostrar.</strong> Al entrar por
               primera vez, deberá crear su propia contraseña.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAF7F0', border: '1px dashed #F2620F', borderRadius: 10, padding: '16px 12px', margin: '0 0 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-input)', border: '1px dashed #C5A059', borderRadius: 10, padding: '16px 12px', margin: '0 0 16px' }}>
               <code style={{ fontFamily: "'Courier New', monospace", fontSize: 24, fontWeight: 700, letterSpacing: '0.08em', color: '#B4430A' }}>
                 {creado.password_temporal}
               </code>
@@ -305,21 +305,21 @@ export default function Usuarios() {
               <button
                 onClick={() => void copiarTemporal()}
                 className="hv-borde-ink"
-                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Copiar
               </button>
               <button
                 onClick={() => descargarCredencialesPdf(creado)}
                 className="hv-borde-ink"
-                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 ⬇ Descargar PDF
               </button>
               <button
                 onClick={() => setCreado(null)}
                 className="hv-naranja"
-                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ flex: 1, minWidth: 130, padding: '11px 16px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Entendido
               </button>

@@ -22,9 +22,14 @@ interface Alta {
   fecha_alta: string
   valor_referencia: string
   vencimiento_documentacion: string
+  vin: string
+  numero_economico: string
+  marca: string
+  modelo: string
+  placas: string
 }
 
-const altaVacia: Alta = { id_unidad: '', tipo: 'Tractor', estado: 'Activo', fecha_alta: '', valor_referencia: '', vencimiento_documentacion: '' }
+const altaVacia: Alta = { id_unidad: '', tipo: 'Tractor', estado: 'Activo', fecha_alta: '', valor_referencia: '', vencimiento_documentacion: '', vin: '', numero_economico: '', marca: '', modelo: '', placas: '' }
 
 interface NuevoArticulo {
   nombre_normalizado: string
@@ -79,7 +84,7 @@ export default function Catalogo() {
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('Todos')
   const [filtroTipo, setFiltroTipo]     = useState<FiltroTipo>('Todos')
   const [alta, setAlta]   = useState<Alta | null>(null)
-  const [editar, setEditar] = useState<{ unidad: UnidadApi; estado: EstadoUnidad; valor: string; vencimiento_documentacion: string } | null>(null)
+  const [editar, setEditar] = useState<{ unidad: UnidadApi; estado: EstadoUnidad; valor: string; vencimiento_documentacion: string; vin: string; numero_economico: string; marca: string; modelo: string; placas: string } | null>(null)
   const [error, setError] = useState('')
   
   const esAdmin = sesion?.rol === 'admin'
@@ -133,6 +138,11 @@ export default function Catalogo() {
         fecha_alta: alta.fecha_alta,
         valor_referencia: alta.valor_referencia === '' ? null : Number(alta.valor_referencia),
         vencimiento_documentacion: alta.vencimiento_documentacion === '' ? null : alta.vencimiento_documentacion,
+          vin: alta.vin === '' ? null : alta.vin,
+        numero_economico: alta.numero_economico === '' ? null : alta.numero_economico,
+        marca: alta.marca === '' ? null : alta.marca,
+        modelo: alta.modelo === '' ? null : alta.modelo,
+        placas: alta.placas === '' ? null : alta.placas,
       })
       await recargarUnidades()
       toast(`${alta.id_unidad.trim()} dada de alta en la flota`)
@@ -146,14 +156,20 @@ export default function Catalogo() {
     if (!editar) return
     setError('')
     try {
-      const cambio: { estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null } = {}
+      const cambio: { estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null; vin?: string | null; numero_economico?: string | null; marca?: string | null; modelo?: string | null; placas?: string | null } = {}
       if (editar.estado !== editar.unidad.estado) cambio.estado = editar.estado
       if (editar.valor !== '' && Number(editar.valor) !== editar.unidad.valor_referencia) {
         cambio.valor_referencia = Number(editar.valor)
       }
       if (editar.vencimiento_documentacion !== (editar.unidad.vencimiento_documentacion ?? '')) {
         cambio.vencimiento_documentacion = editar.vencimiento_documentacion === '' ? null : editar.vencimiento_documentacion
-      }
+        }
+        if (editar.vin !== (editar.unidad.vin ?? '')) cambio.vin = editar.vin === '' ? null : editar.vin
+        if (editar.numero_economico !== (editar.unidad.numero_economico ?? '')) cambio.numero_economico = editar.numero_economico === '' ? null : editar.numero_economico
+        if (editar.marca !== (editar.unidad.marca ?? '')) cambio.marca = editar.marca === '' ? null : editar.marca
+        if (editar.modelo !== (editar.unidad.modelo ?? '')) cambio.modelo = editar.modelo === '' ? null : editar.modelo
+        if (editar.placas !== (editar.unidad.placas ?? '')) cambio.placas = editar.placas === '' ? null : editar.placas
+
       if (Object.keys(cambio).length > 0) {
         await actualizarUnidad(editar.unidad.id, cambio)
         await recargarUnidades()
@@ -349,7 +365,10 @@ export default function Catalogo() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 560 }}>
             <thead>
               <tr style={theadRow}>
-                <SortTh col="id_unidad" label="Unidad"              sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="id_unidad" label="ID Unidad"               sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                  <SortTh col="vin" label="VIN / Económico" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                  <SortTh col="marca" label="Vehículo" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                  <SortTh col="placas" label="Placas" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
                 <SortTh col="tipo"      label="Tipo"                sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
                 <SortTh col="estado"    label="Estado"              sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
                 <SortTh col="vencimiento" label="Vigencia Trámites" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
@@ -383,7 +402,7 @@ export default function Catalogo() {
                     <td style={{ ...tdCell, textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {esAdmin && (
                         <button
-                          onClick={() => { setError(''); setEditar({ unidad: t, estado: t.estado, valor: t.valor_referencia === null ? '' : String(t.valor_referencia), vencimiento_documentacion: t.vencimiento_documentacion ?? '' }) }}
+                          onClick={() => { setError(''); setEditar({ unidad: t, estado: t.estado, valor: t.valor_referencia === null ? '' : String(t.valor_referencia), vencimiento_documentacion: t.vencimiento_documentacion ?? '', vin: t.vin ?? '', numero_economico: t.numero_economico ?? '', marca: t.marca ?? '', modelo: t.modelo ?? '', placas: t.placas ?? '' }) }}
                           className="hv-inkfill"
                           style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', marginRight: 8 }}
                         >
@@ -536,9 +555,34 @@ export default function Catalogo() {
               <input type="date" style={campo} value={alta.fecha_alta} onChange={(e) => setAlta({ ...alta, fecha_alta: e.target.value })} />
             </label>
             <label style={etiqueta}>
-              Vencimiento Documentos (Placas/Vigencia)
-              <input type="date" style={campo} value={alta.vencimiento_documentacion} onChange={(e) => setAlta({ ...alta, vencimiento_documentacion: e.target.value })} />
-            </label>
+                Vencimiento Documentos (Placas/Vigencia)
+                <input type="date" style={campo} value={alta.vencimiento_documentacion} onChange={(e) => setAlta({ ...alta, vencimiento_documentacion: e.target.value })} />
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <label style={etiqueta}>
+                  VIN
+                  <input type="text" style={campo} value={alta.vin} onChange={(e) => setAlta({ ...alta, vin: e.target.value })} />
+                </label>
+                <label style={etiqueta}>
+                  Número Económico
+                  <input type="text" style={campo} value={alta.numero_economico} onChange={(e) => setAlta({ ...alta, numero_economico: e.target.value })} />
+                </label>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                <label style={etiqueta}>
+                  Marca
+                  <input type="text" style={campo} value={alta.marca} onChange={(e) => setAlta({ ...alta, marca: e.target.value })} />
+                </label>
+                <label style={etiqueta}>
+                  Modelo
+                  <input type="text" style={campo} value={alta.modelo} onChange={(e) => setAlta({ ...alta, modelo: e.target.value })} />
+                </label>
+                <label style={etiqueta}>
+                  Placas
+                  <input type="text" style={campo} value={alta.placas} onChange={(e) => setAlta({ ...alta, placas: e.target.value })} />
+                </label>
+              </div>
+
             <label style={etiqueta}>
               Valor de referencia (MXN)
               <input type="number" min={0} placeholder="Opcional; sin él el veredicto queda pendiente" style={campo} value={alta.valor_referencia} onChange={(e) => setAlta({ ...alta, valor_referencia: e.target.value })} />
@@ -562,9 +606,34 @@ export default function Catalogo() {
               </select>
             </label>
             <label style={etiqueta}>
-              Vencimiento Documentos (Placas/Vigencia)
-              <input type="date" style={campo} value={editar.vencimiento_documentacion} onChange={(e) => setEditar({ ...editar, vencimiento_documentacion: e.target.value })} />
-            </label>
+                Vencimiento Documentos (Placas/Vigencia)
+                <input type="date" style={campo} value={editar.vencimiento_documentacion} onChange={(e) => setEditar({ ...editar, vencimiento_documentacion: e.target.value })} />
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <label style={etiqueta}>
+                  VIN
+                  <input type="text" style={campo} value={editar.vin || ''} onChange={(e) => setEditar({ ...editar, vin: e.target.value })} />
+                </label>
+                <label style={etiqueta}>
+                  Número Económico
+                  <input type="text" style={campo} value={editar.numero_economico || ''} onChange={(e) => setEditar({ ...editar, numero_economico: e.target.value })} />
+                </label>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                <label style={etiqueta}>
+                  Marca
+                  <input type="text" style={campo} value={editar.marca || ''} onChange={(e) => setEditar({ ...editar, marca: e.target.value })} />
+                </label>
+                <label style={etiqueta}>
+                  Modelo
+                  <input type="text" style={campo} value={editar.modelo || ''} onChange={(e) => setEditar({ ...editar, modelo: e.target.value })} />
+                </label>
+                <label style={etiqueta}>
+                  Placas
+                  <input type="text" style={campo} value={editar.placas || ''} onChange={(e) => setEditar({ ...editar, placas: e.target.value })} />
+                </label>
+              </div>
+
             <label style={etiqueta}>
               Valor de referencia (MXN)
               <input type="number" min={0} style={campo} value={editar.valor} onChange={(e) => setEditar({ ...editar, valor: e.target.value })} />

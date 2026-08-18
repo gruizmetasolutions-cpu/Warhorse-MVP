@@ -6,7 +6,7 @@ import { useDemo } from '../lib/demo'
 import { badge, card, critStyle, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, theadRow, urgColors } from '../lib/estilos'
 import { useTabla } from '../lib/useTabla'
 
-const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
+const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
 
 type Criticidad = 'Rápida' | 'Media' | 'Crítico'
@@ -189,8 +189,8 @@ export default function Taller() {
                     className="hv-op85"
                     style={{
                       padding: '10px 16px', borderRadius: 999, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                      background: act ? color[0] : '#fff', color: act ? color[1] : '#6F6A60',
-                      border: act ? '2px solid ' + color[2] : '1px solid #D8D2C4',
+                      background: act ? color[0] : 'rgba(15, 15, 16, 0.8)', color: act ? color[1] : '#9ca3af',
+                      border: act ? '2px solid ' + color[2] : '1px solid rgba(197, 160, 89, 0.2)',
                     }}
                   >
                     {c}
@@ -202,7 +202,7 @@ export default function Taller() {
           <button
             onClick={() => void ingresar()}
             className="hv-naranja"
-            style={{ padding: '12px 20px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 9, fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+            style={{ padding: '12px 20px', background: 'var(--accent-gold)', color: 'var(--text-main)', border: 'none', borderRadius: 9, fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             Registrar ingreso
           </button>
@@ -220,11 +220,11 @@ export default function Taller() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
           <thead>
             <tr style={theadRow}>
-              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Unidad</th>
-              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Ingreso</th>
-              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Diagnóstico</th>
-              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Criticidad</th>
-              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }} />
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }}>Unidad</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }}>Ingreso</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }}>Diagnóstico</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }}>Criticidad</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }} />
             </tr>
           </thead>
           <tbody>
@@ -241,7 +241,7 @@ export default function Taller() {
                   {r.diagnostico}
                   {Boolean(r.es_reincidencia) && (
                     <span style={{ marginLeft: 8 }}>
-                      <span style={badge('#FDE8DC', '#B4430A', '#F2620F')}>Reincidencia</span>
+                      <span style={badge('#FDE8DC', '#B4430A', '#C5A059')}>Reincidencia</span>
                     </span>
                   )}
                 </td>
@@ -255,8 +255,8 @@ export default function Taller() {
                       setErrorModal(''); setTipo('Total'); setFechaSalida(''); setCosto(''); setPendientes(''); setEvidencias([])
                       setLiberar(r)
                     }}
-                    className="hv-inkfill"
-                    style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                    className="hv-op85"
+                    style={{ padding: '7px 12px', background: 'transparent', border: '1px solid rgba(197, 160, 89, 0.4)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--accent-gold)', cursor: 'pointer' }}
                   >
                     Liberar
                   </button>
@@ -266,7 +266,7 @@ export default function Taller() {
           </tbody>
         </table>
         {enTaller.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 14 }}>
             No hay unidades en taller ahora mismo.
           </div>
         )}
@@ -286,7 +286,7 @@ export default function Taller() {
           busquedaPlaceholder="Buscar unidad o diagnóstico…"
           rightSlot={
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#8A8374', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Criticidad</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Criticidad</span>
               {(['Todos', 'Rápida', 'Media', 'Crítico'] as FiltroCrit[]).map((c) => (
                 <button
                   key={c}
@@ -294,9 +294,9 @@ export default function Taller() {
                   className="hv-borde-ink"
                   style={{
                     padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                    background: filtroCrit === c ? '#16191E' : '#fff',
-                    color: filtroCrit === c ? '#F3EFE7' : '#4A4438',
-                    border: filtroCrit === c ? '1px solid #16191E' : '1px solid #D8D2C4',
+                    background: filtroCrit === c ? '#C5A059' : 'rgba(15, 15, 16, 0.8)',
+                    color: filtroCrit === c ? '#000' : '#9ca3af',
+                    border: filtroCrit === c ? '1px solid #C5A059' : '1px solid rgba(197, 160, 89, 0.2)',
                   }}
                 >
                   {c}
@@ -326,12 +326,12 @@ export default function Taller() {
                   {r.diagnostico}
                   {Boolean(r.es_reincidencia) && (
                     <span style={{ marginLeft: 8 }}>
-                      <span style={badge('#FDE8DC', '#B4430A', '#F2620F')}>Reincidencia</span>
+                      <span style={badge('#FDE8DC', '#B4430A', '#C5A059')}>Reincidencia</span>
                     </span>
                   )}
                 </td>
                 <td style={tdCell}>
-                  <span style={r.tipo_liberacion === 'Total' ? badge('#E5F3E9', '#2C7A44', '#9FD4B0') : badge('#FDE8DC', '#B4430A', '#F2620F')}>
+                  <span style={r.tipo_liberacion === 'Total' ? badge('#E5F3E9', '#2C7A44', '#9FD4B0') : badge('#FDE8DC', '#B4430A', '#C5A059')}>
                     {r.tipo_liberacion === 'Total' ? 'Total' : 'Mejoralito'}
                   </span>
                 </td>
@@ -345,7 +345,7 @@ export default function Taller() {
         </table>
 
         {ctrlHistorial.total === 0 && (
-          <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 14 }}>
             Sin liberaciones que coincidan con los filtros.
           </div>
         )}
@@ -357,19 +357,19 @@ export default function Taller() {
       {liberar && (
         <div
           onClick={() => setLiberar(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={'Liberar ' + liberar.id_unidad}
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 520, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 520, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059', animation: 'fadeUp 0.2s ease' }}
           >
-            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 10px' }}>
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 10px' }}>
               Liberar {liberar.id_unidad}
             </h3>
-            <p style={{ margin: '0 0 14px', fontSize: 14.5, color: '#4A4438' }}>
+            <p style={{ margin: '0 0 14px', fontSize: 14.5, color: 'var(--text-muted)' }}>
               {liberar.diagnostico} · ingresó el {liberar.fecha_ingreso}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -379,9 +379,9 @@ export default function Taller() {
                   className="hv-borde-ink"
                   style={{
                     padding: '13px 10px', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                    background: tipo === 'Total' ? '#E5F3E9' : '#fff',
-                    color: tipo === 'Total' ? '#2C7A44' : '#6F6A60',
-                    border: tipo === 'Total' ? '2px solid #3FA65C' : '1px solid #D8D2C4',
+                    background: tipo === 'Total' ? '#4ADE80' : 'rgba(15, 15, 16, 0.8)',
+                    color: tipo === 'Total' ? '#000' : '#9ca3af',
+                    border: tipo === 'Total' ? '2px solid #4ADE80' : '1px solid rgba(197, 160, 89, 0.2)',
                   }}
                 >
                   Reparación Total
@@ -391,9 +391,9 @@ export default function Taller() {
                   className="hv-borde-naranja-solo"
                   style={{
                     padding: '13px 10px', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                    background: tipo === 'Parcial' ? '#FDE8DC' : '#fff',
-                    color: tipo === 'Parcial' ? '#B4430A' : '#6F6A60',
-                    border: tipo === 'Parcial' ? '2px solid #F2620F' : '1px solid #D8D2C4',
+                    background: tipo === 'Parcial' ? '#EF4444' : 'rgba(15, 15, 16, 0.8)',
+                    color: tipo === 'Parcial' ? '#fff' : '#9ca3af',
+                    border: tipo === 'Parcial' ? '2px solid #EF4444' : '1px solid rgba(197, 160, 89, 0.2)',
                   }}
                 >
                   Parcial (mejoralito)
@@ -419,7 +419,7 @@ export default function Taller() {
                     value={pendientes}
                     onChange={(e) => setPendientes(e.target.value)}
                   />
-                  <span style={{ fontSize: 12.5, fontWeight: 400, color: '#6F6A60' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 400, color: 'var(--text-muted)' }}>
                     Las fallas no resueltas generan la alerta de deuda técnica (RF-TAL-04).
                   </span>
                 </label>
@@ -455,16 +455,16 @@ export default function Taller() {
                   className="hv-borde-naranja-solo"
                   style={{
                     border: '2px dashed #C9C2B2',
-                    background: '#FAF7F0',
+                    background: 'var(--bg-input)',
                     borderRadius: 10, padding: 14, cursor: 'pointer', textAlign: 'center', width: '100%', display: 'block',
-                    transition: 'all 0.25s ease', fontSize: 13, fontWeight: 600, color: '#6F6A60'
+                    transition: 'all 0.25s ease', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)'
                   }}
                 >
                   📷 Seleccionar fotografías de evidencia (máx. 3)
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                   {evidencias.map((ev, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAF7F0', padding: '6px 10px', borderRadius: 6, fontSize: 12.5 }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-input)', padding: '6px 10px', borderRadius: 6, fontSize: 12.5 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <img src={ev.url} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover' }} />
                         <span>{ev.nombre}</span>
@@ -490,14 +490,14 @@ export default function Taller() {
               <button
                 onClick={() => setLiberar(null)}
                 className="hv-crema"
-                style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                style={{ padding: '10px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => void confirmarLiberacion()}
                 className="hv-naranja"
-                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Liberar
               </button>
@@ -509,23 +509,23 @@ export default function Taller() {
       {verDetalle && (
         <div
           onClick={() => setVerDetalle(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={'Detalle de liberación - ' + verDetalle.id_unidad}
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 520, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 520, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059', animation: 'fadeUp 0.2s ease' }}
           >
-            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 14px' }}>
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 14px' }}>
               Ficha de Liberación - {verDetalle.id_unidad}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <label style={etiqueta}>
                   Unidad
-                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15, fontWeight: 600 }}>
+                  <div style={{ padding: 12, background: 'var(--bg-input)', borderRadius: 9, fontSize: 15, fontWeight: 600 }}>
                     {verDetalle.id_unidad}
                   </div>
                 </label>
@@ -539,7 +539,7 @@ export default function Taller() {
 
               <label style={etiqueta}>
                 Diagnóstico / Trabajo Realizado
-                <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                <div style={{ padding: 12, background: 'var(--bg-input)', borderRadius: 9, fontSize: 15, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
                   {verDetalle.diagnostico}
                 </div>
               </label>
@@ -547,13 +547,13 @@ export default function Taller() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <label style={etiqueta}>
                   Fecha de Ingreso
-                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15 }}>
+                  <div style={{ padding: 12, background: 'var(--bg-input)', borderRadius: 9, fontSize: 15 }}>
                     {verDetalle.fecha_ingreso}
                   </div>
                 </label>
                 <label style={etiqueta}>
                   Fecha de Salida
-                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15 }}>
+                  <div style={{ padding: 12, background: 'var(--bg-input)', borderRadius: 9, fontSize: 15 }}>
                     {verDetalle.fecha_salida ?? '—'}
                   </div>
                 </label>
@@ -562,13 +562,13 @@ export default function Taller() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <label style={etiqueta}>
                   Días en Taller
-                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15 }}>
+                  <div style={{ padding: 12, background: 'var(--bg-input)', borderRadius: 9, fontSize: 15 }}>
                     {verDetalle.dias_en_taller !== null ? verDetalle.dias_en_taller + (verDetalle.dias_en_taller === 1 ? ' día' : ' días') : '—'}
                   </div>
                 </label>
                 <label style={etiqueta}>
                   Costo de Taller (MXN)
-                  <div style={{ padding: 12, background: '#FAF7F0', borderRadius: 9, fontSize: 15, fontWeight: 700 }}>
+                  <div style={{ padding: 12, background: 'var(--bg-input)', borderRadius: 9, fontSize: 15, fontWeight: 700 }}>
                     {fmt(Number(verDetalle.costo_taller))}
                   </div>
                 </label>
@@ -583,7 +583,7 @@ export default function Taller() {
                         ? badge('#E9F5FE', '#1A73E8', '#1A73E8')
                         : verDetalle.tipo_liberacion === 'Total'
                         ? badge('#E5F3E9', '#2C7A44', '#9FD4B0')
-                        : badge('#FDE8DC', '#B4430A', '#F2620F')
+                        : badge('#FDE8DC', '#B4430A', '#C5A059')
                     }
                   >
                     {verDetalle.tipo_liberacion === null
@@ -598,7 +598,7 @@ export default function Taller() {
               {verDetalle.pendientes && verDetalle.pendientes.length > 0 && (
                 <label style={etiqueta}>
                   Pendientes de Deuda Técnica
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, background: '#FDF3EC', border: '1px dashed #F2620F', borderRadius: 9 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, background: '#FDF3EC', border: '1px dashed #C5A059', borderRadius: 9 }}>
                     {verDetalle.pendientes.map((p, i) => (
                       <div key={i} style={{ fontSize: 14, color: '#B4430A', fontWeight: 600 }}>
                         ⚠️ {p}
@@ -617,9 +617,9 @@ export default function Taller() {
                         <img
                           src={ev.url}
                           alt={ev.nombre}
-                          style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #D8D2C4' }}
+                          style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-color)' }}
                         />
-                        <span style={{ fontSize: 11, color: '#6F6A60', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
                           {ev.nombre}
                         </span>
                       </div>
@@ -633,7 +633,7 @@ export default function Taller() {
               <button
                 onClick={() => setVerDetalle(null)}
                 className="hv-naranja"
-                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Cerrar
               </button>

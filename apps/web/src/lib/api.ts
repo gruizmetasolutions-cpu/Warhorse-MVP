@@ -111,6 +111,11 @@ export interface UnidadApi {
   candidata_reincidencia: boolean
   fecha_alta?: string | null
   vencimiento_documentacion?: string | null
+  vin?: string | null
+  numero_economico?: string | null
+  marca?: string | null
+  modelo?: string | null
+  placas?: string | null
 }
 
 export async function getUnidades(estado?: EstadoUnidad): Promise<UnidadApi[]> {
@@ -122,10 +127,15 @@ export async function getUnidades(estado?: EstadoUnidad): Promise<UnidadApi[]> {
 export interface NuevaUnidad {
   id_unidad: string
   tipo: TipoUnidad
-  estado: EstadoUnidad
+  estado?: EstadoUnidad
   fecha_alta: string
-  valor_referencia: number | null
+  valor_referencia?: number | null
   vencimiento_documentacion?: string | null
+  vin?: string | null
+  numero_economico?: string | null
+  marca?: string | null
+  modelo?: string | null
+  placas?: string | null
 }
 
 export function crearUnidad(datos: NuevaUnidad): Promise<UnidadApi> {
@@ -134,7 +144,7 @@ export function crearUnidad(datos: NuevaUnidad): Promise<UnidadApi> {
 
 export function actualizarUnidad(
   id: number,
-  cambio: { estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null },
+  cambio: { estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null; vin?: string | null; numero_economico?: string | null; marca?: string | null; modelo?: string | null; placas?: string | null },
 ): Promise<UnidadApi> {
   return pedir<UnidadApi>(`/unidades/${id}`, { method: 'PATCH', body: JSON.stringify(cambio) })
 }
@@ -220,6 +230,7 @@ export function avanzarEstado(
     numero_factura?: string
     archivo_cotizacion?: File | null
     archivo_factura?: File | null
+    origen_refaccion?: string
   },
 ): Promise<RequisicionApi> {
   const hasFiles = cambio.archivo_cotizacion || cambio.archivo_factura

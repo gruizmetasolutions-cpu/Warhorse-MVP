@@ -7,7 +7,7 @@ import { card, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, theadRow } from '
 import { useTabla } from '../lib/useTabla'
 import ConciliacionDiesel from './ConciliacionDiesel'
 
-const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
+const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
 
 function RendimientoChart({ cargas, unidad }: { cargas: CargaDieselApi[], unidad: string }) {
@@ -23,7 +23,7 @@ function RendimientoChart({ cargas, unidad }: { cargas: CargaDieselApi[], unidad
 
   if (points.length < 2) {
     return (
-      <div style={{ ...card, padding: 22, textAlign: 'center', color: '#6F6A60', background: '#fff', borderRadius: 12, fontSize: 14, animation: 'fadeUp 0.4s ease' }}>
+      <div style={{ ...card, padding: 22, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 12, fontSize: 14, animation: 'fadeUp 0.4s ease' }}>
         ℹ️ Se necesitan al menos 2 registros de carga para trazar la tendencia de rendimiento km/L de la unidad {unidad}.
       </div>
     )
@@ -71,8 +71,8 @@ function RendimientoChart({ cargas, unidad }: { cargas: CargaDieselApi[], unidad
         <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ minWidth: 580 }}>
           <defs>
             <linearGradient id="naranjaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F2620F" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#F2620F" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#C5A059" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#C5A059" stopOpacity="0.0" />
             </linearGradient>
           </defs>
           
@@ -91,7 +91,7 @@ function RendimientoChart({ cargas, unidad }: { cargas: CargaDieselApi[], unidad
           })}
 
           <path d={dArea} fill="url(#naranjaGrad)" />
-          <path d={dLine} fill="none" stroke="#F2620F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={dLine} fill="none" stroke="#C5A059" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Dots & Labels */}
           {points.map((p, idx) => {
@@ -99,7 +99,7 @@ function RendimientoChart({ cargas, unidad }: { cargas: CargaDieselApi[], unidad
             const y = getY(p.kml)
             return (
               <g key={idx}>
-                <circle cx={x} cy={y} r="5" fill="#16191E" stroke="#F2620F" strokeWidth="2.5" />
+                <circle cx={x} cy={y} r="5" fill="#16191E" stroke="#C5A059" strokeWidth="2.5" />
                 <text x={x} y={y - 10} textAnchor="middle" fontSize="10.5" fontWeight="800" fill="#16191E">
                   {p.kml.toFixed(1)}
                 </text>
@@ -200,8 +200,8 @@ export default function Diesel() {
           onClick={() => setTabActiva('cargas')}
           style={{
             padding: '12px 18px', background: 'transparent', border: 'none',
-            borderBottom: tabActiva === 'cargas' ? '3px solid #F2620F' : '3px solid transparent',
-            color: tabActiva === 'cargas' ? '#F2620F' : '#6F6A60', fontWeight: 700, fontSize: 14.5, cursor: 'pointer',
+            borderBottom: tabActiva === 'cargas' ? '3px solid #C5A059' : '3px solid transparent',
+            color: tabActiva === 'cargas' ? '#C5A059' : '#6F6A60', fontWeight: 700, fontSize: 14.5, cursor: 'pointer',
             transition: 'all 0.2s ease', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: FD
           }}
         >
@@ -211,8 +211,8 @@ export default function Diesel() {
           onClick={() => setTabActiva('conciliacion')}
           style={{
             padding: '12px 18px', background: 'transparent', border: 'none',
-            borderBottom: tabActiva === 'conciliacion' ? '3px solid #F2620F' : '3px solid transparent',
-            color: tabActiva === 'conciliacion' ? '#F2620F' : '#6F6A60', fontWeight: 700, fontSize: 14.5, cursor: 'pointer',
+            borderBottom: tabActiva === 'conciliacion' ? '3px solid #C5A059' : '3px solid transparent',
+            color: tabActiva === 'conciliacion' ? '#C5A059' : '#6F6A60', fontWeight: 700, fontSize: 14.5, cursor: 'pointer',
             transition: 'all 0.2s ease', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: FD
           }}
         >
@@ -266,7 +266,7 @@ export default function Diesel() {
                 onClick={() => void registrar()}
                 disabled={enviando}
                 className="hv-naranja"
-                style={{ padding: '12px 20px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 9, fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', opacity: enviando ? 0.7 : 1 }}
+                style={{ padding: '12px 20px', background: 'var(--accent-gold)', color: 'var(--text-main)', border: 'none', borderRadius: 9, fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', opacity: enviando ? 0.7 : 1 }}
               >
                 Registrar carga
               </button>
@@ -325,7 +325,7 @@ export default function Diesel() {
             </table>
 
             {ctrl.total === 0 && (
-              <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
+              <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 14 }}>
                 Sin cargas que coincidan con los filtros.
               </div>
             )}

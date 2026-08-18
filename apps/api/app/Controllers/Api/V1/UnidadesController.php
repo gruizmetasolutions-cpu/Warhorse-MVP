@@ -49,6 +49,11 @@ final class UnidadesController extends BaseController
                 'costo_real_acumulado'      => (float) $u['costo_real_acumulado'],
                 'candidata_reincidencia'    => (bool) $u['candidata_reincidencia'],
                 'vencimiento_documentacion' => $u['vencimiento_documentacion'] === null ? null : (string) $u['vencimiento_documentacion'],
+                'vin'                       => $u['vin'] === null ? null : (string) $u['vin'],
+                'numero_economico'          => $u['numero_economico'] === null ? null : (string) $u['numero_economico'],
+                'marca'                     => $u['marca'] === null ? null : (string) $u['marca'],
+                'modelo'                    => $u['modelo'] === null ? null : (string) $u['modelo'],
+                'placas'                    => $u['placas'] === null ? null : (string) $u['placas'],
             ], $listado['data']),
             'meta' => [
                 'page'        => $pagina,
@@ -71,6 +76,11 @@ final class UnidadesController extends BaseController
             'fecha_alta'                => 'required|valid_date[Y-m-d]',
             'valor_referencia'          => 'permit_empty|decimal|greater_than_equal_to[0]',
             'vencimiento_documentacion' => 'permit_empty|valid_date[Y-m-d]',
+            'vin'                       => 'permit_empty|string|max_length[255]',
+            'numero_economico'          => 'permit_empty|string|max_length[255]',
+            'marca'                     => 'permit_empty|string|max_length[255]',
+            'modelo'                    => 'permit_empty|string|max_length[255]',
+            'placas'                    => 'permit_empty|string|max_length[255]',
         ])) {
             $errores = $this->validator?->getErrors() ?? [];
 
@@ -95,6 +105,11 @@ final class UnidadesController extends BaseController
             'estado'                    => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
             'valor_referencia'          => 'permit_empty|decimal|greater_than_equal_to[0]',
             'vencimiento_documentacion' => 'permit_empty|valid_date[Y-m-d]',
+            'vin'                       => 'permit_empty|string|max_length[255]',
+            'numero_economico'          => 'permit_empty|string|max_length[255]',
+            'marca'                     => 'permit_empty|string|max_length[255]',
+            'modelo'                    => 'permit_empty|string|max_length[255]',
+            'placas'                    => 'permit_empty|string|max_length[255]',
         ]) || $cambio === []) {
             $errores = $this->validator?->getErrors() ?? [];
 

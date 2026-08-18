@@ -15,21 +15,43 @@ final class OrdenesTrabajoController extends BaseController
     {
         $db = \Config\Database::connect();
         $builder = $db->table('ordenes_trabajo ot')
-            ->select('ot.id, ot.diagnostico, ot.materiales, ot.archivos_evidencia, ot.created_at, u.id_unidad, u.tipo as unidad_tipo, r.nombre as responsable_nombre, r.rol as responsable_rol')
+            ->select('ot.id, ot.folio, ot.categoria, ot.estado, ot.diagnostico, ot.materiales, ot.archivos_evidencia, ot.created_at, u.id as u_id, u.id_unidad, u.tipo as unidad_tipo, r.nombre as responsable_nombre, r.rol as responsable_rol')
             ->join('unidades u', 'u.id = ot.unidad_id')
             ->join('responsables_taller r', 'r.id = ot.responsable_id')
             ->orderBy('ot.id', 'DESC');
 
         $filas = $builder->get()->getResultArray();
+        $data = [];
 
-        return $this->response->setJSON([
-            'data' => array_map(static fn (array $f): array => [
-                'id'                 => (int) $f['id'],
+        foreach ($filas as $f) {
+            $otId = (int)$f['id'];
+            
+            // Sum of cost of purchased/installed requisitions linked to this OT
+            $costoRequisiciones = $db->table('requisiciones')
+                ->selectSum('costo_real')
+                ->where('orden_trabajo_id', $otId)
+                ->whereIn('estado', ['Comprado', 'Instalado'])
+                ->get()->getRowArray()['costo_real'] ?? 0.0;
+
+            $materiales = json_decode((string) ($f['materiales'] ?? '[]'), true);
+            $costoMaterialesLocal = 0.0;
+            foreach ($materiales as $mat) {
+                $costoMaterialesLocal += (float) ($mat['costo_total'] ?? 0);
+            }
+            $costoTotal = (float) $costoRequisiciones + $costoMaterialesLocal;
+
+            $data[] = [
+                'id'                 => $otId,
+                'folio'              => $f['folio'] ?? 'OT-' . str_pad((string)$otId, 5, '0', STR_PAD_LEFT),
+                'categoria'          => (string) $f['categoria'],
+                'estado'             => (string) $f['estado'],
                 'diagnostico'        => (string) $f['diagnostico'],
-                'materiales'         => json_decode((string) ($f['materiales'] ?? '[]'), true),
+                'materiales'         => $materiales,
                 'archivos_evidencia' => json_decode((string) ($f['archivos_evidencia'] ?? '[]'), true),
                 'created_at'         => (string) $f['created_at'],
+                'costo_total'        => $costoTotal,
                 'unidad' => [
+                    'id'        => (int) $f['u_id'],
                     'id_unidad' => (string) $f['id_unidad'],
                     'tipo'      => (string) $f['unidad_tipo'],
                 ],
@@ -37,7 +59,11 @@ final class OrdenesTrabajoController extends BaseController
                     'nombre' => (string) $f['responsable_nombre'],
                     'rol'    => (string) $f['responsable_rol'],
                 ],
-            ], $filas),
+            ];
+        }
+
+        return $this->response->setJSON([
+            'data' => $data,
         ]);
     }
 
@@ -49,6 +75,7 @@ final class OrdenesTrabajoController extends BaseController
         if (! $this->validateData($datos, [
             'unidad_id'          => 'required|is_natural_no_zero',
             'responsable_id'     => 'required|is_natural_no_zero',
+            'categoria'          => 'required|in_list[Preventivo,Correctivo,Mantenimiento]',
             'diagnostico'        => 'required|min_length[5]',
             'materiales'         => 'permit_empty',
             'archivos_evidencia' => 'permit_empty',
@@ -74,19 +101,105 @@ final class OrdenesTrabajoController extends BaseController
         $materiales = isset($datos['materiales']) ? json_encode($datos['materiales']) : '[]';
         $evidencias = isset($datos['archivos_evidencia']) ? json_encode($datos['archivos_evidencia']) : '[]';
 
+        $db->transStart();
+
         $db->table('ordenes_trabajo')->insert([
             'unidad_id'          => (int) $datos['unidad_id'],
             'responsable_id'     => (int) $datos['responsable_id'],
+            'categoria'          => $datos['categoria'],
             'diagnostico'        => trim((string) $datos['diagnostico']),
             'materiales'         => $materiales,
             'archivos_evidencia' => $evidencias,
+            'estado'             => 'Activa',
         ]);
 
         $otId = $db->insertID();
+        $folio = 'OT-' . str_pad((string)$otId, 5, '0', STR_PAD_LEFT);
+
+        $db->table('ordenes_trabajo')->where('id', $otId)->update([
+            'folio' => $folio,
+        ]);
+
+        $db->transComplete();
 
         return $this->response->setStatusCode(201)->setJSON([
-            'id' => $otId,
+            'id'      => $otId,
+            'folio'   => $folio,
             'message' => 'Orden de trabajo creada exitosamente.',
+        ]);
+    }
+
+    public function tomarInventario(int $id): ResponseInterface
+    {
+        $request = $this->request;
+        $datos   = $request instanceof IncomingRequest ? (array) $request->getJSON(true) : [];
+
+        if (! $this->validateData($datos, [
+            'articulo_id' => 'required|is_natural_no_zero',
+            'cantidad'    => 'required|is_natural_no_zero',
+        ])) {
+            $errores = $this->validator?->getErrors() ?? [];
+            return RespuestasApi::error(422, 'validation', 'Datos de inventario inválidos.', array_map(static fn (string $e): array => [$e], $errores));
+        }
+
+        $db = \Config\Database::connect();
+        
+        // Find OT
+        $ot = $db->table('ordenes_trabajo')->where('id', $id)->get()->getRowArray();
+        if ($ot === null) {
+            return RespuestasApi::error(404, 'not_found', 'Orden de trabajo no encontrada.');
+        }
+        if ($ot['estado'] !== 'Activa') {
+            return RespuestasApi::error(409, 'conflict', 'La orden de trabajo no está activa.');
+        }
+
+        // Find Catalog piece
+        $articulo = $db->table('catalogo_piezas')->where('id', $datos['articulo_id'])->get()->getRowArray();
+        if ($articulo === null) {
+            return RespuestasApi::error(404, 'not_found', 'Artículo de catálogo no encontrado.');
+        }
+
+        $cantidad = (int) $datos['cantidad'];
+        if ((int)$articulo['stock_actual'] < $cantidad) {
+            return RespuestasApi::error(409, 'conflict', 'Stock insuficiente en almacén.');
+        }
+
+        $db->transStart();
+
+        // 1. Decrement stock in catalog
+        $db->table('catalogo_piezas')
+            ->where('id', $articulo['id'])
+            ->update(['stock_actual' => (int)$articulo['stock_actual'] - $cantidad]);
+
+        // 2. Add to materiales list of OT
+        $materiales = json_decode((string) ($ot['materiales'] ?? '[]'), true);
+        $costoUnitario = (float) ($articulo['precio_referencia'] ?? 0);
+        $costoTotalItem = $costoUnitario * $cantidad;
+
+        $materiales[] = [
+            'pieza_id'       => (int) $articulo['id'],
+            'nombre'         => (string) $articulo['nombre_normalizado'],
+            'numero_parte'   => (string) $articulo['numero_parte'],
+            'cantidad'       => $cantidad,
+            'costo_unitario' => $costoUnitario,
+            'costo_total'    => $costoTotalItem,
+            'origen'         => 'Local Stock',
+            'fecha'          => date('Y-m-d H:i:s'),
+        ];
+
+        $db->table('ordenes_trabajo')->where('id', $id)->update([
+            'materiales' => json_encode($materiales),
+        ]);
+
+        // 3. Add expense to unit consolidado
+        $consolidado = new \App\Services\ConsolidadoService();
+        $consolidado->agregarRefaccion((int) $ot['unidad_id'], $costoTotalItem);
+
+        $db->transComplete();
+
+        return $this->response->setJSON([
+            'message' => 'Material tomado del inventario y cargado a la OT exitosamente.',
+            'materiales' => $materiales,
         ]);
     }
 

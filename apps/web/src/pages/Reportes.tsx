@@ -86,10 +86,10 @@ export default function Reportes() {
         <div style={{ ...card, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
           <div>
             <h3 style={h3Titulo}>🚗 Reporte de Flota y Unidades</h3>
-            <p style={{ margin: '8px 0 0', fontSize: 14, color: '#6F6A60', lineHeight: 1.5 }}>
+            <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
               Detalle estructurado de todos los vehículos activos, inactivos, donantes (Yonke) y vendidos, con costos consolidados individuales.
             </p>
-            <div style={{ marginTop: 14, background: '#FAF7F0', padding: 12, borderRadius: 8, fontSize: 13, color: '#4A4438', fontWeight: 600 }}>
+            <div style={{ marginTop: 14, background: 'var(--bg-input)', padding: 12, borderRadius: 8, fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
               📊 Total de registros: {unidades.length} unidades
             </div>
           </div>
@@ -97,7 +97,7 @@ export default function Reportes() {
             onClick={exportarFlota}
             className="hv-naranja"
             style={{
-              padding: '12px 18px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 8,
+              padding: '12px 18px', background: 'var(--accent-gold)', color: 'var(--text-main)', border: 'none', borderRadius: 8,
               fontFamily: FD, fontWeight: 700, fontSize: 15.5, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(242,98,15,0.15)'
             }}
@@ -110,10 +110,10 @@ export default function Reportes() {
         <div style={{ ...card, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
           <div>
             <h3 style={h3Titulo}>🛒 Reporte de Compras y Requisiciones</h3>
-            <p style={{ margin: '8px 0 0', fontSize: 14, color: '#6F6A60', lineHeight: 1.5 }}>
+            <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
               Histórico consolidado de compras y requisiciones con estatus en tiempo real, costos reales facturados y costos estimados de Yonke.
             </p>
-            <div style={{ marginTop: 14, background: '#FAF7F0', padding: 12, borderRadius: 8, fontSize: 13, color: '#4A4438', fontWeight: 600 }}>
+            <div style={{ marginTop: 14, background: 'var(--bg-input)', padding: 12, borderRadius: 8, fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
               📊 Total de registros: {cargando ? 'Calculando...' : `${compras.length} piezas`}
             </div>
           </div>
@@ -122,7 +122,7 @@ export default function Reportes() {
             disabled={cargando}
             className="hv-naranja"
             style={{
-              padding: '12px 18px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 8,
+              padding: '12px 18px', background: 'var(--accent-gold)', color: 'var(--text-main)', border: 'none', borderRadius: 8,
               fontFamily: FD, fontWeight: 700, fontSize: 15.5, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(242,98,15,0.15)', opacity: cargando ? 0.6 : 1
             }}
@@ -150,7 +150,7 @@ export default function Reportes() {
           <tbody>
             {unidades.slice(0, 5).map((u) => (
               <tr key={u.id} className="hv-fila">
-                <td style={{ ...tdCell, fontWeight: 700, fontFamily: FD, fontSize: 16, color: '#16191E' }}>{u.id_unidad}</td>
+                <td style={{ ...tdCell, fontWeight: 700, fontFamily: FD, fontSize: 16, color: 'var(--text-main)' }}>{u.id_unidad}</td>
                 <td style={tdCell}>{u.tipo === 'Servicio' ? 'Camioneta de servicio' : u.tipo}</td>
                 <td style={tdCell}>{u.estado}</td>
                 <td style={{ ...tdCell, textAlign: 'right' }}>{u.valor_referencia ? fmt(u.valor_referencia) : '—'}</td>

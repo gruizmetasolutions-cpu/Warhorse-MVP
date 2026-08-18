@@ -5,7 +5,7 @@ import { ApiError, cambiarPassword } from '../lib/api'
 import { rutaDeLanding, useDemo } from '../lib/demo'
 import { FD } from '../lib/estilos'
 
-const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
+const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
 
 // Pantalla de cambio obligatorio en el primer login (alta sin correo). La
@@ -40,18 +40,18 @@ export default function DefinirPassword() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: '#14181D' }}>
-      <div style={{ background: '#fff', borderRadius: 16, maxWidth: 440, width: '100%', padding: 32, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', borderTop: '6px solid #F2620F' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'transparent' }}>
+      <div style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 16, maxWidth: 440, width: '100%', padding: 32, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', borderTop: '6px solid #C5A059' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 18 }}>
-          <Camion stroke="#F2620F" strokeWidth={9} style={{ width: 42, flex: 'none' }} />
-          <div style={{ fontFamily: FD, fontWeight: 700, fontSize: 18, lineHeight: 1.05, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#16191E' }}>
+          <Camion stroke="#C5A059" strokeWidth={9} style={{ width: 42, flex: 'none' }} />
+          <div style={{ fontFamily: FD, fontWeight: 700, fontSize: 18, lineHeight: 1.05, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-main)' }}>
             Hub de Gastos
           </div>
         </div>
-        <h2 style={{ fontFamily: FD, fontWeight: 700, fontSize: 28, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 6px' }}>
+        <h2 style={{ fontFamily: FD, fontWeight: 700, fontSize: 28, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 6px' }}>
           Define tu contraseña
         </h2>
-        <p style={{ margin: '0 0 20px', fontSize: 14, color: '#6F6A60' }}>
+        <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)' }}>
           Entraste con una contraseña temporal. Crea la tuya para continuar; la temporal dejará de funcionar.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -77,13 +77,13 @@ export default function DefinirPassword() {
           onClick={() => void guardar()}
           disabled={enviando}
           className="hv-naranja"
-          style={{ width: '100%', marginTop: 20, padding: '13px 20px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 9, fontFamily: FD, fontWeight: 700, fontSize: 17, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', opacity: enviando ? 0.7 : 1 }}
+          style={{ width: '100%', marginTop: 20, padding: '13px 20px', background: 'var(--accent-gold)', color: 'var(--text-main)', border: 'none', borderRadius: 9, fontFamily: FD, fontWeight: 700, fontSize: 17, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', opacity: enviando ? 0.7 : 1 }}
         >
           Guardar y entrar
         </button>
         <button
           onClick={salir}
-          style={{ width: '100%', marginTop: 10, padding: '10px', background: 'none', border: 'none', color: '#8A8374', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}
+          style={{ width: '100%', marginTop: 10, padding: '10px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}
         >
           Cancelar y salir
         </button>

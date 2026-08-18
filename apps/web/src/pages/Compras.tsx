@@ -13,7 +13,7 @@ const flujo: EstadoRequisicion[] = [
   'Cotizado', 'Comprado', 'En trayecto'
 ]
 
-const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
+const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
 
 type FiltroEstado = 'Todos' | EstadoRequisicion
@@ -56,6 +56,7 @@ export default function Compras() {
   const [archivoCotizacion, setArchivoCotizacion] = useState<File | null>(null)
 
   const [revertirReq, setRevertirReq] = useState<FilaCompras | null>(null)
+  const [origenRefaccion, setOrigenRefaccion] = useState('')
   const [motivoReversion, setMotivoReversion] = useState('')
   const [costoReal, setCostoReal] = useState('')
   const [factura, setFactura]   = useState('')
@@ -141,6 +142,7 @@ export default function Compras() {
     try {
       await avanzarEstado(comprar.id, {
         estado: 'Comprado',
+          origen_refaccion: origenRefaccion.trim() || undefined,
         costo_real: costoReal === '' ? undefined : Number(costoReal),
         numero_factura: factura || undefined,
         archivo_factura: archivoFactura,
@@ -300,7 +302,7 @@ export default function Compras() {
           rightSlot={
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: '#8A8374', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Origen</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Origen</span>
                 {(['Todos', 'Yonke', 'Compra'] as FiltroOrigen[]).map((o) => (
                   <button
                     key={o}
@@ -322,7 +324,7 @@ export default function Compras() {
               <select
                 value={filtroDia}
                 onChange={(e) => { setFiltroDia(e.target.value); ctrl.resetPage() }}
-                style={{ padding: '6px 10px', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, background: '#fff', fontWeight: 600 }}
+                style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: 7, fontSize: 12.5, background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', fontWeight: 600 }}
               >
                 <option value="">Todos los días</option>
                 {DIAS.filter(Boolean).map((d) => (
@@ -334,7 +336,7 @@ export default function Compras() {
               <select
                 value={filtroMes}
                 onChange={(e) => { setFiltroMes(e.target.value); ctrl.resetPage() }}
-                style={{ padding: '6px 10px', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, background: '#fff', fontWeight: 600 }}
+                style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: 7, fontSize: 12.5, background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', fontWeight: 600 }}
               >
                 {MESES.map((m) => (
                   <option key={m.val} value={m.val}>{m.label}</option>
@@ -354,7 +356,7 @@ export default function Compras() {
               <SortTh col="urgencia"          label="Urgencia"  sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
               <SortTh col="estado"            label="Estado"    sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
               <SortTh col="fecha_solicitud"   label="Solicitud" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-              <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }}>Acción</th>
+              <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }}>Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -366,17 +368,17 @@ export default function Compras() {
               const costo = q.costo_real ?? q.costo_estimado
               return (
                 <tr key={q.id} className="hv-fila">
-                  <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17, color: '#16191E' }}>
+                  <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17, color: 'var(--text-main)' }}>
                     {q.unidad_destino}
                   </td>
                   <td style={{ ...tdCell, fontWeight: 600 }}>
                     {q.descripcion_pieza}
-                    <div style={{ fontWeight: 400, fontSize: 12.5, color: '#6F6A60', display: 'flex', gap: 10, alignItems: 'center', marginTop: 4 }}>
+                    <div style={{ fontWeight: 400, fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', gap: 10, alignItems: 'center', marginTop: 4 }}>
                       <span>{yk ? 'Donante: ' + (q.unidad_donante ?? '—') + ' (yonke)' : 'Compra externa'}</span>
                       <button
                         onClick={() => void abrirGaleria(q)}
                         className="hv-op85"
-                        style={{ background: 'transparent', border: 'none', color: '#F2620F', fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
                       >
                         📷 Ver Fotos ({q.foto_pieza_url ? q.foto_pieza_url.split(',').length : 0})
                       </button>
@@ -401,14 +403,14 @@ export default function Compras() {
                     </div>
                   </td>
                   <td style={tdCell}>
-                    <span style={yk ? badge('#FDE8DC', '#B4430A', '#F2620F') : badge('#EAE6DC', '#16191E', '#C9C2B2')}>
+                    <span style={yk ? badge('#FDE8DC', '#B4430A', '#C5A059') : badge('#EAE6DC', '#16191E', '#C9C2B2')}>
                       {q.origen}
                     </span>
                   </td>
                   <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                     {costo !== null ? fmt(Number(costo)) : 'Por cotizar'}{' '}
                     {esEstimado && (
-                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: '#FDE8DC', color: '#B4430A', border: '1px dashed #F2620F', borderRadius: 4, padding: '2px 5px' }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: '#FDE8DC', color: '#B4430A', border: '1px dashed #C5A059', borderRadius: 4, padding: '2px 5px' }}>
                         Est.
                       </span>
                     )}
@@ -419,21 +421,21 @@ export default function Compras() {
                   <td style={tdCell}>
                     <span style={badge(ec[0], ec[1], ec[2])}>{q.estado}</span>
                   </td>
-                  <td style={{ ...tdCell, color: '#6F6A60', whiteSpace: 'nowrap' }}>{q.fecha_solicitud}</td>
+                  <td style={{ ...tdCell, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{q.fecha_solicitud}</td>
                   <td style={{ ...tdCell, display: 'flex', gap: 6, alignItems: 'center' }}>
                     {q.estado === 'En pago' ? (
                       <>
                         <button
                           onClick={() => void avanzar(q, 'En recolección')}
-                          className="hv-inkfill"
-                          style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          className="hv-op85"
+                          style={{ padding: '7px 12px', background: 'transparent', border: '1px solid rgba(197, 160, 89, 0.4)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--accent-gold)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                         >
                           → Recolección
                         </button>
                         <button
                           onClick={() => void avanzar(q, 'Bajo pedido')}
-                          className="hv-inkfill"
-                          style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          className="hv-op85"
+                          style={{ padding: '7px 12px', background: 'transparent', border: '1px solid rgba(197, 160, 89, 0.4)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--accent-gold)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                         >
                           → Bajo pedido
                         </button>
@@ -441,8 +443,8 @@ export default function Compras() {
                     ) : accion ? (
                       <button
                         onClick={accion.ejecutar}
-                        className="hv-inkfill"
-                        style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        className="hv-op85"
+                        style={{ padding: '7px 12px', background: 'transparent', border: '1px solid rgba(197, 160, 89, 0.4)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--accent-gold)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                       >
                         {accion.texto}
                       </button>
@@ -479,7 +481,7 @@ export default function Compras() {
         </table>
 
         {ctrl.total === 0 && (
-          <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 14 }}>
             Sin registros que coincidan con los filtros.
           </div>
         )}
@@ -491,20 +493,20 @@ export default function Compras() {
       {cotizar && (
         <div
           onClick={() => setCotizar(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Registrar cotización"
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059', animation: 'fadeUp 0.2s ease' }}
           >
-            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 10px' }}>
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 10px' }}>
               Registrar cotización
             </h3>
-            <p style={{ margin: '0 0 14px', fontSize: 15, lineHeight: 1.55, color: '#4A4438' }}>
-              Registra la cotización de la refacción <strong style={{ color: '#16191E' }}>{cotizar.descripcion_pieza}</strong>.
+            <p style={{ margin: '0 0 14px', fontSize: 15, lineHeight: 1.55, color: 'var(--text-muted)' }}>
+              Registra la cotización de la refacción <strong style={{ color: 'var(--text-main)' }}>{cotizar.descripcion_pieza}</strong>.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <label style={etiqueta}>
@@ -526,14 +528,14 @@ export default function Compras() {
               <button
                 onClick={() => setCotizar(null)}
                 className="hv-crema"
-                style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                style={{ padding: '10px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => void registrarCotizacion()}
                 className="hv-naranja"
-                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Registrar
               </button>
@@ -546,27 +548,31 @@ export default function Compras() {
       {comprar && (
         <div
           onClick={() => setComprar(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Registrar compra"
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059', animation: 'fadeUp 0.2s ease' }}
           >
-            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 10px' }}>
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 10px' }}>
               Registrar compra
             </h3>
-            <p style={{ margin: '0 0 14px', fontSize: 15, lineHeight: 1.55, color: '#4A4438' }}>
-              <strong style={{ color: '#16191E' }}>{comprar.descripcion_pieza}</strong> para el tracto{' '}
-              <strong style={{ color: '#F2620F' }}>{comprar.unidad_destino}</strong>: captura el costo real
+            <p style={{ margin: '0 0 14px', fontSize: 15, lineHeight: 1.55, color: 'var(--text-muted)' }}>
+              <strong style={{ color: 'var(--text-main)' }}>{comprar.descripcion_pieza}</strong> para el tracto{' '}
+              <strong style={{ color: 'var(--accent-gold)' }}>{comprar.unidad_destino}</strong>: captura el costo real
               facturado para pasar a <strong style={{ color: '#1B4E8C' }}>Comprado</strong>.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <label style={etiqueta}>
-                Costo real (MXN)
+                Costo Real (MXN)
                 <input type="number" min={0} style={campo} value={costoReal} onChange={(e) => setCostoReal(e.target.value)} />
+              </label>
+              <label style={etiqueta}>
+                Origen de la compra / refacción
+                <input type="text" style={campo} value={origenRefaccion} onChange={(e) => setOrigenRefaccion(e.target.value)} placeholder="Ej. Nacional, Importado, Local" />
               </label>
               <label style={etiqueta}>
                 Número de factura
@@ -591,14 +597,14 @@ export default function Compras() {
               <button
                 onClick={() => setComprar(null)}
                 className="hv-crema"
-                style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                style={{ padding: '10px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => void registrarCompra()}
                 className="hv-naranja"
-                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Registrar
               </button>
@@ -611,20 +617,20 @@ export default function Compras() {
       {revertirReq && (
         <div
           onClick={() => setRevertirReq(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Revertir cotización"
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #E53E3E', animation: 'fadeUp 0.2s ease' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #E53E3E', animation: 'fadeUp 0.2s ease' }}
           >
             <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#E53E3E', margin: '0 0 10px' }}>
               Revertir Cotización
             </h3>
-            <p style={{ margin: '0 0 14px', fontSize: 15, lineHeight: 1.55, color: '#4A4438' }}>
-              Regresarás la requisición <strong style={{ color: '#16191E' }}>{revertirReq.descripcion_pieza}</strong> al estado <strong style={{ color: '#F2620F' }}>Solicitado</strong>. Captura el motivo de la reversión para el historial de auditoría.
+            <p style={{ margin: '0 0 14px', fontSize: 15, lineHeight: 1.55, color: 'var(--text-muted)' }}>
+              Regresarás la requisición <strong style={{ color: 'var(--text-main)' }}>{revertirReq.descripcion_pieza}</strong> al estado <strong style={{ color: 'var(--accent-gold)' }}>Solicitado</strong>. Captura el motivo de la reversión para el historial de auditoría.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <label style={etiqueta}>
@@ -646,14 +652,14 @@ export default function Compras() {
               <button
                 onClick={() => setRevertirReq(null)}
                 className="hv-crema"
-                style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                style={{ padding: '10px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => void ejecutarReversion()}
                 className="hv-naranja"
-                style={{ padding: '10px 20px', background: '#E53E3E', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: '#E53E3E', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Confirmar Reversión
               </button>
@@ -673,28 +679,28 @@ export default function Compras() {
             role="dialog"
             aria-modal="true"
             aria-label="Evidencias fotográficas"
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 540, width: '100%', padding: 22, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeUp 0.2s ease' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 540, width: '100%', padding: 22, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeUp 0.2s ease' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={h3Titulo}>Evidencias fotográficas</h3>
               <button
                 onClick={() => setGaleriaReq(null)}
-                style={{ background: 'transparent', border: 'none', fontSize: 24, fontWeight: 700, cursor: 'pointer', color: '#16191E', padding: 0 }}
+                style={{ background: 'transparent', border: 'none', fontSize: 24, fontWeight: 700, cursor: 'pointer', color: 'var(--text-main)', padding: 0 }}
               >
                 ×
               </button>
             </div>
-            <p style={{ margin: 0, fontSize: 14, color: '#6F6A60', fontWeight: 600 }}>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', fontWeight: 600 }}>
               {galeriaReq.descripcion_pieza} (unidad: {galeriaReq.unidad_destino})
             </p>
 
             {cargandoGaleria ? (
-              <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAF7F0', borderRadius: 10, color: '#6F6A60' }}>
+              <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-input)', borderRadius: 10, color: 'var(--text-muted)' }}>
                 Cargando fotografías...
               </div>
             ) : galeriaUrls.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ position: 'relative', width: '100%', height: 320, background: '#16191E', borderRadius: 10, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'relative', width: '100%', height: 320, background: 'var(--accent-gold)', borderRadius: 10, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <img
                     src={galeriaUrls[galeriaIndex]}
                     alt={`Evidencia ${galeriaIndex + 1}`}
@@ -705,13 +711,13 @@ export default function Compras() {
                     <>
                       <button
                         onClick={() => setGaleriaIndex((prev) => (prev === 0 ? galeriaUrls.length - 1 : prev - 1))}
-                        style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(20,24,29,0.7)', border: 'none', color: '#fff', fontSize: 20, width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', fontWeight: 700 }}
+                        style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(20,24,29,0.7)', border: 'none', color: 'var(--text-main)', fontSize: 20, width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', fontWeight: 700 }}
                       >
                         ‹
                       </button>
                       <button
                         onClick={() => setGaleriaIndex((prev) => (prev === galeriaUrls.length - 1 ? 0 : prev + 1))}
-                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(20,24,29,0.7)', border: 'none', color: '#fff', fontSize: 20, width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', fontWeight: 700 }}
+                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(20,24,29,0.7)', border: 'none', color: 'var(--text-main)', fontSize: 20, width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', fontWeight: 700 }}
                       >
                         ›
                       </button>
@@ -719,7 +725,7 @@ export default function Compras() {
                   )}
                 </div>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#6F6A60', fontWeight: 700 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: 'var(--text-muted)', fontWeight: 700 }}>
                   <span>Foto {galeriaIndex + 1} de {galeriaUrls.length}</span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {galeriaUrls.map((_, idx) => (
@@ -728,7 +734,7 @@ export default function Compras() {
                         onClick={() => setGaleriaIndex(idx)}
                         style={{
                           width: 8, height: 8, borderRadius: '50%',
-                          background: galeriaIndex === idx ? '#F2620F' : '#D8D2C4',
+                          background: galeriaIndex === idx ? '#C5A059' : '#D8D2C4',
                           cursor: 'pointer'
                         }}
                       />
@@ -737,7 +743,7 @@ export default function Compras() {
                 </div>
               </div>
             ) : (
-              <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAF7F0', borderRadius: 10, color: '#C53030', fontWeight: 600 }}>
+              <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-input)', borderRadius: 10, color: '#C53030', fontWeight: 600 }}>
                 No se pudieron cargar las fotografías de evidencia.
               </div>
             )}

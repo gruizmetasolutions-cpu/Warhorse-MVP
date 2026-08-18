@@ -3,7 +3,7 @@ import Kicker from '../components/Kicker'
 import { badge, card, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
 import { useDemo } from '../lib/demo'
 
-const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
+const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
 
 interface FilaConciliada {
@@ -157,7 +157,7 @@ export default function ConciliacionDiesel() {
           onDrop={(e) => { e.preventDefault(); setDragComb(false); const f = e.dataTransfer.files?.[0]; if (f) handleFileDrop('combustible', f) }}
           style={{
             ...card,
-            border: dragComb ? '2px dashed #F2620F' : '1px solid #E7E0D2',
+            border: dragComb ? '2px dashed #C5A059' : '1px solid #E7E0D2',
             background: dragComb ? '#FDF3EC' : '#fff',
             transition: 'all 0.2s ease'
           }}
@@ -170,7 +170,7 @@ export default function ConciliacionDiesel() {
               value={combustibleCSV}
               onChange={(e) => setCombustibleCSV(e.target.value)}
             />
-            <span style={{ fontSize: 12, color: '#8A8374', textAlign: 'center', marginTop: 4 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 4 }}>
               📂 Suelta tu archivo CSV de combustible aquí para cargarlo automáticamente
             </span>
           </label>
@@ -181,7 +181,7 @@ export default function ConciliacionDiesel() {
           onDrop={(e) => { e.preventDefault(); setDragSamsara(false); const f = e.dataTransfer.files?.[0]; if (f) handleFileDrop('samsara', f) }}
           style={{
             ...card,
-            border: dragSamsara ? '2px dashed #F2620F' : '1px solid #E7E0D2',
+            border: dragSamsara ? '2px dashed #C5A059' : '1px solid #E7E0D2',
             background: dragSamsara ? '#FDF3EC' : '#fff',
             transition: 'all 0.2s ease'
           }}
@@ -194,7 +194,7 @@ export default function ConciliacionDiesel() {
               value={samsaraCSV}
               onChange={(e) => setSamsaraCSV(e.target.value)}
             />
-            <span style={{ fontSize: 12, color: '#8A8374', textAlign: 'center', marginTop: 4 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 4 }}>
               📂 Suelta tu archivo CSV de Samsara aquí para cargarlo automáticamente
             </span>
           </label>
@@ -205,7 +205,7 @@ export default function ConciliacionDiesel() {
         <button
           onClick={parsearYCruzar}
           className="hv-naranja"
-          style={{ padding: '12px 28px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 9, fontFamily: FD, fontSize: 17, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+          style={{ padding: '12px 28px', background: 'var(--accent-gold)', color: 'var(--text-main)', border: 'none', borderRadius: 9, fontFamily: FD, fontSize: 17, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
         >
           Procesar y Conciliar
         </button>
@@ -244,7 +244,7 @@ export default function ConciliacionDiesel() {
       {/* Split external loads section */}
       <div style={{ ...card, padding: '14px 20px', overflowX: 'auto', marginTop: 24, animation: 'fadeUp 0.48s ease' }}>
         <h3 style={{ ...h3Titulo, marginBottom: 12 }}>Desglose de Tanques Externos / Cargas Compartidas</h3>
-        <p style={{ margin: '0 0 16px', color: '#6F6A60', fontSize: 14 }}>
+        <p style={{ margin: '0 0 16px', color: 'var(--text-muted)', fontSize: 14 }}>
           Selecciona una carga general realizada a un contenedor o tanque externo para fragmentarla y asignarla a unidades/cajas individuales.
         </p>
 
@@ -255,7 +255,7 @@ export default function ConciliacionDiesel() {
               <th style={{ ...thCell, textAlign: 'right' }}>Litros Totales</th>
               <th style={{ ...thCell, textAlign: 'right' }}>Costo</th>
               <th style={thCell}>Desglose Asignado</th>
-              <th style={{ ...thCell, padding: '12px 10px', borderBottom: '2px solid #16191E' }} />
+              <th style={{ ...thCell, padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }} />
             </tr>
           </thead>
           <tbody>
@@ -273,14 +273,14 @@ export default function ConciliacionDiesel() {
                           {d.unidad}: {d.litros} L
                         </span>
                       ))}
-                      {c.desglose.length === 0 && <span style={{ color: '#8A8374', fontSize: 13 }}>Sin desglose aún</span>}
+                      {c.desglose.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sin desglose aún</span>}
                     </div>
                   </td>
                   <td style={{ ...tdCell, textAlign: 'right' }}>
                     <button
                       onClick={() => { setDesglosarCarga(c) }}
-                      className="hv-inkfill"
-                      style={{ padding: '6px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                      className="hv-op85"
+                      style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(197, 160, 89, 0.4)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--accent-gold)', cursor: 'pointer' }}
                     >
                       Fragmentar Carga ({c.litrosTotales - litrosAsignados} L Libres)
                     </button>
@@ -296,19 +296,19 @@ export default function ConciliacionDiesel() {
       {desglosarCarga && (
         <div
           onClick={() => setDesglosarCarga(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059' }}
           >
-            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 10px' }}>
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 10px' }}>
               Fragmentar Contenedor Externo
             </h3>
-            <p style={{ margin: '0 0 14px', fontSize: 14, color: '#6F6A60', lineHeight: 1.5 }}>
-              Tanque del día <strong style={{ color: '#16191E' }}>{desglosarCarga.fecha}</strong> · Litros totales: <strong style={{ color: '#16191E' }}>{desglosarCarga.litrosTotales} L</strong>.
+            <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              Tanque del día <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.fecha}</strong> · Litros totales: <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.litrosTotales} L</strong>.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -329,7 +329,7 @@ export default function ConciliacionDiesel() {
                 <button
                   onClick={agregarDesglose}
                   className="hv-naranja"
-                  style={{ padding: 12, background: '#F2620F', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: 12, background: 'var(--accent-gold)', border: 'none', borderRadius: 8, color: 'var(--text-main)', fontWeight: 700, cursor: 'pointer' }}
                 >
                   Asignar
                 </button>
@@ -341,13 +341,13 @@ export default function ConciliacionDiesel() {
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {desglosarCarga.desglose.map((d, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAF7F0', padding: '6px 10px', borderRadius: 6, fontSize: 13 }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-input)', padding: '6px 10px', borderRadius: 6, fontSize: 13 }}>
                       <span><strong>{d.unidad}</strong>: {d.litros} Litros</span>
                       <button onClick={() => limpiarDesglose(i)} style={{ background: 'transparent', border: 'none', color: '#C53030', cursor: 'pointer' }}>✕</button>
                     </div>
                   ))}
                   {desglosarCarga.desglose.length === 0 && (
-                    <span style={{ color: '#8A8374', fontSize: 13 }}>Asigna partes del tanque arriba.</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Asigna partes del tanque arriba.</span>
                   )}
                 </div>
               </div>
@@ -357,7 +357,7 @@ export default function ConciliacionDiesel() {
               <button
                 onClick={() => setDesglosarCarga(null)}
                 className="hv-naranja"
-                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Cerrar y Guardar
               </button>

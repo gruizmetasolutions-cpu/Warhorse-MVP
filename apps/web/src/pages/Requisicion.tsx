@@ -41,13 +41,6 @@ export default function Requisicion() {
   const unidadSeleccionada = unidades.find((u) => String(u.id) === destino)
   const esCajaOThermo = unidadSeleccionada?.tipo === 'Caja' || unidadSeleccionada?.tipo === 'Thermo'
 
-  const origBtn = (act: boolean, acento: 'o' | 'b'): CSSProperties => ({
-    padding: '13px 10px', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-    background: act ? (acento === 'o' ? '#FDE8DC' : '#EAE6DC') : '#fff',
-    color: act ? (acento === 'o' ? '#B4430A' : '#16191E') : '#6F6A60',
-    border: act ? '2px solid ' + (acento === 'o' ? '#F2620F' : '#16191E') : '1px solid #D8D2C4',
-  })
-
   const limpiarError = () => setError('')
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -176,43 +169,9 @@ export default function Requisicion() {
           </label>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Origen de la refacción</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <button onClick={() => { setOrigen('Compra'); limpiarError() }} className="hv-borde-ink" style={origBtn(origen === 'Compra', 'b')}>
-              🛒 Compra
-            </button>
-            <button onClick={() => { setOrigen('Yonke'); limpiarError() }} className="hv-borde-naranja-solo" style={origBtn(origen === 'Yonke', 'o')}>
-              Yonke
-            </button>
-            <button onClick={() => { setOrigen('Inventario'); limpiarError() }} className="hv-borde-naranja-solo" style={origBtn(origen === 'Inventario', 'o')}>
-              📦 Inventario
-            </button>
-          </div>
-        </div>
+        
 
-        {origen === 'Inventario' && (
-          <div style={{ background: '#EAF5FF', border: '1px dashed #1A73E8', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <label style={etiqueta}>
-              Artículo de Inventario (Almacén)
-              <select
-                value={selArticuloId}
-                onChange={(e) => { setSelArticuloId(e.target.value); limpiarError() }}
-                style={{ padding: 12, border: '1px solid #B0D4FF', borderRadius: 9, fontSize: 15, background: '#fff', fontWeight: 600 }}
-              >
-                <option value="">Selecciona una refacción del stock…</option>
-                {articulos.map((a) => (
-                  <option key={a.id} value={String(a.id)}>
-                    {a.nombre_normalizado} {a.numero_parte ? `(${a.numero_parte})` : ''} · Stock: {a.stock_actual}
-                  </option>
-                ))}
-              </select>
-              <span style={ayudaCampo}>
-                Al enviar la requisición, se descontará automáticamente una pieza del stock de este artículo en almacén.
-              </span>
-            </label>
-          </div>
-        )}
+        
 
         {esYonke && (
           <div style={{ background: '#FDF3EC', border: '1px dashed #F2620F', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -247,32 +206,11 @@ export default function Requisicion() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <label style={etiqueta}>
-            Origen de la Refacción
-            <input
-              type="text"
-              value={origenRefaccion}
-              onChange={(e) => { setOrigenRefaccion(e.target.value); limpiarError() }}
-              placeholder="Ej. Nacional, Importado, Local"
-              style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
-            />
-          </label>
-          <label style={etiqueta}>
-            Almacén (Origen/Destino)
-            <input
-              type="text"
-              value={almacen}
-              onChange={(e) => { setAlmacen(e.target.value); limpiarError() }}
-              placeholder="Ej. Almacén Central"
-              style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
-            />
-          </label>
-        </div>
+        
 
         {origen === 'Inventario' ? (
           <label style={etiqueta}>
-            Número de Serie
+            Número de Serie (VIN / ID Caja)
             <input
               type="text"
               value={numeroSerie}
@@ -285,7 +223,7 @@ export default function Requisicion() {
           <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <label style={etiqueta}>
-                Número de Serie
+                Número de Serie (VIN / ID Caja)
                 <input
                   type="text"
                   value={numeroSerie}

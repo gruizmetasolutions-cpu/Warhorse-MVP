@@ -30,10 +30,11 @@ final class TallerController extends BaseController
         $datos   = $request instanceof IncomingRequest ? (array) $request->getJSON(true) : [];
 
         if (! $this->validateData($datos, [
-            'unidad_id'     => 'required|is_natural_no_zero',
-            'fecha_ingreso' => 'required|valid_date[Y-m-d]',
-            'diagnostico'   => 'required|string|max_length[255]',
-            'criticidad'    => 'required|in_list[Rápida,Media,Crítico]',
+            'unidad_id'        => 'required|is_natural_no_zero',
+            'orden_trabajo_id' => 'permit_empty|is_natural_no_zero',
+            'fecha_ingreso'    => 'required|valid_date[Y-m-d]',
+            'diagnostico'      => 'required|string|max_length[255]',
+            'criticidad'       => 'required|in_list[Rápida,Media,Crítico]',
         ])) {
             $errores = $this->validator?->getErrors() ?? [];
 

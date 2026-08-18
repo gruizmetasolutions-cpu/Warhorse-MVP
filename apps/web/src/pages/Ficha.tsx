@@ -33,7 +33,7 @@ export default function Ficha() {
   ]
 
   const selloEstimado = (
-    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: '#FDE8DC', color: '#B4430A', border: '1px dashed #F2620F', borderRadius: 5, padding: '3px 8px' }}>
+    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: '#FDE8DC', color: '#B4430A', border: '1px dashed #C5A059', borderRadius: 5, padding: '3px 8px' }}>
       Estimado
     </span>
   )
@@ -44,14 +44,14 @@ export default function Ficha() {
         <button
           onClick={() => navigate('/dashboard')}
           className="hv-borde-naranja"
-          style={{ background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, padding: '9px 14px', fontSize: 13.5, fontWeight: 600, color: '#16191E', cursor: 'pointer' }}
+          style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '9px 14px', fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', cursor: 'pointer' }}
         >
           ← Tablero
         </button>
         <h2 style={h2Titulo}>Ficha · {ft.id_unidad}</h2>
         <span style={{ ...badge(fc[0], fc[1], fc[2]), fontSize: 13, padding: '5px 14px' }}>{ft.estado}</span>
         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-          <div style={{ fontFamily: FD, fontSize: 12.5, fontWeight: 600, color: '#8A8374', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+          <div style={{ fontFamily: FD, fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
             Costo total acumulado
           </div>
           <div style={{ fontFamily: FD, fontSize: 34, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
@@ -64,8 +64,8 @@ export default function Ficha() {
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, animation: 'fadeUp 0.4s ease' }}>
             {fichaKpis.map((k) => (
-              <div key={k.label} style={{ background: '#fff', border: '1px solid #E7E0D2', borderRadius: 10, padding: '14px 18px', boxShadow: '0 1px 2px rgba(20,24,29,0.05)' }}>
-                <div style={{ fontFamily: FD, fontSize: 12.5, fontWeight: 600, color: '#8A8374', textTransform: 'uppercase', letterSpacing: '0.12em' }}>{k.label}</div>
+              <div key={k.label} style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '14px 18px', boxShadow: '0 1px 2px rgba(20,24,29,0.05)' }}>
+                <div style={{ fontFamily: FD, fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>{k.label}</div>
                 <div style={{ fontFamily: FD, fontSize: 26, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{k.valor}</div>
               </div>
             ))}
@@ -93,7 +93,7 @@ export default function Ficha() {
                         {r.diagnostico}
                         {r.es_reincidencia && (
                           <span style={{ marginLeft: 8 }}>
-                            <span style={badge('#FDE8DC', '#B4430A', '#F2620F')}>Reincidencia</span>
+                            <span style={badge('#FDE8DC', '#B4430A', '#C5A059')}>Reincidencia</span>
                           </span>
                         )}
                       </td>
@@ -104,7 +104,7 @@ export default function Ficha() {
                         {r.tipo_liberacion === null ? (
                           <span style={badge('#EAE6DC', '#4A4438', '#C9C2B2')}>En taller</span>
                         ) : (
-                          <span style={r.tipo_liberacion === 'Total' ? badge('#E5F3E9', '#2C7A44', '#9FD4B0') : badge('#FDE8DC', '#B4430A', '#F2620F')}>
+                          <span style={r.tipo_liberacion === 'Total' ? badge('#E5F3E9', '#2C7A44', '#9FD4B0') : badge('#FDE8DC', '#B4430A', '#C5A059')}>
                             {r.tipo_liberacion === 'Total' ? 'Total' : 'Mejoralito'}
                           </span>
                         )}
@@ -120,7 +120,7 @@ export default function Ficha() {
                 </tbody>
               </table>
               {ficha.reparaciones.length === 0 && (
-                <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 14 }}>
                   Sin reparaciones registradas para esta unidad.
                 </div>
               )}
@@ -129,17 +129,17 @@ export default function Ficha() {
 
           <div style={card}>
             <h3 style={{ ...h3Titulo, margin: '0 0 4px' }}>Piezas instaladas</h3>
-            <p style={{ margin: '0 0 14px', fontSize: 13, color: '#6F6A60' }}>
+            <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-muted)' }}>
               Las piezas de Yonke llevan costo <em>estimado</em>: es una asignación interna, no una factura.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {ficha.piezas_instaladas.map((q, i) => (
                 <div key={q.descripcion_pieza + '-' + i} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', border: '1px solid #EFEAE0', borderRadius: 10, padding: '12px 16px' }}>
-                  <span style={q.origen === 'Yonke' ? badge('#FDE8DC', '#B4430A', '#F2620F') : badge('#EAE6DC', '#16191E', '#C9C2B2')}>
+                  <span style={q.origen === 'Yonke' ? badge('#FDE8DC', '#B4430A', '#C5A059') : badge('#EAE6DC', '#16191E', '#C9C2B2')}>
                     {q.origen}
                   </span>
                   <span style={{ fontWeight: 700, fontSize: 14.5 }}>{q.descripcion_pieza}</span>
-                  <span style={{ fontSize: 13, color: '#6F6A60' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                     {q.origen === 'Yonke' ? 'donada por ' + (q.unidad_donante_id ?? '—') : 'compra a proveedor'}
                   </span>
                   <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -148,13 +148,13 @@ export default function Ficha() {
                     </span>
                     {q.es_estimado && selloEstimado}
                   </span>
-                  <span style={{ fontSize: 12.5, color: '#6F6A60', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 12.5, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                     {q.estado} · {q.fecha}
                   </span>
                 </div>
               ))}
               {ficha.piezas_instaladas.length === 0 && (
-                <div style={{ textAlign: 'center', padding: 24, color: '#6F6A60', fontSize: 14 }}>
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 14 }}>
                   Sin piezas registradas para esta unidad.
                 </div>
               )}
@@ -166,15 +166,15 @@ export default function Ficha() {
       {esYonke && (
         <div style={card}>
           <h3 style={{ ...h3Titulo, margin: '0 0 4px' }}>Piezas donadas a otras unidades</h3>
-          <p style={{ margin: '0 0 14px', fontSize: 13, color: '#6F6A60' }}>
+          <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-muted)' }}>
             Esta unidad es donante del yonke interno. Cada pieza que sale lleva un costo estimado asignado.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {ficha.piezas_donadas.map((q, i) => (
               <div key={q.descripcion_pieza + '-' + i} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', border: '1px solid #EFEAE0', borderRadius: 10, padding: '12px 16px' }}>
                 <span style={{ fontWeight: 700, fontSize: 14.5 }}>{q.descripcion_pieza}</span>
-                <span style={{ fontSize: 13.5, color: '#6F6A60' }}>
-                  → instalada en <strong style={{ color: '#F2620F' }}>{q.unidad_destino}</strong>
+                <span style={{ fontSize: 13.5, color: 'var(--text-muted)' }}>
+                  → instalada en <strong style={{ color: 'var(--accent-gold)' }}>{q.unidad_destino}</strong>
                 </span>
                 <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontFamily: FD, fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontSize: 18 }}>
@@ -182,11 +182,11 @@ export default function Ficha() {
                   </span>
                   {selloEstimado}
                 </span>
-                <span style={{ fontSize: 12.5, color: '#6F6A60' }}>{q.fecha}</span>
+                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{q.fecha}</span>
               </div>
             ))}
             {ficha.piezas_donadas.length === 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: 28, color: '#6F6A60', fontSize: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: 28, color: 'var(--text-muted)', fontSize: 14 }}>
                 <Camion stroke="#16191E" strokeWidth={3} style={{ width: 120, opacity: 0.35 }} />
                 Aún no hay piezas donadas registradas de esta unidad.
               </div>

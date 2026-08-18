@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router'
+import { Truck, Droplets, Wrench, Wallet, ShieldAlert, ArrowRight } from 'lucide-react'
 import Ayuda from '../components/Ayuda'
 import Kicker from '../components/Kicker'
 import { ApiError, ajustarParametros, getDashboard, type DashboardApi, type Veredicto } from '../lib/api'
 import { useDemo } from '../lib/demo'
 import { card, FD, fmt, h2Titulo, h3Titulo, subTitulo } from '../lib/estilos'
 
-const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
-const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
+const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', color: 'var(--text-main)', width: '100%' }
+const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600, color: 'var(--text-muted)' }
 
-// Presentación del veredicto server-side (RF-DASH-04): etiqueta del demo,
-// color del texto y fondo de la franja superior de la tarjeta.
-const veredictoUi: Record<Veredicto | 'pendiente', { label: string; color: string; franja: string }> = {
-  Vender: { label: 'Vender / dar de baja', color: '#B4430A', franja: 'repeating-linear-gradient(135deg,#F2620F 0 12px,#16191E 12px 24px)' },
-  Evaluar: { label: 'Evaluar', color: '#8A6D1A', franja: '#E0C36A' },
-  Mantener: { label: 'Mantener', color: '#2C7A44', franja: '#3FA65C' },
-  pendiente: { label: 'Valor pendiente', color: '#4A4438', franja: '#C9C2B2' },
+// Presentación del veredicto server-side (RF-DASH-04)
+const veredictoUi: Record<Veredicto | 'pendiente', { label: string; color: string; bgFranja: string }> = {
+  Vender: { label: 'Vender / dar de baja', color: '#EF4444', bgFranja: '#EF4444' },
+  Evaluar: { label: 'Evaluar', color: 'var(--accent-gold)', bgFranja: '#C5A059' },
+  Mantener: { label: 'Mantener', color: '#4ADE80', bgFranja: '#4ADE80' },
+  pendiente: { label: 'Valor pendiente', color: 'var(--text-muted)', bgFranja: 'transparent' },
 }
 
 export default function Dashboard() {
@@ -41,10 +41,10 @@ export default function Dashboard() {
   if (!dash) return null
 
   const kpis = [
-    { label: 'Gasto Diésel', valor: fmt(dash.kpis.diesel), sub: 'Histórico cargado · ' + dash.ranking.length + ' tractos', accent: '#F2620F' },
-    { label: 'Gasto Refacciones', valor: fmt(dash.kpis.refacciones), sub: 'Incluye piezas de yonke estimadas', accent: '#16191E' },
-    { label: 'Gasto Taller', valor: fmt(dash.kpis.taller), sub: 'Mano de obra y diagnóstico', accent: '#F2620F' },
-    { label: 'Costo Real Acumulado', valor: fmt(dash.kpis.costo_real_acumulado), sub: 'Diésel + refacciones + taller', accent: '#16191E' },
+    { label: 'Gasto Diésel', valor: fmt(dash.kpis.diesel), sub: 'Histórico cargado · ' + dash.ranking.length + ' tractos', Icon: Droplets },
+    { label: 'Gasto Refacciones', valor: fmt(dash.kpis.refacciones), sub: 'Incluye piezas de yonke estimadas', Icon: Truck },
+    { label: 'Gasto Taller', valor: fmt(dash.kpis.taller), sub: 'Mano de obra y diagnóstico', Icon: Wrench },
+    { label: 'Costo Real Acumulado', valor: fmt(dash.kpis.costo_real_acumulado), sub: 'Diésel + refacciones + taller', Icon: Wallet },
   ]
 
   // Barras en el orden de flota del demo; el ranking del server marca la crítica
@@ -93,18 +93,18 @@ export default function Dashboard() {
           <h2 style={h2Titulo}>Tablero Directivo</h2>
           <p style={subTitulo}>¿Vale la pena meterle más lana a este tracto? Haz clic en una barra para analizarlo.</p>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 9, padding: '12px 16px', fontSize: 13.5 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 9, padding: '12px 16px', fontSize: 13.5 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span>Desde:</span>
-            <input type="date" style={{ padding: '6px 10px', border: '1px solid #D8D2C4', borderRadius: 6, fontSize: 13 }} value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+            <input type="date" style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: 6, fontSize: 13 }} value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span>Hasta:</span>
-            <input type="date" style={{ padding: '6px 10px', border: '1px solid #D8D2C4', borderRadius: 6, fontSize: 13 }} value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+            <input type="date" style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: 6, fontSize: 13 }} value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span>Tipo:</span>
-            <select style={{ padding: '6px 10px', border: '1px solid #D8D2C4', borderRadius: 6, fontSize: 13, background: '#FAF7F0' }} value={tipoUnidad} onChange={(e) => setTipoUnidad(e.target.value)}>
+            <select style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: 6, fontSize: 13, background: 'var(--bg-input)' }} value={tipoUnidad} onChange={(e) => setTipoUnidad(e.target.value)}>
               <option>Todos</option>
               <option>Tractor</option>
               <option>Caja</option>
@@ -113,20 +113,22 @@ export default function Dashboard() {
             </select>
           </div>
         </div>
-        <div style={{ display: 'none', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #D8D2C4', borderRadius: 9, padding: '9px 16px', fontSize: 14 }}>
+        <div style={{ display: 'none', alignItems: 'center', gap: 8, background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 9, padding: '9px 16px', fontSize: 14 }}>
           Periodo:{' '}
           <strong style={{ fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.04em' }}>JULIO 2026</strong>
-          <span style={{ color: '#8A8374', fontSize: 11 }}>▾</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>▾</span>
         </div>
       </div>
 
       <div data-tour="kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 16, animation: 'fadeUp 0.4s ease' }}>
         {kpis.map((k) => (
-          <div key={k.label} style={{ background: '#fff', border: '1px solid #E7E0D2', borderRadius: 12, padding: '18px 20px 16px', display: 'flex', flexDirection: 'column', gap: 6, boxShadow: '0 1px 2px rgba(20,24,29,0.05)' }}>
-            <span style={{ fontFamily: FD, fontSize: 13, fontWeight: 600, color: '#8A8374', textTransform: 'uppercase', letterSpacing: '0.14em' }}>{k.label}</span>
-            <span style={{ fontFamily: FD, fontSize: 38, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#16191E', lineHeight: 1 }}>{k.valor}</span>
-            <span style={{ fontSize: 12.5, color: '#6F6A60' }}>{k.sub}</span>
-            <span style={{ width: 30, height: 4, background: k.accent, marginTop: 2 }} />
+          <div key={k.label} style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 12, padding: '18px 20px 16px', display: 'flex', flexDirection: 'column', gap: 8, boxShadow: '0 10px 30px -10px rgba(197, 160, 89, 0.15)', transition: 'all 0.3s ease' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontFamily: FD, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>{k.label}</span>
+              <k.Icon size={18} color="#C5A059" style={{ opacity: 0.8 }} />
+            </div>
+            <span style={{ fontFamily: FD, fontSize: 38, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-main)', lineHeight: 1 }}>{k.valor}</span>
+            <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{k.sub}</span>
           </div>
         ))}
       </div>
@@ -141,7 +143,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600 }}>Analizar Unidad:</span>
               <select
-                style={{ padding: '6px 12px', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 13, background: '#fff', fontWeight: 600 }}
+                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: 7, fontSize: 13, background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', fontWeight: 600 }}
                 value={sel?.id_unidad ?? ''}
                 onChange={(e) => {
                   if (e.target.value) {
@@ -159,7 +161,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 3, height: 222, width: '100%', minWidth: 0, padding: '10px 2px 12px 2px', borderBottom: '2px solid #16191E', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 3, height: 222, width: '100%', minWidth: 0, padding: '10px 2px 12px 2px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)', overflow: 'hidden' }}>
               {barras.map((t) => {
                 const esSel = t.id_unidad === sel?.id_unidad
                 const h = Math.max(8, Math.round((t.costo_total / maxCosto) * 140))
@@ -171,22 +173,22 @@ export default function Dashboard() {
                     className="hv-op85"
                     style={{ flex: '1 1 0', minWidth: 0, maxWidth: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 5, background: 'none', border: 'none', cursor: 'pointer', padding: '0 1px', height: '100%' }}
                   >
-                    <span style={{ display: 'block', width: '100%', textAlign: 'center', fontFamily: FD, fontSize: 10.5, lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#16191E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ display: 'block', width: '100%', textAlign: 'center', fontFamily: FD, fontSize: 10.5, lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {fmt(t.costo_total)}
                     </span>
                     <span
                       style={{
                         width: '100%', maxWidth: 24, minWidth: 12, height: h, borderRadius: '4px 4px 0 0',
-                        background: t.critico ? 'repeating-linear-gradient(135deg,#F2620F 0 10px,#D9550C 10px 20px)' : '#16191E',
-                        outline: esSel ? '3px solid #F2620F' : 'none', outlineOffset: 2,
-                        transition: 'height 0.3s ease', transformOrigin: 'bottom', animation: 'growBar 0.5s ease',
+                        background: t.critico ? '#C5A059' : 'rgba(255,255,255,0.1)',
+                        outline: esSel ? '2px solid #C5A059' : 'none', outlineOffset: 2,
+                        transition: 'all 0.3s ease', transformOrigin: 'bottom', animation: 'growBar 0.5s ease',
                       }}
                     />
                     <span
                       style={{
                         fontFamily: FD, fontSize: 10.5, fontWeight: esSel ? 700 : 600, letterSpacing: '0.03em',
-                        color: esSel ? '#F2620F' : '#6F6A60',
-                        borderBottom: esSel ? '3px solid #F2620F' : '3px solid transparent', paddingBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+                        color: esSel ? '#C5A059' : '#6F6A60',
+                        borderBottom: esSel ? '3px solid #C5A059' : '3px solid transparent', paddingBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
                       }}
                     >
                       {t.id_unidad}
@@ -205,16 +207,16 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <svg viewBox="0 0 200 120" style={{ width: 'min(240px,100%)' }} role="img" aria-label={ef === null ? 'Sin cargas de diésel en la ventana' : `Eficiencia: ${ef.toFixed(1)} kilómetros por litro`}>
-              <path d="M 24 104 A 76 76 0 0 1 62 38" fill="none" stroke="#E2DCCF" strokeWidth="14" strokeLinecap="round" />
-              <path d="M 62 38 A 76 76 0 0 1 138 38" fill="none" stroke="#F2620F" strokeWidth="14" strokeLinecap="round" />
-              <path d="M 138 38 A 76 76 0 0 1 176 104" fill="none" stroke="#3FA65C" strokeWidth="14" strokeLinecap="round" />
-              <line x1="100" y1="104" x2="100" y2="42" stroke="#16191E" strokeWidth="4" strokeLinecap="round" transform={`rotate(${gaugeDeg} 100 104)`} style={{ transition: 'transform 0.5s ease' }} />
-              <circle cx="100" cy="104" r="7" fill="#16191E" />
+              <path d="M 24 104 A 76 76 0 0 1 62 38" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="14" strokeLinecap="round" />
+              <path d="M 62 38 A 76 76 0 0 1 138 38" fill="none" stroke="#C5A059" strokeWidth="14" strokeLinecap="round" />
+              <path d="M 138 38 A 76 76 0 0 1 176 104" fill="none" stroke="#4ADE80" strokeWidth="14" strokeLinecap="round" />
+              <line x1="100" y1="104" x2="100" y2="42" stroke="#f3f4f6" strokeWidth="4" strokeLinecap="round" transform={`rotate(${gaugeDeg} 100 104)`} style={{ transition: 'transform 0.5s ease' }} />
+              <circle cx="100" cy="104" r="7" fill="#f3f4f6" />
             </svg>
             <div style={{ fontFamily: FD, fontSize: 34, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-              {ef === null ? '—' : ef.toFixed(1)} <span style={{ fontSize: 16, fontWeight: 500, color: '#6F6A60' }}>km/L</span>
+              {ef === null ? '—' : ef.toFixed(1)} <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-muted)' }}>km/L</span>
             </div>
-            <div style={{ fontSize: 13, color: '#6F6A60' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
               {ef === null ? 'Sin cargas de diésel en la ventana' : 'Costo diésel vs. kilómetros recorridos'}
             </div>
           </div>
@@ -227,22 +229,22 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', justifyContent: 'center', flex: 1 }}>
             <svg viewBox="0 0 120 120" style={{ width: 130, flex: 'none' }} role="img" aria-label={`Mantenimiento: ${pctTotal}% reparación total, ${100 - pctTotal}% mejoralito`}>
-              <circle cx="60" cy="60" r="45" fill="none" stroke="#F2620F" strokeWidth="18" />
-              <circle cx="60" cy="60" r="45" fill="none" stroke="#3FA65C" strokeWidth="18" strokeDasharray={donutDash} transform="rotate(-90 60 60)" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
-              <text x="60" y="68" textAnchor="middle" style={{ fontFamily: FD, fontWeight: 700, fontSize: 24 }} fill="#16191E">
+              <circle cx="60" cy="60" r="45" fill="none" stroke="#C5A059" strokeWidth="18" />
+              <circle cx="60" cy="60" r="45" fill="none" stroke="#4ADE80" strokeWidth="18" strokeDasharray={donutDash} transform="rotate(-90 60 60)" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
+              <text x="60" y="68" textAnchor="middle" style={{ fontFamily: FD, fontWeight: 700, fontSize: 24 }} fill="#f3f4f6">
                 {pctTotal}%
               </text>
             </svg>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: '#3FA65C' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-main)' }}>
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: '#4ADE80' }} />
                 Reparación Total · {pctTotal}%
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: '#F2620F' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-main)' }}>
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--accent-gold)' }} />
                 Mejoralito · {100 - pctTotal}%
               </div>
-              <div style={{ fontSize: 12.5, color: '#6F6A60', maxWidth: 200 }}>
+              <div style={{ fontSize: 12.5, color: 'var(--text-muted)', maxWidth: 200 }}>
                 Calculado del historial de reparaciones liberadas.
               </div>
             </div>
@@ -251,33 +253,33 @@ export default function Dashboard() {
 
         <div
           data-tour="decision"
-          style={{ ...card, display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}
+          style={{ ...card, display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden', position: 'relative', border: '1px solid ' + ui.bgFranja }}
         >
-          <div style={{ height: 6, background: ui.franja, borderRadius: '12px 12px 0 0', margin: '-22px -22px 8px' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontFamily: FD, fontWeight: 600, fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8A8374' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+            <ShieldAlert size={16} color={ui.color} />
+            <div style={{ fontFamily: FD, fontWeight: 600, fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', color: ui.color }}>
               Decisión sugerida · {sel?.id_unidad ?? '—'}
             </div>
-            <Ayuda tip="Regla: si el costo acumulado supera el % umbral del valor de la unidad, el Hub sugiere evaluar o vender según sus mejoralitos. El umbral y la ventana se ajustan aquí mismo." />
+            <div style={{ marginLeft: 'auto' }}><Ayuda tip="Regla: si el costo acumulado supera el % umbral del valor de la unidad, el Hub sugiere evaluar o vender." /></div>
           </div>
           <div style={{ fontFamily: FD, fontWeight: 700, fontSize: 36, lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.02em', color: ui.color }}>
             {ui.label}
           </div>
-          <p style={{ margin: 0, fontSize: 14.5, color: '#16191E', lineHeight: 1.55 }}>{sel?.razon ?? 'Sin unidades activas que analizar.'}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
+          <p style={{ margin: 0, fontSize: 14.5, color: 'var(--text-main)', lineHeight: 1.55 }}>{sel?.razon ?? 'Sin unidades activas que analizar.'}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
             <button
               onClick={() => navigate('/catalogo')}
-              className="hv-ficha"
-              style={{ padding: '11px 20px', background: '#16191E', color: '#F3EFE7', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}
+              className="hv-op85"
+              style={{ padding: '11px 20px', background: 'linear-gradient(135deg, #C5A059 0%, #9A7B3E 100%)', color: '#000', border: 'none', borderRadius: 9, fontFamily: FD, fontWeight: 700, fontSize: 16, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
             >
-              Revisar unidades →
+              Revisar unidades <ArrowRight size={18} />
             </button>
-            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: '#8A8374' }}>
+            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--text-muted)' }}>
               Umbral {dash.parametros.umbral_pct}% · Ventana {dash.parametros.ventana_meses} meses
               <button
                 onClick={abrirAjuste}
-                className="hv-borde-naranja"
-                style={{ background: '#fff', border: '1px solid #D8D2C4', borderRadius: 7, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                className="hv-op85"
+                style={{ background: 'transparent', border: '1px solid rgba(197, 160, 89, 0.5)', borderRadius: 7, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--accent-gold)', cursor: 'pointer' }}
               >
                 Ajustar parámetros
               </button>
@@ -289,19 +291,19 @@ export default function Dashboard() {
       {ajustar && (
         <div
           onClick={() => setAjustar(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Ajustar parámetros"
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 440, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 440, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059', animation: 'fadeUp 0.2s ease' }}
           >
-            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 10px' }}>
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 10px' }}>
               Ajustar parámetros
             </h3>
-            <p style={{ margin: '0 0 14px', fontSize: 14.5, color: '#4A4438' }}>
+            <p style={{ margin: '0 0 14px', fontSize: 14.5, color: 'var(--text-muted)' }}>
               El veredicto se recalcula al instante para toda la flota (RF-DASH-05). El cambio queda auditado.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -314,7 +316,7 @@ export default function Dashboard() {
                 <input type="number" min={1} max={36} style={campo} value={ventanaForm} onChange={(e) => setVentanaForm(e.target.value)} />
               </label>
             </div>
-            <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#6F6A60' }}>
+            <p style={{ margin: '10px 0 0', fontSize: 12.5, color: 'var(--text-muted)' }}>
               Umbral permitido: 20–80%. Ventana permitida: 1–36 meses.
             </p>
             {errorModal && (
@@ -326,14 +328,14 @@ export default function Dashboard() {
               <button
                 onClick={() => setAjustar(false)}
                 className="hv-crema"
-                style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                style={{ padding: '10px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => void guardarAjuste()}
                 className="hv-naranja"
-                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Guardar
               </button>

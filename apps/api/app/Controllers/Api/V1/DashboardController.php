@@ -30,8 +30,10 @@ final class DashboardController extends BaseController
             $desde      = is_string($valorDesde) && $valorDesde !== '' ? $valorDesde : null;
             $valorHasta = $request->getGet('hasta');
             $hasta      = is_string($valorHasta) && $valorHasta !== '' ? $valorHasta : null;
+            $valorCat   = $request->getGet('categoria');
+            $categoria  = is_string($valorCat) && $valorCat !== '' ? $valorCat : null;
         }
 
-        return $this->response->setJSON((new DashboardService())->armar($seleccion, $tipo, $desde, $hasta));
+        return $this->response->setJSON((new DashboardService())->armar($seleccion, $tipo, $desde, $hasta, $categoria));
     }
 }

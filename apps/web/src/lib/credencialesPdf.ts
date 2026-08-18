@@ -23,7 +23,7 @@ export function descargarCredencialesPdf(usuario: UsuarioCreado): void {
   doc.text('HUB DE GASTOS · WARHORSE', izq, y)
 
   y += 14
-  doc.setDrawColor('#F2620F')
+  doc.setDrawColor('#C5A059')
   doc.setLineWidth(3)
   doc.line(izq, y, izq + 220, y)
 

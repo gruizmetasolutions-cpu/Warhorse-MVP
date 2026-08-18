@@ -96,13 +96,21 @@ final class RequisicionService
             throw new ConflictoException("Estado destino inválido: {$nuevo}.");
         }
 
-        // Installation is allowed, cancellation is allowed, etc.
-        // Let's enforce that once 'Instalado', 'Cancelado', or 'Rechazado' is reached, it is terminal unless it is a Reversion.
         if (in_array($actual, ['Instalado', 'Cancelado', 'Rechazado'], true)) {
             throw new ConflictoException("No se puede cambiar el estado desde un estado terminal: {$actual}.");
         }
 
         $actualizacion = ['estado' => $nuevo];
+
+        $justificacion = null;
+        if (in_array($nuevo, ['Cancelado', 'Rechazado', 'Más información'], true)) {
+            $justificacion = trim((string) ($cambio['justificacion'] ?? ''));
+            if ($justificacion === '') {
+                throw new ValidacionException('Es obligatorio registrar una justificación al cancelar, rechazar o solicitar más información.', [
+                    'justificacion' => ['Es obligatorio registrar una justificación.']
+                ]);
+            }
+        }
 
         if (isset($cambio['archivo_cotizacion'])) {
             $cotizacion = $this->guardarDocumento($cambio['archivo_cotizacion'], 'cotizacion');
@@ -134,6 +142,17 @@ final class RequisicionService
         $db = db_connect();
         $db->transStart();
 
+        // WH-008: Automatic inventory stock reduction upon Compras approval/liberation
+        if (($nuevo === 'Comprado' || $nuevo === 'Instalado') && !empty($req['pieza_catalogo_id']) && (int)$req['stock_descontado'] === 0) {
+            $pieza = $db->table('catalogo_piezas')->where('id', (int)$req['pieza_catalogo_id'])->get()->getRowArray();
+            if ($pieza !== null) {
+                $db->table('catalogo_piezas')
+                    ->where('id', $pieza['id'])
+                    ->update(['stock_actual' => max(0, (int)$pieza['stock_actual'] - 1)]);
+            }
+            $actualizacion['stock_descontado'] = 1;
+        }
+
         if ($nuevo === 'Instalado') {
             $actualizacion['fecha_instalacion'] = date('Y-m-d');
             // El costo efectivo suma al consolidado del tracto destino
@@ -154,11 +173,13 @@ final class RequisicionService
             ]);
         } else {
             $this->requisiciones->update($id, $actualizacion);
+            $nuevoData = ['estado' => $nuevo];
+            if ($justificacion !== null) {
+                $nuevoData['justificacion'] = $justificacion;
+            }
             $this->auditoria->registrar($actor, 'requisicion.estado', 'requisiciones', $id, [
                 'estado' => $actual,
-            ], [
-                'estado' => $nuevo,
-            ]);
+            ], $nuevoData);
         }
 
         $db->transComplete();
@@ -186,6 +207,25 @@ final class RequisicionService
             }
             $destinoId = (int) $destino['id'];
         }
+
+        // Verify active work order (WH-007)
+        if (empty($datos['orden_trabajo_id'])) {
+            throw new ValidacionException('Es obligatorio asociar la requisición a una orden de trabajo.', [
+                'orden_trabajo_id' => ['Es obligatorio asociar la requisición a una orden de trabajo.'],
+            ]);
+        }
+        $ot = db_connect()->table('ordenes_trabajo')->where('id', (int)$datos['orden_trabajo_id'])->get()->getRowArray();
+        if ($ot === null) {
+            throw new ValidacionException('Orden de trabajo no encontrada.', [
+                'orden_trabajo_id' => ['Orden de trabajo no encontrada.'],
+            ]);
+        }
+        if ($ot['estado'] !== 'Activa') {
+            throw new ValidacionException('La orden de trabajo asociada debe estar activa.', [
+                'orden_trabajo_id' => ['La orden de trabajo asociada debe estar activa.'],
+            ]);
+        }
+        $otId = (int)$ot['id'];
 
         $esYonke      = ($datos['origen'] ?? '') === 'Yonke';
         $esInventario = ($datos['origen'] ?? '') === 'Inventario';
@@ -251,15 +291,10 @@ final class RequisicionService
         $db = db_connect();
         $db->transStart();
 
-        if ($esInventario) {
-            $db->table('catalogo_piezas')
-                ->where('id', $piezaCatId)
-                ->update(['stock_actual' => $pieza['stock_actual'] - 1]);
-        }
-
         $this->requisiciones->insert([
             'unidad_destino_id'     => $destinoId,
             'origen'                => $datos['origen'],
+            'orden_trabajo_id'      => $otId,
             'origen_refaccion'      => isset($datos['origen_refaccion']) && $datos['origen_refaccion'] !== '' ? $datos['origen_refaccion'] : null,
             'almacen'               => isset($datos['almacen']) && $datos['almacen'] !== '' ? $datos['almacen'] : null,
             'numero_serie'          => isset($datos['numero_serie']) && $datos['numero_serie'] !== '' ? $datos['numero_serie'] : null,
@@ -271,17 +306,14 @@ final class RequisicionService
             'urgencia'              => $datos['urgencia'] ?? 'Medio',
             'costo_estimado'        => $costo,
             'origen_costo_estimado' => $origenCosto,
-            'costo_real'            => $esInventario ? $costo : null,
-            'estado'                => $esInventario ? 'Instalado' : 'Solicitado',
+            'costo_real'            => null,
+            'stock_descontado'      => 0,
+            'estado'                => 'Solicitado',
             'fecha_solicitud'       => date('Y-m-d'),
-            'fecha_instalacion'     => $esInventario ? date('Y-m-d') : null,
+            'fecha_instalacion'     => null,
             'creado_por'            => (int) $actor['id'],
         ]);
         $id = (int) $this->requisiciones->getInsertID();
-
-        if ($esInventario && $destinoId !== null && $costo > 0) {
-            $this->consolidado->agregarRefaccion($destinoId, $costo);
-        }
 
         // RF-INT-04: trazabilidad de la canibalización desde el nacimiento
         $this->auditoria->registrar($actor, 'requisicion.creada', 'requisiciones', $id, null, [

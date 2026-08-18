@@ -26,30 +26,36 @@ final class DashboardService
     /**
      * @return array<string, mixed>
      */
-    public function armar(?string $seleccion, ?string $tipo = null, ?string $desde = null, ?string $hasta = null): array
+    public function armar(?string $seleccion, ?string $tipo = null, ?string $desde = null, ?string $hasta = null, ?string $categoria = null): array
     {
         $parametros = $this->parametros->obtener();
         $db = db_connect();
 
-        // 1. Get diesel costs per unit in date range
-        $dieselQuery = $db->table('registros_diesel')
-            ->select('unidad_id, SUM(costo_total) total')
-            ->groupBy('unidad_id');
-        if ($desde) $dieselQuery->where('fecha >=', $desde);
-        if ($hasta) $dieselQuery->where('fecha <=', $hasta);
-        $dieselRows = Bd::filas($dieselQuery);
+        // 1. Get diesel costs per unit in date range (operating only, ignore maintenance category filtering)
         $dieselMap = [];
-        foreach ($dieselRows as $dr) {
-            $dieselMap[(int)$dr['unidad_id']] = (float)$dr['total'];
+        if ($categoria === null || $categoria === 'Todos') {
+            $dieselQuery = $db->table('registros_diesel')
+                ->select('unidad_id, SUM(costo_total) total')
+                ->groupBy('unidad_id');
+            if ($desde) $dieselQuery->where('fecha >=', $desde);
+            if ($hasta) $dieselQuery->where('fecha <=', $hasta);
+            $dieselRows = Bd::filas($dieselQuery);
+            foreach ($dieselRows as $dr) {
+                $dieselMap[(int)$dr['unidad_id']] = (float)$dr['total'];
+            }
         }
 
         // 2. Get refacciones costs per unit in date range
-        $refaccionesQuery = $db->table('requisiciones')
-            ->select('unidad_destino_id, SUM(COALESCE(costo_real, costo_estimado)) total')
-            ->where('estado', 'Instalado')
-            ->groupBy('unidad_destino_id');
-        if ($desde) $refaccionesQuery->where('fecha_solicitud >=', $desde);
-        if ($hasta) $refaccionesQuery->where('fecha_solicitud <=', $hasta);
+        $refaccionesQuery = $db->table('requisiciones r')
+            ->select('r.unidad_destino_id, SUM(COALESCE(r.costo_real, r.costo_estimado)) total')
+            ->where('r.estado', 'Instalado')
+            ->groupBy('r.unidad_destino_id');
+        if ($desde) $refaccionesQuery->where('r.fecha_solicitud >=', $desde);
+        if ($hasta) $refaccionesQuery->where('r.fecha_solicitud <=', $hasta);
+        if ($categoria !== null && $categoria !== 'Todos') {
+            $refaccionesQuery->join('ordenes_trabajo ot', 'ot.id = r.orden_trabajo_id')
+                ->where('ot.categoria', $categoria);
+        }
         $refaccionesRows = Bd::filas($refaccionesQuery);
         $refMap = [];
         foreach ($refaccionesRows as $rr) {
@@ -59,11 +65,15 @@ final class DashboardService
         }
 
         // 3. Get workshop costs per unit in date range
-        $tallerQuery = $db->table('registros_taller')
-            ->select('unidad_id, SUM(costo_taller) total')
-            ->groupBy('unidad_id');
-        if ($desde) $tallerQuery->where('fecha_salida >=', $desde);
-        if ($hasta) $tallerQuery->where('fecha_salida <=', $hasta);
+        $tallerQuery = $db->table('registros_taller rt')
+            ->select('rt.unidad_id, SUM(rt.costo_taller) total')
+            ->groupBy('rt.unidad_id');
+        if ($desde) $tallerQuery->where('rt.fecha_salida >=', $desde);
+        if ($hasta) $tallerQuery->where('rt.fecha_salida <=', $hasta);
+        if ($categoria !== null && $categoria !== 'Todos') {
+            $tallerQuery->join('ordenes_trabajo ot', 'ot.id = rt.orden_trabajo_id')
+                ->where('ot.categoria', $categoria);
+        }
         $tallerRows = Bd::filas($tallerQuery);
         $tallerMap = [];
         foreach ($tallerRows as $tr) {

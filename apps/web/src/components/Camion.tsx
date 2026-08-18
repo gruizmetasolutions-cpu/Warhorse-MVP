@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 
 // Camión de firma del demo original (viewBox 200×90).
 export default function Camion({
-  stroke = '#F2620F',
+  stroke = '#C5A059',
   strokeWidth = 9,
   conLinea = false,
   style,

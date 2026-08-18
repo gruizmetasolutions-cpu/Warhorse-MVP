@@ -21,12 +21,20 @@ ServerSignature Off
     RewriteCond %{REQUEST_URI} ^/api(/.*)?$
     RewriteRule ^ index.php [E=SCRIPT_NAME:/index.php,L]
 
-    # 2) Archivos y carpetas reales del SPA (assets, favicon, etc.): directo.
+    # 2) Rutas del Dashboard (/app/...)
+    # Si la petición empieza con /app, reescribimos al index.html del dashboard dentro del subdirectorio app/
+    RewriteCond %{REQUEST_URI} ^/app(/.*)?$
+    # Si no es un archivo real, redirigimos al index.html de la subcarpeta app
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ app/index.html [L]
+
+    # 3) Archivos y carpetas reales del SPA corporativo o del dashboard: directo.
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 3) Cualquier otra ruta la resuelve el SPA en el cliente (React Router).
+    # 4) Cualquier otra ruta la resuelve el SPA corporativo en la raíz (React Router).
     RewriteRule ^ index.html [L]
 </IfModule>
 

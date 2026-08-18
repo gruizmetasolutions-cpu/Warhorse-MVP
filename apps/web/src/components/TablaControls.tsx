@@ -5,23 +5,23 @@ import { FD, filtroPill } from '../lib/estilos'
 /* ── tiny helpers ─────────────────────────────────────── */
 const selStyle: CSSProperties = {
   padding: '7px 10px',
-  border: '1px solid #D8D2C4',
+  border: '1px solid var(--border-color)',
   borderRadius: 8,
   fontSize: 13,
   fontWeight: 600,
-  background: '#fff',
-  color: '#16191E',
+  background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+  color: 'var(--text-main)',
   cursor: 'pointer',
 }
 
 const pgBtn = (active: boolean, disabled?: boolean): CSSProperties => ({
   padding: '6px 11px',
-  border: '1px solid ' + (active ? '#16191E' : '#D8D2C4'),
+  border: '1px solid ' + (active ? '#C5A059' : 'rgba(197, 160, 89, 0.2)'),
   borderRadius: 7,
   fontSize: 13,
   fontWeight: 700,
-  background: active ? '#16191E' : '#fff',
-  color: active ? '#F3EFE7' : '#4A4438',
+  background: active ? '#C5A059' : 'rgba(15, 15, 16, 0.8)',
+  color: active ? '#000' : '#9ca3af',
   cursor: disabled ? 'not-allowed' : 'pointer',
   opacity: disabled ? 0.4 : 1,
 })
@@ -44,7 +44,7 @@ export function SortTh({ col, label, sortCol, sortDir, onSort, style }: SortThPr
       onClick={() => onSort(col)}
       style={{
         padding: '12px 10px',
-        borderBottom: '2px solid #16191E',
+        borderBottom: '2px solid rgba(197, 160, 89, 0.3)',
         cursor: 'pointer',
         userSelect: 'none',
         whiteSpace: 'nowrap',
@@ -126,11 +126,11 @@ export function TablaToolbar<TFilter extends string>({
             placeholder={busquedaPlaceholder}
             style={{
               padding: '7px 12px',
-              border: '1px solid #D8D2C4',
+              border: '1px solid var(--border-color)',
               borderRadius: 8,
               fontSize: 13,
-              background: '#FAF7F0',
-              color: '#16191E',
+              background: 'var(--bg-input)',
+              color: 'var(--text-main)',
               minWidth: 180,
             }}
           />
@@ -141,7 +141,7 @@ export function TablaToolbar<TFilter extends string>({
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         {rightSlot}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 12.5, color: '#8A8374', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             Mostrar
           </span>
           <select
@@ -154,7 +154,7 @@ export function TablaToolbar<TFilter extends string>({
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          <span style={{ fontSize: 12.5, color: '#8A8374', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             de {ctrl.total}
           </span>
         </div>
@@ -197,7 +197,7 @@ export function TablaFooter({ ctrl }: TablaFooterProps) {
         flexWrap: 'wrap',
       }}
     >
-      <span style={{ fontSize: 12.5, color: '#8A8374', fontWeight: 600, fontFamily: FD, letterSpacing: '0.05em' }}>
+      <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 600, fontFamily: FD, letterSpacing: '0.05em' }}>
         {start}–{end} de {ctrl.total}
       </span>
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -211,7 +211,7 @@ export function TablaFooter({ ctrl }: TablaFooterProps) {
         </button>
         {pages.map((p, i) =>
           p === '…' ? (
-            <span key={'e' + i} style={{ padding: '0 4px', color: '#8A8374', fontSize: 13 }}>…</span>
+            <span key={'e' + i} style={{ padding: '0 4px', color: 'var(--text-muted)', fontSize: 13 }}>…</span>
           ) : (
             <button key={p} onClick={() => setPage(p)} style={pgBtn(p === page)}>
               {p}

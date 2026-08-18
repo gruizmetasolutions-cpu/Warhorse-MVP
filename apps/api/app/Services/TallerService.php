@@ -67,14 +67,17 @@ final class TallerService
             $esReincidencia = $previo !== null;
         }
 
+        $otId = isset($datos['orden_trabajo_id']) && $datos['orden_trabajo_id'] !== '' ? (int) $datos['orden_trabajo_id'] : null;
+
         $this->registros->insert([
-            'unidad_id'       => (int) $unidad['id'],
-            'fecha_ingreso'   => $datos['fecha_ingreso'],
-            'diagnostico'     => $diagnostico,
-            'criticidad'      => $datos['criticidad'],
-            'costo_taller'    => 0,
-            'es_reincidencia' => $esReincidencia ? 1 : 0,
-            'registrado_por'  => (int) $actor['id'],
+            'unidad_id'        => (int) $unidad['id'],
+            'orden_trabajo_id' => $otId,
+            'fecha_ingreso'    => $datos['fecha_ingreso'],
+            'diagnostico'      => $diagnostico,
+            'criticidad'       => $datos['criticidad'],
+            'costo_taller'     => 0,
+            'es_reincidencia'  => $esReincidencia ? 1 : 0,
+            'registrado_por'   => (int) $actor['id'],
         ]);
         $id = (int) $this->registros->getInsertID();
 

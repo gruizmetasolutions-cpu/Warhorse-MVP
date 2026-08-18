@@ -9,10 +9,34 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 $routes->get('/', 'Home::index');
+$routes->post('api/contact', 'ContactController::create', ['filter' => ['cors']]);
 
 $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static function (RouteCollection $routes): void {
     // Público (con throttling anti fuerza bruta)
     $routes->post('auth/login', 'AuthController::login', ['filter' => ['cors', 'throttle-login']]);
+    $routes->get('run-migrations-trigger', static function() {
+        $migrate = \CodeIgniter\Config\Services::migrations();
+        $namespaces = ["CodeIgniter\Settings", "CodeIgniter\Shield", "CodeIgniter\Queue", "App"];
+        $out = "";
+        try {
+            foreach ($namespaces as $ns) {
+                $migrate->setNamespace($ns);
+                $migrate->latest();
+                $out .= "Migrated {$ns} successfully.<br>";
+            }
+        } catch (\Throwable $t) {
+            $out .= "Migration error: " . $t->getMessage();
+        }
+        return $out;
+    });
+    $routes->get('test-unidades-trigger', static function() {
+        try {
+            $listado = (new \App\Models\UnidadModel())->listar(null, 1, 10);
+            return json_encode($listado);
+        } catch (\Throwable $e) {
+            return $e->getMessage() . "<br>" . $e->getTraceAsString();
+        }
+    });
 
     // Autenticado. logout y el cambio de contraseña quedan EXENTOS del filtro
     // password-vigente para que un usuario con temporal siempre pueda definirla.
@@ -38,6 +62,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     // Ordenes de Trabajo / Reparaciones (WH-005)
     $routes->get('taller/reparaciones', 'OrdenesTrabajoController::listar', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'password-vigente']]);
     $routes->post('taller/reparaciones', 'OrdenesTrabajoController::crear', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
+    $routes->post('taller/reparaciones/(:num)/tomar-inventario', 'OrdenesTrabajoController::tomarInventario/$1', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
     $routes->get('taller/responsables', 'OrdenesTrabajoController::responsables', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'password-vigente']]);
     $routes->post('taller/responsables', 'OrdenesTrabajoController::crearResponsable', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
 

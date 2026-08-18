@@ -6,7 +6,7 @@ import { useDemo } from '../lib/demo'
 import { badge, card, FD, h2Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
 import { useTabla } from '../lib/useTabla'
 
-const campo: CSSProperties = { padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0', width: '100%' }
+const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
 
 const ROLES_TECNICOS = ['Mecánico A', 'Mecánico B', 'Auxiliares', 'Termoquineros', 'Desponchadores']
@@ -21,16 +21,16 @@ export default function OrdenesTrabajo() {
   const modal = (titulo: string, contenido: ReactNode, onGuardar: () => void, onCerrar: () => void) => (
     <div
       onClick={onCerrar}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+      style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        style={{ background: '#fff', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F', animation: 'fadeUp 0.2s ease' }}
+        style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 480, width: '100%', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059', animation: 'fadeUp 0.2s ease' }}
       >
-        <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 14px' }}>
+        <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 14px' }}>
           {titulo}
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{contenido}</div>
@@ -43,14 +43,14 @@ export default function OrdenesTrabajo() {
           <button
             onClick={onCerrar}
             className="hv-crema"
-            style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+            style={{ padding: '10px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
           >
             Cancelar
           </button>
           <button
             onClick={onGuardar}
             className="hv-naranja"
-            style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+            style={{ padding: '10px 20px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
           >
             Guardar
           </button>
@@ -181,14 +181,14 @@ export default function OrdenesTrabajo() {
           <button
             onClick={() => { setError(''); setNuevoResp(true) }}
             className="hv-crema"
-            style={{ padding: '9px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+            style={{ padding: '9px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
           >
             + Agregar Técnico
           </button>
           <button
             onClick={() => { setError(''); setNuevaOT(true) }}
             className="hv-naranja"
-            style={{ padding: '9px 18px', background: '#F2620F', color: '#fff', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 15, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+            style={{ padding: '9px 18px', background: 'var(--accent-gold)', color: 'var(--text-main)', border: 'none', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 15, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             + Nueva Orden
           </button>
@@ -197,7 +197,7 @@ export default function OrdenesTrabajo() {
 
       <div style={{ ...card, padding: '14px 20px', overflowX: 'auto', marginTop: 18, animation: 'fadeUp 0.4s ease' }}>
         {cargando ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#6F6A60', fontSize: 15 }}>
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 15 }}>
             Cargando órdenes de trabajo...
           </div>
         ) : (
@@ -225,14 +225,14 @@ export default function OrdenesTrabajo() {
                     {ot.diagnostico}
                   </td>
                   <td style={{ ...tdCell, textAlign: 'center' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#6F6A60' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
                       {ot.materiales.length} pzs
                     </span>
                   </td>
                   <td style={{ ...tdCell, textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                       {ot.archivos_evidencia.map((a, i) => (
-                        <span key={i} style={badge('#FDF3EC', '#B4430A', '#F2620F')} title={`${a.categoria}: ${a.nombre}`}>
+                        <span key={i} style={badge('#FDF3EC', '#B4430A', '#C5A059')} title={`${a.categoria}: ${a.nombre}`}>
                           📎 {a.categoria}
                         </span>
                       ))}
@@ -246,7 +246,7 @@ export default function OrdenesTrabajo() {
         )}
 
         {ctrl.total === 0 && !cargando && (
-          <div style={{ textAlign: 'center', padding: 30, color: '#6F6A60', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)', fontSize: 14 }}>
             No hay órdenes de trabajo registradas aún.
           </div>
         )}
@@ -258,15 +258,15 @@ export default function OrdenesTrabajo() {
       {nuevaOT && (
         <div
           onClick={() => setNuevaOT(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            style={{ background: '#fff', borderRadius: 14, maxWidth: 540, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #F2620F' }}
+            style={{ background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: 14, maxWidth: 540, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderTop: '5px solid #C5A059' }}
           >
-            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#16191E', margin: '0 0 14px' }}>
+            <h3 style={{ fontFamily: FD, fontWeight: 700, fontSize: 22, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-main)', margin: '0 0 14px' }}>
               Registrar Orden de Trabajo
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -298,7 +298,7 @@ export default function OrdenesTrabajo() {
               <div style={{ borderTop: '1px solid #E7E0D2', paddingTop: 10 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   Materiales / Refacciones Utilizadas
-                  <button onClick={addMaterialRow} style={{ background: 'transparent', border: 'none', color: '#F2620F', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                  <button onClick={addMaterialRow} style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
                     + Agregar Fila
                   </button>
                 </span>
@@ -320,22 +320,22 @@ export default function OrdenesTrabajo() {
                   Evidencias Documentales Categorizadas
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
-                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: '#FAF7F0' }}>
+                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: 'var(--bg-input)' }}>
                     <span style={{ fontSize: 12 }}>Antes/Después</span>
                     <input type="file" multiple style={{ display: 'none' }} onChange={(e) => handleFileChange('Antes/Después', e.target.files)} />
                   </label>
-                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: '#FAF7F0' }}>
+                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: 'var(--bg-input)' }}>
                     <span style={{ fontSize: 12 }}>Lavado</span>
                     <input type="file" style={{ display: 'none' }} onChange={(e) => handleFileChange('Lavado', e.target.files)} />
                   </label>
-                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: '#FAF7F0' }}>
+                  <label style={{ ...etiqueta, alignItems: 'center', justifyContent: 'center', border: '1px dashed #D8D2C4', borderRadius: 8, padding: 8, cursor: 'pointer', background: 'var(--bg-input)' }}>
                     <span style={{ fontSize: 12 }}>K9</span>
                     <input type="file" style={{ display: 'none' }} onChange={(e) => handleFileChange('K9', e.target.files)} />
                   </label>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {archivosEvidencia.map((a, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAF7F0', padding: '6px 10px', borderRadius: 6, fontSize: 12.5 }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-input)', padding: '6px 10px', borderRadius: 6, fontSize: 12.5 }}>
                       <span><strong>[{a.categoria}]</strong> {a.nombre}</span>
                       <button onClick={() => removeFile(i)} style={{ background: 'transparent', border: 'none', color: '#C53030', cursor: 'pointer' }}>✕</button>
                     </div>
@@ -354,14 +354,14 @@ export default function OrdenesTrabajo() {
               <button
                 onClick={() => setNuevaOT(false)}
                 className="hv-crema"
-                style={{ padding: '10px 18px', background: '#fff', border: '1px solid #D8D2C4', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#16191E', cursor: 'pointer' }}
+                style={{ padding: '10px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCrearOT}
                 className="hv-naranja"
-                style={{ padding: '10px 20px', background: '#F2620F', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--accent-gold)', border: 'none', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
               >
                 Registrar Orden
               </button>

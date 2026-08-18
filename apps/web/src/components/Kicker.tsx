@@ -4,7 +4,7 @@ import { FD } from '../lib/estilos'
 export default function Kicker({ texto }: { texto: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-      <span style={{ width: 26, height: 4, background: '#F2620F' }} />
+      <span style={{ width: 26, height: 4, background: 'var(--accent-gold)' }} />
       <span
         style={{
           fontFamily: FD,
@@ -12,7 +12,7 @@ export default function Kicker({ texto }: { texto: string }) {
           fontSize: 13,
           letterSpacing: '0.2em',
           textTransform: 'uppercase',
-          color: '#F2620F',
+          color: 'var(--accent-gold)',
         }}
       >
         {texto}

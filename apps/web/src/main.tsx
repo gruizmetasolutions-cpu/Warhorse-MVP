@@ -4,11 +4,11 @@ import { BrowserRouter } from 'react-router'
 import './styles/tokens.css'
 import App from './routes'
 
-console.log("Hub v1.0.1")
+console.log("Hub v1.0.3 - Cache Bust")
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/app">
       <App />
     </BrowserRouter>
   </StrictMode>,

@@ -15,8 +15,8 @@ def main():
     
     # 1. Upload new migration file
     print("Uploading migration file...")
-    local_migration = r"C:\Users\luisc\Documents\Dataholics\Dataholics Guidelines\proyectos\Warhorse\apps\api\app\Database\Migrations\2026-07-28-000001_AddInventarioOrigen.php"
-    remote_path = 'warhorse_app/app/Database/Migrations/2026-07-28-000001_AddInventarioOrigen.php'
+    local_migration = r"C:\Users\luisc\Documents\Dataholics\Dataholics Guidelines\proyectos\Warhorse\apps\api\app\Database\Migrations\2026-08-18-000001_AddUnidadFields.php"
+    remote_path = 'warhorse_app/app/Database/Migrations/2026-08-18-000001_AddUnidadFields.php'
     with open(local_migration, 'rb') as f:
         ftp.storbinary(f'STOR {remote_path}', f)
     print("Migration file uploaded successfully.")

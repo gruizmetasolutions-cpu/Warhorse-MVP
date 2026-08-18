@@ -12,7 +12,7 @@ export default function Ayuda({ tip }: { tip: string }) {
         height: 19,
         borderRadius: '50%',
         background: '#EAE6DC',
-        color: '#6F6A60',
+        color: 'var(--text-muted)',
         fontSize: 12,
         fontWeight: 700,
         display: 'inline-flex',

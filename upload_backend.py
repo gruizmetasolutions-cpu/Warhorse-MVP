@@ -21,7 +21,12 @@ def main():
         ('apps/api/app/Controllers/Api/V1/DashboardController.php', 'warhorse_app/app/Controllers/Api/V1/DashboardController.php'),
         ('apps/api/app/Models/CatalogoPiezaModel.php', 'warhorse_app/app/Models/CatalogoPiezaModel.php'),
         ('apps/api/app/Controllers/Api/V1/AlmacenController.php', 'warhorse_app/app/Controllers/Api/V1/AlmacenController.php'),
+        ('apps/api/app/Controllers/Api/V1/TallerController.php', 'warhorse_app/app/Controllers/Api/V1/TallerController.php'),
+        ('apps/api/app/Services/TallerService.php', 'warhorse_app/app/Services/TallerService.php'),
+        ('apps/api/app/Controllers/Api/V1/OrdenesTrabajoController.php', 'warhorse_app/app/Controllers/Api/V1/OrdenesTrabajoController.php'),
         ('apps/api/app/Config/Routes.php', 'warhorse_app/app/Config/Routes.php'),
+        ('apps/api/app/Controllers/ContactController.php', 'warhorse_app/app/Controllers/ContactController.php'),
+        ('apps/api/app/Models/UnidadModel.php', 'warhorse_app/app/Models/UnidadModel.php'),
         ('apps/deploy/warhorse_app/app/Libraries/RespuestasApi.php', 'warhorse_app/app/Libraries/RespuestasApi.php')
     ]
     
