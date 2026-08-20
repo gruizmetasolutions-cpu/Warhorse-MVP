@@ -308,7 +308,16 @@ export default function ConciliacionDiesel() {
               Fragmentar Contenedor Externo
             </h3>
             <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Tanque del día <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.fecha}</strong> · Litros totales: <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.litrosTotales} L</strong>.
+              Tanque del día <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.fecha}</strong> · Litros totales: <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.litrosTotales} L</strong>.<br />
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                  <span>Asignados: {desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0)} L</span>
+                  <span style={{ color: 'var(--accent-gold)' }}>Disponibles: {desglosarCarga.litrosTotales - desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0)} L</span>
+                </div>
+                <div style={{ width: '100%', height: 10, background: 'var(--border-color)', borderRadius: 5, overflow: 'hidden' }}>
+                  <div style={{ width: `${(desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0) / desglosarCarga.litrosTotales) * 100}%`, height: '100%', background: 'var(--accent-gold)', transition: 'width 0.3s ease' }} />
+                </div>
+              </div>
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -324,7 +333,14 @@ export default function ConciliacionDiesel() {
                 </label>
                 <label style={{ ...etiqueta, flex: 1 }}>
                   Litros
-                  <input type="number" min={1} style={campo} placeholder="Ej. 30" value={nuevosLitrosDesglose} onChange={(e) => setNuevosLitrosDesglose(e.target.value)} />
+                  <input type="number" min={1} max={desglosarCarga.litrosTotales - desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0)} style={campo} placeholder="Ej. 30" value={nuevosLitrosDesglose} onChange={(e) => {
+                    const max = desglosarCarga.litrosTotales - desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0)
+                    if (Number(e.target.value) > max) {
+                      setNuevosLitrosDesglose(String(max))
+                    } else {
+                      setNuevosLitrosDesglose(e.target.value)
+                    }
+                  }} />
                 </label>
                 <button
                   onClick={agregarDesglose}

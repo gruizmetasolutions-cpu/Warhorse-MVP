@@ -194,7 +194,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     navigate('/login')
   }, [navigate])
 
-  const usuarioActual = sesion ? `${sesion.nombre} · ${etiquetaRol[sesion.rol]}` : ''
+  const usuarioActual = sesion ? `${sesion.nombre} · ${sesion.roles.map(r => etiquetaRol[r]).join(' + ')}` : ''
 
   return (
     <Ctx.Provider

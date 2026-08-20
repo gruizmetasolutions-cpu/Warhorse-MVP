@@ -214,9 +214,32 @@ export default function Taller() {
         )}
       </div>
 
-      {/* ── En taller ahora ── */}
+      {/* 🛠️ En taller ahora 🛠️ */}
       <div style={{ ...card, padding: '6px 20px 14px', overflowX: 'auto', animation: 'fadeUp 0.45s ease' }}>
-        <h3 style={{ ...h3Titulo, margin: '14px 0' }}>En taller ahora</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ ...h3Titulo, margin: '14px 0' }}>En taller ahora</h3>
+          <button
+            onClick={() => {
+              import('../lib/csv').then(({ descargarCSV }) => {
+                const headers = ['Folio', 'Unidad', 'Diagnóstico', 'Criticidad', 'Fecha Ingreso']
+                const rows = enTaller.map((t) => [
+                  String(t.id),
+                  String(t.id_unidad),
+                  String(t.diagnostico),
+                  String(t.criticidad),
+                  String(t.fecha_ingreso),
+                ])
+                const filename = `Reporte_TallerActivo_${new Date().toISOString().split('T')[0]}.csv`
+                descargarCSV(headers, rows, filename)
+                toast(`Reporte ${filename} descargado exitosamente.`)
+              })
+            }}
+            className="hv-borde-ink"
+            style={{ padding: '7px 14px', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 12.5, textTransform: 'uppercase', cursor: 'pointer' }}
+          >
+            ⬇️ Exportar CSV
+          </button>
+        </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
           <thead>
             <tr style={theadRow}>
@@ -302,6 +325,29 @@ export default function Taller() {
                   {c}
                 </button>
               ))}
+              <button
+                onClick={() => {
+                  import('../lib/csv').then(({ descargarCSV }) => {
+                    const headers = ['Folio', 'Unidad', 'Diagnóstico', 'Criticidad', 'Tipo Liberación', 'Fecha Salida', 'Costo Taller (MXN)']
+                    const rows = historialFiltrado.map((t) => [
+                      String(t.id),
+                      String(t.id_unidad),
+                      String(t.diagnostico),
+                      String(t.criticidad),
+                      String(t.tipo_liberacion),
+                      String(t.fecha_salida ?? '—'),
+                      String(t.costo_taller ?? 0),
+                    ])
+                    const filename = `Reporte_HistorialTaller_${new Date().toISOString().split('T')[0]}.csv`
+                    descargarCSV(headers, rows, filename)
+                    toast(`Reporte ${filename} descargado exitosamente.`)
+                  })
+                }}
+                className="hv-borde-ink"
+                style={{ padding: '6px 12px', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: 7, fontFamily: FD, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', cursor: 'pointer', marginLeft: 8 }}
+              >
+                ⬇️ Exportar CSV
+              </button>
             </div>
           }
         />
@@ -629,7 +675,89 @@ export default function Taller() {
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button
+                onClick={() => {
+                  const ventana = window.open('', '_blank', 'width=800,height=600')
+                  if (!ventana) return toast('Habilita las ventanas emergentes para imprimir.')
+                  const html = `
+                    <!DOCTYPE html>
+                    <html lang="es">
+                    <head>
+                      <meta charset="UTF-8">
+                      <title>Ficha de Liberación de Taller - ${verDetalle.id_unidad}</title>
+                      <style>
+                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #16191E; }
+                        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #C5A059; padding-bottom: 20px; margin-bottom: 30px; }
+                        .logo { max-width: 180px; }
+                        .title { text-align: right; }
+                        .title h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; color: #16191E; }
+                        .title p { margin: 5px 0 0; color: #6F6A60; font-size: 14px; }
+                        .section { margin-bottom: 24px; }
+                        .section h2 { font-size: 16px; text-transform: uppercase; border-bottom: 1px solid #D8D2C4; padding-bottom: 6px; color: #4A4438; margin-bottom: 12px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #E7E0D2; font-size: 14px; }
+                        th { width: 30%; color: #6F6A60; font-weight: normal; vertical-align: top; }
+                        td { font-weight: bold; vertical-align: top; }
+                        .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #6F6A60; border-top: 1px solid #D8D2C4; padding-top: 20px; }
+                        .signatures { display: flex; justify-content: space-around; margin-top: 60px; }
+                        .sig-box { width: 200px; text-align: center; border-top: 1px solid #16191E; padding-top: 8px; font-size: 14px; }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="header">
+                        <img src="${window.location.origin}/logo.png" alt="WARHORSE" class="logo" onerror="this.outerHTML='<div style=\\'font-size: 28px; font-weight: 900; letter-spacing: 2px;\\'>WARHORSE</div>'" />
+                        <div class="title">
+                          <h1>Ficha de Liberación Taller</h1>
+                          <p>Folio Sistema: TAL-${verDetalle.id.toString().padStart(5, '0')}</p>
+                          <p>Fecha de emisión: ${new Date().toLocaleDateString('es-MX')}</p>
+                        </div>
+                      </div>
+
+                      <div class="section">
+                        <h2>Información General</h2>
+                        <table>
+                          <tr><th>Unidad (Tracto/Caja):</th><td>${verDetalle.id_unidad}</td></tr>
+                          <tr><th>Fecha de Ingreso:</th><td>${verDetalle.fecha_ingreso}</td></tr>
+                          <tr><th>Fecha de Salida:</th><td>${verDetalle.fecha_salida ?? 'En taller'}</td></tr>
+                          <tr><th>Criticidad:</th><td>${verDetalle.criticidad}</td></tr>
+                          <tr><th>Días en Taller:</th><td>${verDetalle.dias_en_taller ?? '—'}</td></tr>
+                        </table>
+                      </div>
+
+                      <div class="section">
+                        <h2>Detalles de la Reparación</h2>
+                        <table>
+                          <tr><th>Diagnóstico Principal:</th><td>${verDetalle.diagnostico}</td></tr>
+                          <tr><th>Tipo de Liberación:</th><td>${verDetalle.tipo_liberacion === 'Total' ? 'Reparación Total' : verDetalle.tipo_liberacion === 'Parcial' ? 'Parcial (Mejoralito)' : 'Activa'}</td></tr>
+                          ${verDetalle.pendientes && verDetalle.pendientes.length > 0 ? `<tr><th>Pendientes (Deuda Técnica):</th><td style="color: #B4430A;">${verDetalle.pendientes.join('<br>')}</td></tr>` : ''}
+                          <tr><th>Costo Total Taller:</th><td>$${Number(verDetalle.costo_taller ?? 0).toLocaleString('es-MX', {minimumFractionDigits:2})} MXN</td></tr>
+                        </table>
+                      </div>
+
+                      <div class="signatures">
+                        <div class="sig-box">Firma Responsable Taller</div>
+                        <div class="sig-box">Firma Operador / Despacho</div>
+                      </div>
+
+                      <div class="footer">
+                        Documento generado automáticamente por Warhorse System para fines de auditoría.<br>
+                        Cualquier alteración a este documento invalida su legitimidad.
+                      </div>
+                      <script>
+                        window.onload = function() { window.print(); }
+                      </script>
+                    </body>
+                    </html>
+                  `
+                  ventana.document.write(html)
+                  ventana.document.close()
+                }}
+                className="hv-op85"
+                style={{ padding: '10px 20px', background: 'var(--bg-glass)', border: '1px solid var(--border-color)', borderRadius: 8, fontFamily: FD, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-main)', cursor: 'pointer' }}
+              >
+                🖨️ Imprimir
+              </button>
               <button
                 onClick={() => setVerDetalle(null)}
                 className="hv-naranja"

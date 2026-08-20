@@ -179,6 +179,27 @@ export default function OrdenesTrabajo() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button
+            onClick={() => {
+              import('../lib/csv').then(({ descargarCSV }) => {
+                const headers = ['Unidad', 'Responsable', 'Diagnóstico / Trabajo', 'Materiales', 'Fecha Registro']
+                const rows = reparaciones.map((r) => [
+                  String(r.unidad.id_unidad),
+                  String(r.responsable?.nombre || '—'),
+                  String(r.diagnostico),
+                  String(r.materiales.map(m => `${m.pieza} (${m.cantidad})`).join('; ') || '—'),
+                  String(r.created_at),
+                ])
+                const filename = `Reporte_OrdenesTrabajo_${new Date().toISOString().split('T')[0]}.csv`
+                descargarCSV(headers, rows, filename)
+                toast(`Reporte ${filename} descargado exitosamente.`)
+              })
+            }}
+            className="hv-borde-ink"
+            style={{ padding: '9px 14px', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', cursor: 'pointer' }}
+          >
+            ⬇️ Exportar CSV
+          </button>
+          <button
             onClick={() => { setError(''); setNuevoResp(true) }}
             className="hv-crema"
             style={{ padding: '9px 18px', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}

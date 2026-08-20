@@ -3,6 +3,7 @@ import Kicker from '../components/Kicker'
 import { getColaCompras, type FilaCompras } from '../lib/api'
 import { useDemo } from '../lib/demo'
 import { card, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, theadRow } from '../lib/estilos'
+import { descargarCSV } from '../lib/csv'
 
 export default function Reportes() {
   const { unidades, toast } = useDemo()
@@ -23,35 +24,22 @@ export default function Reportes() {
     void cargarCompras()
   }, [])
 
-  // CSV Generator Helper
-  const descargarCSV = (headers: string[], rows: string[][], filename: string) => {
-    const csvContent =
-      '\uFEFF' + // UTF-8 BOM
-      [headers.join(','), ...rows.map((row) => row.map((val) => `"${val.replace(/"/g, '""')}"`).join(','))].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download', filename)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    toast(`Reporte ${filename} descargado exitosamente.`)
-  }
-
   const exportarFlota = () => {
-    const headers = ['ID Unidad', 'Tipo', 'Estado', 'Fecha de Alta', 'Valor de Referencia (MXN)', 'Costo Acumulado (MXN)']
+    const headers = ['ID Unidad', 'VIN', 'Tipo', 'Vehículo', 'Placas', 'Estado', 'Fecha de Alta', 'Valor de Referencia (MXN)', 'Costo Acumulado (MXN)']
     const rows = unidades.map((u) => [
       String(u.id_unidad),
-      String(u.tipo === 'Servicio' ? 'Camioneta de servicio' : u.tipo),
+      String(u.vin || '-'),
+      String(u.tipo === 'Servicio' ? 'UTILITARIO' : u.tipo),
+      String(u.marca || '-'),
+      String(u.placas || '-'),
       String(u.estado),
       String(u.fecha_alta ?? '—'),
       u.valor_referencia !== null ? String(u.valor_referencia) : '—',
       String(u.costo_real_acumulado ?? 0),
     ])
-    descargarCSV(headers, rows, `Reporte_Flota_${new Date().toISOString().split('T')[0]}.csv`)
+    const filename = `Reporte_Flota_${new Date().toISOString().split('T')[0]}.csv`
+    descargarCSV(headers, rows, filename)
+    toast(`Reporte ${filename} descargado exitosamente.`)
   }
 
   const exportarCompras = () => {
@@ -68,7 +56,9 @@ export default function Reportes() {
       String(c.fecha_solicitud),
       String(c.numero_factura ?? '—'),
     ])
-    descargarCSV(headers, rows, `Reporte_Compras_${new Date().toISOString().split('T')[0]}.csv`)
+    const filename = `Reporte_Compras_${new Date().toISOString().split('T')[0]}.csv`
+    descargarCSV(headers, rows, filename)
+    toast(`Reporte ${filename} descargado exitosamente.`)
   }
 
   return (
@@ -141,8 +131,12 @@ export default function Reportes() {
           <thead>
             <tr style={theadRow}>
               <th style={tdCell}>ID Unidad</th>
+              <th style={tdCell}>VIN</th>
               <th style={tdCell}>Tipo</th>
+              <th style={tdCell}>Vehículo</th>
+              <th style={tdCell}>Placas</th>
               <th style={tdCell}>Estado</th>
+              <th style={tdCell}>Fecha Alta</th>
               <th style={{ ...tdCell, textAlign: 'right' }}>Valor Ref.</th>
               <th style={{ ...tdCell, textAlign: 'right' }}>Costo Acum.</th>
             </tr>
@@ -151,8 +145,15 @@ export default function Reportes() {
             {unidades.slice(0, 5).map((u) => (
               <tr key={u.id} className="hv-fila">
                 <td style={{ ...tdCell, fontWeight: 700, fontFamily: FD, fontSize: 16, color: 'var(--text-main)' }}>{u.id_unidad}</td>
-                <td style={tdCell}>{u.tipo === 'Servicio' ? 'Camioneta de servicio' : u.tipo}</td>
+                <td style={tdCell}>{u.vin || '-'}</td>
+                <td style={tdCell}>{u.tipo === 'Servicio' ? 'UTILITARIO' : u.tipo}</td>
+                <td style={tdCell}>
+                  <div style={{ fontWeight: 500 }}>{u.marca || '-'}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{u.modelo || '-'}</div>
+                </td>
+                <td style={tdCell}>{u.placas || '-'}</td>
                 <td style={tdCell}>{u.estado}</td>
+                <td style={tdCell}>{u.fecha_alta ?? '—'}</td>
                 <td style={{ ...tdCell, textAlign: 'right' }}>{u.valor_referencia ? fmt(u.valor_referencia) : '—'}</td>
                 <td style={{ ...tdCell, textAlign: 'right', fontWeight: 600 }}>{fmt(u.costo_real_acumulado ?? 0)}</td>
               </tr>

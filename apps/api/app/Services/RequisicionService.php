@@ -208,24 +208,21 @@ final class RequisicionService
             $destinoId = (int) $destino['id'];
         }
 
-        // Verify active work order (WH-007)
-        if (empty($datos['orden_trabajo_id'])) {
-            throw new ValidacionException('Es obligatorio asociar la requisición a una orden de trabajo.', [
-                'orden_trabajo_id' => ['Es obligatorio asociar la requisición a una orden de trabajo.'],
-            ]);
+        $otId = null;
+        if (!empty($datos['orden_trabajo_id'])) {
+            $ot = db_connect()->table('ordenes_trabajo')->where('id', (int)$datos['orden_trabajo_id'])->get()->getRowArray();
+            if ($ot === null) {
+                throw new ValidacionException('Orden de trabajo no encontrada.', [
+                    'orden_trabajo_id' => ['Orden de trabajo no encontrada.'],
+                ]);
+            }
+            if ($ot['estado'] !== 'Activa') {
+                throw new ValidacionException('La orden de trabajo asociada debe estar activa.', [
+                    'orden_trabajo_id' => ['La orden de trabajo asociada debe estar activa.'],
+                ]);
+            }
+            $otId = (int)$ot['id'];
         }
-        $ot = db_connect()->table('ordenes_trabajo')->where('id', (int)$datos['orden_trabajo_id'])->get()->getRowArray();
-        if ($ot === null) {
-            throw new ValidacionException('Orden de trabajo no encontrada.', [
-                'orden_trabajo_id' => ['Orden de trabajo no encontrada.'],
-            ]);
-        }
-        if ($ot['estado'] !== 'Activa') {
-            throw new ValidacionException('La orden de trabajo asociada debe estar activa.', [
-                'orden_trabajo_id' => ['La orden de trabajo asociada debe estar activa.'],
-            ]);
-        }
-        $otId = (int)$ot['id'];
 
         $esYonke      = ($datos['origen'] ?? '') === 'Yonke';
         $esInventario = ($datos['origen'] ?? '') === 'Inventario';
@@ -301,6 +298,7 @@ final class RequisicionService
             'unidad_donante_id'     => $donanteId,
             'pieza_catalogo_id'     => $piezaCatId,
             'descripcion_pieza'     => trim((string) $datos['descripcion_pieza']),
+            'cantidad'              => empty($datos['cantidad']) ? 1 : (int) $datos['cantidad'],
             'numero_parte'          => isset($datos['numero_parte']) && $datos['numero_parte'] !== '' ? $datos['numero_parte'] : null,
             'foto_pieza_url'        => $nombreFoto,
             'urgencia'              => $datos['urgencia'] ?? 'Medio',

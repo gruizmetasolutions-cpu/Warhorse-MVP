@@ -17,8 +17,8 @@ export function TourOverlay() {
   let cardStyle: CSSProperties
   if (r) {
     spotStyle = {
-      position: 'fixed', left: r.x - 8, top: r.y - 8, width: r.w + 16, height: r.h + 16,
-      borderRadius: 14, boxShadow: '0 0 0 9999px rgba(20,24,29,0.66)', border: '2px solid #C5A059',
+      position: 'fixed', left: r.x - 6, top: r.y - 6, width: r.w + 12, height: r.h + 12,
+      borderRadius: 14, boxShadow: '0 0 0 9999px var(--bg-overlay)', border: '2px solid #C5A059',
       zIndex: 90, pointerEvents: 'none', transition: 'all 0.3s ease',
     }
     let left: number
@@ -32,15 +32,16 @@ export function TourOverlay() {
       left = Math.min(Math.max(16, r.x), vw - 376)
     }
     cardStyle = {
-      position: 'fixed', left, top, width: 'min(360px,calc(100vw - 32px))', background: 'transparent',
+      position: 'fixed', left, top, width: 'min(360px,calc(100vw - 32px))', background: 'var(--bg-glass)',
+      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
       borderRadius: 14, padding: 22, zIndex: 95, boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
       transition: 'all 0.3s ease',
     }
   } else {
-    spotStyle = { position: 'fixed', inset: 0, background: 'rgba(20,24,29,0.66)', zIndex: 90, pointerEvents: 'none' }
+    spotStyle = { position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 90, pointerEvents: 'none' }
     cardStyle = {
       position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
-      width: 'min(400px,calc(100vw - 32px))', background: 'transparent', borderRadius: 14, padding: 22,
+      width: 'min(400px,calc(100vw - 32px))', background: 'var(--bg-glass)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: 14, padding: 22,
       zIndex: 95, boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
     }
   }

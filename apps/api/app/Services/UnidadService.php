@@ -50,10 +50,16 @@ final class UnidadService
         $this->unidades->insert([
             'id_unidad'                 => $datos['id_unidad'],
             'tipo'                      => $datos['tipo'],
+            'operacion'                 => $datos['operacion'] ?? null,
             'estado'                    => $datos['estado'] ?? 'Activo',
             'fecha_alta'                => $datos['fecha_alta'],
             'valor_referencia'          => $datos['valor_referencia'] ?? null,
             'vencimiento_documentacion' => $datos['vencimiento_documentacion'] ?? null,
+            'vin'                       => $datos['vin'] ?? null,
+            'numero_economico'          => $datos['numero_economico'] ?? null,
+            'marca'                     => $datos['marca'] ?? null,
+            'modelo'                    => $datos['modelo'] ?? null,
+            'placas'                    => $datos['placas'] ?? null,
         ]);
         $id = (int) $this->unidades->getInsertID();
 
@@ -120,6 +126,18 @@ final class UnidadService
             ], [
                 'vencimiento_documentacion' => $cambio['vencimiento_documentacion'],
             ]);
+        }
+
+        $camposBasicos = ['tipo', 'operacion', 'vin', 'numero_economico', 'marca', 'modelo', 'placas'];
+        foreach ($camposBasicos as $campo) {
+            if (array_key_exists($campo, $cambio) && $cambio[$campo] !== $unidad[$campo]) {
+                $this->unidades->update($id, [$campo => $cambio[$campo]]);
+                $this->auditoria->registrar($actor, "unidad.{$campo}", 'unidades', $id, [
+                    $campo => $unidad[$campo],
+                ], [
+                    $campo => $cambio[$campo],
+                ]);
+            }
         }
 
         $db->transComplete();

@@ -44,10 +44,12 @@ final class UnidadesController extends BaseController
                 'id'                        => (int) $u['id'],
                 'id_unidad'                 => (string) $u['id_unidad'],
                 'tipo'                      => (string) $u['tipo'],
+                'operacion'                 => $u['operacion'] === null ? null : (string) $u['operacion'],
                 'estado'                    => (string) $u['estado'],
                 'valor_referencia'          => $u['valor_referencia'] === null ? null : (float) $u['valor_referencia'],
                 'costo_real_acumulado'      => (float) $u['costo_real_acumulado'],
                 'candidata_reincidencia'    => (bool) $u['candidata_reincidencia'],
+                'fecha_alta'                => $u['fecha_alta'] === null ? null : (string) $u['fecha_alta'],
                 'vencimiento_documentacion' => $u['vencimiento_documentacion'] === null ? null : (string) $u['vencimiento_documentacion'],
                 'vin'                       => $u['vin'] === null ? null : (string) $u['vin'],
                 'numero_economico'          => $u['numero_economico'] === null ? null : (string) $u['numero_economico'],
@@ -72,6 +74,7 @@ final class UnidadesController extends BaseController
         if (! $this->validateData($datos, [
             'id_unidad'                 => 'required|string|max_length[20]',
             'tipo'                      => 'required|in_list[Tractor,Caja,Thermo,Servicio]',
+            'operacion'                 => 'permit_empty|in_list[LOCAL,CRUCE,UTILITARIO,FORANEO]',
             'estado'                    => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
             'fecha_alta'                => 'required|valid_date[Y-m-d]',
             'valor_referencia'          => 'permit_empty|decimal|greater_than_equal_to[0]',
@@ -102,6 +105,8 @@ final class UnidadesController extends BaseController
         $cambio  = $request instanceof IncomingRequest ? (array) $request->getJSON(true) : [];
 
         if (! $this->validateData($cambio, [
+            'tipo'                      => 'permit_empty|in_list[Tractor,Caja,Thermo,Servicio]',
+            'operacion'                 => 'permit_empty|in_list[LOCAL,CRUCE,UTILITARIO,FORANEO]',
             'estado'                    => 'permit_empty|in_list[Activo,Yonke,Inactivo,Vendido]',
             'valor_referencia'          => 'permit_empty|decimal|greater_than_equal_to[0]',
             'vencimiento_documentacion' => 'permit_empty|valid_date[Y-m-d]',
@@ -136,5 +141,16 @@ final class UnidadesController extends BaseController
         }
 
         return $this->response->setJSON($ficha);
+    }
+
+    public function migrate(): ResponseInterface
+    {
+        $migrate = \Config\Services::migrations();
+        try {
+            $migrate->latest();
+            return $this->response->setJSON(['status' => 'success']);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['status' => 'error', 'msg' => $e->getMessage()]);
+        }
     }
 }

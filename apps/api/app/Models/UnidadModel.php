@@ -15,7 +15,7 @@ class UnidadModel extends Model
     protected $table         = 'unidades';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['id_unidad', 'tipo', 'estado', 'fecha_alta', 'valor_referencia', 'candidata_reincidencia', 'vencimiento_documentacion', 'vin', 'numero_economico', 'marca', 'modelo', 'placas'];
+    protected $allowedFields = ['id_unidad', 'tipo', 'operacion', 'estado', 'fecha_alta', 'valor_referencia', 'candidata_reincidencia', 'vencimiento_documentacion', 'vin', 'numero_economico', 'marca', 'modelo', 'placas'];
     protected $useTimestamps = true;
 
     /**

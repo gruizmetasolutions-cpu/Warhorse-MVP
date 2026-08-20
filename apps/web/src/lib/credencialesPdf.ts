@@ -48,7 +48,7 @@ export function descargarCredencialesPdf(usuario: UsuarioCreado): void {
 
   fila('Nombre', usuario.nombre)
   fila('Correo (usuario)', usuario.email)
-  fila('Rol', rolNombre[usuario.rol] ?? usuario.rol)
+  fila('Rol', usuario.roles.map(r => rolNombre[r] ?? r).join(' + '))
   fila('Contraseña temporal', usuario.password_temporal, true)
 
   y += 44

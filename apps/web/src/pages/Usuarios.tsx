@@ -35,7 +35,7 @@ export default function Usuarios() {
   const [usuarios, setUsuarios] = useState<UsuarioAdminApi[]>([])
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoEmail, setNuevoEmail] = useState('')
-  const [nuevoRol, setNuevoRol] = useState<Rol>('taller')
+  const [nuevoRol, setNuevoRol] = useState<Rol[]>(['taller'])
   const [creado, setCreado] = useState<UsuarioCreado | null>(null)
 
   const cargar = useCallback(async () => {
@@ -59,8 +59,9 @@ export default function Usuarios() {
     const email = nuevoEmail.trim().toLowerCase()
     if (!nombre) return toast('Escribe el nombre del usuario.')
     if (!email) return toast('Escribe el correo del usuario.')
+    if (nuevoRol.length === 0) return toast('Selecciona al menos un rol.')
     try {
-      const nuevo = await crearUsuario({ nombre, email, rol: nuevoRol })
+      const nuevo = await crearUsuario({ nombre, email, rol: nuevoRol.join(',') })
       setNuevoNombre('')
       setNuevoEmail('')
       setCreado(nuevo) // muestra la temporal UNA vez (sin correo)
@@ -80,10 +81,12 @@ export default function Usuarios() {
     }
   }
 
-  const cambiarRol = async (u: UsuarioAdminApi, rol: Rol) => {
+  const cambiarRol = async (u: UsuarioAdminApi, rolStr: string) => {
+    if (!rolStr) return;
     try {
-      await actualizarUsuario(u.id, { rol })
-      toast(u.nombre + ' ahora es ' + rolNombres[rol])
+      await actualizarUsuario(u.id, { rol: rolStr })
+      const nombreRoles = rolStr.split(',').map(r => rolNombres[r as Rol]).join(' + ')
+      toast(u.nombre + ' ahora es ' + nombreRoles)
       await cargar()
     } catch (e) {
       toast(mensajeError(e, 'No se pudo cambiar el rol.'))
@@ -126,16 +129,17 @@ export default function Usuarios() {
               placeholder="Correo del nuevo usuario"
               style={{ padding: '9px 12px', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)', minWidth: 190 }}
             />
-            <select
-              value={nuevoRol}
-              onChange={(e) => setNuevoRol(e.target.value as Rol)}
-              aria-label="Rol del nuevo usuario"
-              style={{ padding: '9px 12px', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 14, background: 'var(--bg-input)' }}
-            >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-input)', padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: 8 }}>
               {roles.map((r) => (
-                <option key={r} value={r}>{rolNombres[r]}</option>
+                <label key={r} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input type="checkbox" checked={nuevoRol.includes(r)} onChange={(e) => {
+                    const next = e.target.checked ? [...nuevoRol, r] : nuevoRol.filter(x => x !== r)
+                    setNuevoRol(next)
+                  }} />
+                  {rolNombres[r]}
+                </label>
               ))}
-            </select>
+            </div>
             <button
               onClick={() => void agregarUsuario()}
               className="hv-naranja"
@@ -163,7 +167,7 @@ export default function Usuarios() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span
                         style={{
-                          width: 34, height: 34, borderRadius: '50%', background: avatarColors[u.rol],
+                          width: 34, height: 34, borderRadius: '50%', background: avatarColors[u.roles?.[0] ?? 'taller'],
                           color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 12.5, fontWeight: 700, flex: 'none', opacity: u.activo ? 1 : 0.45,
                         }}
@@ -175,16 +179,17 @@ export default function Usuarios() {
                   </td>
                   <td style={{ ...tdCell, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{u.email}</td>
                   <td style={tdCell}>
-                    <select
-                      value={u.rol}
-                      aria-label={'Rol de ' + u.nombre}
-                      onChange={(e) => void cambiarRol(u, e.target.value as Rol)}
-                      style={{ padding: '8px 10px', border: '1px solid var(--border-color)', borderRadius: 7, fontSize: 13.5, background: 'var(--bg-input)' }}
-                    >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {roles.map((r) => (
-                        <option key={r} value={r}>{rolNombres[r]}</option>
+                        <label key={r} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input type="checkbox" checked={u.roles?.includes(r) ?? false} onChange={(e) => {
+                            const next = e.target.checked ? [...(u.roles ?? []), r] : (u.roles ?? []).filter(x => x !== r)
+                            void cambiarRol(u, next.join(','))
+                          }} />
+                          {rolNombres[r]}
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   </td>
                   <td style={tdCell}>
                     <span style={u.activo ? badge('#E5F3E9', '#2C7A44', '#9FD4B0') : badge('#EAE6DC', '#4A4438', '#C9C2B2')}>
@@ -290,7 +295,7 @@ export default function Usuarios() {
               Usuario creado ✓
             </h3>
             <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--text-muted)' }}>
-              {creado.nombre} · {creado.email} · {rolNombres[creado.rol]}
+              {creado.nombre} · {creado.email} · {creado.roles?.map(r => rolNombres[r]).join(' + ')}
             </p>
             <p style={{ margin: '0 0 8px', fontSize: 13.5, color: 'var(--text-muted)' }}>
               Entrégale esta contraseña temporal. <strong>No se volverá a mostrar.</strong> Al entrar por

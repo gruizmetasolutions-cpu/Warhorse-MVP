@@ -242,7 +242,7 @@ export default function Diesel() {
                   {unidades
                     .filter((u) => u.estado === 'Activo')
                     .map((u) => (
-                      <option key={u.id} value={String(u.id)}>{u.id_unidad + ' · ' + (u.tipo === 'Servicio' ? 'Camioneta de servicio' : u.tipo)}</option>
+                      <option key={u.id} value={String(u.id)}>{u.id_unidad + ' · ' + (u.tipo === 'Servicio' ? 'UTILITARIO' : u.tipo)}</option>
                     ))}
                 </select>
               </label>
@@ -295,6 +295,32 @@ export default function Diesel() {
               busqueda={busqueda}
               onBusqueda={setBusqueda}
               busquedaPlaceholder="Buscar unidad…"
+              rightSlot={
+                <button
+                  onClick={() => {
+                    import('../lib/csv').then(({ descargarCSV }) => {
+                      const headers = ['Unidad', 'Fecha', 'Litros', 'Costo (MXN)', 'Odómetro', 'Rendimiento', 'Estación', 'Ticket']
+                      const rows = cargasFiltradas.map((c) => [
+                        String(c.id_unidad),
+                        String(c.fecha),
+                        String(c.litros),
+                        String(c.costo_total),
+                        String(c.km_recorridos),
+                        c.litros > 0 ? String((c.km_recorridos / c.litros).toFixed(1)) : '—',
+                        '—',
+                        '—',
+                      ])
+                      const filename = `Reporte_Diesel_${new Date().toISOString().split('T')[0]}.csv`
+                      descargarCSV(headers, rows, filename)
+                      toast(`Reporte ${filename} descargado exitosamente.`)
+                    })
+                  }}
+                  className="hv-borde-ink"
+                  style={{ padding: '7px 14px', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 12.5, textTransform: 'uppercase', cursor: 'pointer' }}
+                >
+                  ⬇️ Exportar CSV
+                </button>
+              }
             />
 
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>

@@ -18,6 +18,7 @@ const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap:
 interface Alta {
   id_unidad: string
   tipo: TipoUnidad
+  operacion: string
   estado: EstadoUnidad
   fecha_alta: string
   valor_referencia: string
@@ -29,7 +30,7 @@ interface Alta {
   placas: string
 }
 
-const altaVacia: Alta = { id_unidad: '', tipo: 'Tractor', estado: 'Activo', fecha_alta: '', valor_referencia: '', vencimiento_documentacion: '', vin: '', numero_economico: '', marca: '', modelo: '', placas: '' }
+const altaVacia: Alta = { id_unidad: '', tipo: 'Tractor', operacion: '', estado: 'Activo', fecha_alta: '', valor_referencia: '', vencimiento_documentacion: '', vin: '', numero_economico: '', marca: '', modelo: '', placas: '' }
 
 interface NuevoArticulo {
   nombre_normalizado: string
@@ -84,11 +85,11 @@ export default function Catalogo() {
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('Todos')
   const [filtroTipo, setFiltroTipo]     = useState<FiltroTipo>('Todos')
   const [alta, setAlta]   = useState<Alta | null>(null)
-  const [editar, setEditar] = useState<{ unidad: UnidadApi; estado: EstadoUnidad; valor: string; vencimiento_documentacion: string; vin: string; numero_economico: string; marca: string; modelo: string; placas: string } | null>(null)
+  const [editar, setEditar] = useState<{ unidad: UnidadApi; operacion: string; estado: EstadoUnidad; valor: string; vencimiento_documentacion: string; vin: string; numero_economico: string; marca: string; modelo: string; placas: string } | null>(null)
   const [error, setError] = useState('')
   
-  const esAdmin = sesion?.rol === 'admin'
-  const esCompras = sesion?.rol === 'compras'
+  const esAdmin = sesion?.roles?.includes('admin')
+  const esCompras = sesion?.roles?.includes('compras')
 
   const filtered = useMemo(
     () =>
@@ -134,6 +135,7 @@ export default function Catalogo() {
       await crearUnidad({
         id_unidad: alta.id_unidad.trim(),
         tipo: alta.tipo,
+        operacion: alta.operacion === '' ? null : alta.operacion,
         estado: alta.estado,
         fecha_alta: alta.fecha_alta,
         valor_referencia: alta.valor_referencia === '' ? null : Number(alta.valor_referencia),
@@ -156,8 +158,9 @@ export default function Catalogo() {
     if (!editar) return
     setError('')
     try {
-      const cambio: { estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null; vin?: string | null; numero_economico?: string | null; marca?: string | null; modelo?: string | null; placas?: string | null } = {}
+      const cambio: { operacion?: string | null; estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null; vin?: string | null; numero_economico?: string | null; marca?: string | null; modelo?: string | null; placas?: string | null } = {}
       if (editar.estado !== editar.unidad.estado) cambio.estado = editar.estado
+      if (editar.operacion !== (editar.unidad.operacion || '')) cambio.operacion = editar.operacion === '' ? null : editar.operacion
       if (editar.valor !== '' && Number(editar.valor) !== editar.unidad.valor_referencia) {
         cambio.valor_referencia = Number(editar.valor)
       }
@@ -358,6 +361,31 @@ export default function Catalogo() {
                     + Agregar unidad
                   </button>
                 )}
+                <button
+                  onClick={() => {
+                    import('../lib/csv').then(({ descargarCSV }) => {
+                      const headers = ['ID Unidad', 'VIN', 'Tipo', 'Vehículo', 'Placas', 'Estado', 'Fecha de Alta', 'Valor de Referencia (MXN)', 'Costo Acumulado (MXN)']
+                      const rows = unidades.map(u => [
+                        String(u.id_unidad),
+                        String(u.vin || '-'),
+                        String(u.tipo === 'Servicio' ? 'UTILITARIO' : u.tipo),
+                        String(u.marca || '-'),
+                        String(u.placas || '-'),
+                        String(u.estado),
+                        String(u.fecha_alta ?? '—'),
+                        u.valor_referencia !== null ? String(u.valor_referencia) : '—',
+                        String(u.costo_real_acumulado ?? 0),
+                      ])
+                      const filename = `Reporte_Flota_${new Date().toISOString().split('T')[0]}.csv`
+                      descargarCSV(headers, rows, filename)
+                      toast(`Reporte ${filename} descargado exitosamente.`)
+                    })
+                  }}
+                  className="hv-borde-ink"
+                  style={{ padding: '9px 14px', background: '#fff', color: '#4A4438', border: '1px solid #D8D2C4', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', cursor: 'pointer' }}
+                >
+                  ⬇️ Exportar CSV
+                </button>
               </div>
             }
           />
@@ -366,13 +394,13 @@ export default function Catalogo() {
             <thead>
               <tr style={theadRow}>
                 <SortTh col="id_unidad" label="ID Unidad"               sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-                  <SortTh col="vin" label="VIN / Económico" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-                  <SortTh col="marca" label="Vehículo" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-                  <SortTh col="placas" label="Placas" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-                <SortTh col="tipo"      label="Tipo"                sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-                <SortTh col="estado"    label="Estado"              sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-                <SortTh col="vencimiento" label="Vigencia Trámites" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-                <SortTh col="costo"     label="Costo total acumulado" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
+                <SortTh col="vin"       label=" VIN"                    sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="tipo"      label="Tipo"                    sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="marca"     label="Vehículo"                sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="placas"    label="Placas"                  sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="estado"    label="Estado"                  sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="vencimiento" label="Vigencia Trámites"     sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="costo"     label="Costo total acumulado"   sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
                 <th style={{ padding: '12px 10px', borderBottom: '2px solid #16191E' }} />
               </tr>
             </thead>
@@ -382,8 +410,19 @@ export default function Catalogo() {
                 const semaforo = obtenerColorSemaforo(t.vencimiento_documentacion)
                 return (
                   <tr key={t.id} className="hv-fila">
-                    <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17, color: '#16191E' }}>{t.id_unidad}</td>
-                    <td style={tdCell}>{t.tipo === 'Servicio' ? 'Camioneta de servicio' : t.tipo}</td>
+                    <td style={{ ...tdCell, fontFamily: FD, fontWeight: 700, fontSize: 17, color: '#16191E' }}>
+                      {t.id_unidad}
+                      <div style={{ fontSize: 12.5, fontWeight: 400, color: 'var(--text-muted)', marginTop: 2 }}>{t.operacion}</div>
+                    </td>
+                    <td style={tdCell}>
+                      <div style={{ fontWeight: 500 }}>{t.vin || '-'}</div>
+                    </td>
+                    <td style={tdCell}>{t.tipo === 'Servicio' ? 'UTILITARIO' : t.tipo}</td>
+                    <td style={tdCell}>
+                      <div style={{ fontWeight: 500 }}>{t.marca || '-'}</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t.modelo || '-'}</div>
+                    </td>
+                    <td style={tdCell}>{t.placas || '-'}</td>
                     <td style={tdCell}>
                       <span style={badge(c[0], c[1], c[2])}>{t.estado}</span>
                     </td>
@@ -402,7 +441,7 @@ export default function Catalogo() {
                     <td style={{ ...tdCell, textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {esAdmin && (
                         <button
-                          onClick={() => { setError(''); setEditar({ unidad: t, estado: t.estado, valor: t.valor_referencia === null ? '' : String(t.valor_referencia), vencimiento_documentacion: t.vencimiento_documentacion ?? '', vin: t.vin ?? '', numero_economico: t.numero_economico ?? '', marca: t.marca ?? '', modelo: t.modelo ?? '', placas: t.placas ?? '' }) }}
+                          onClick={() => { setError(''); setEditar({ unidad: t, operacion: t.operacion ?? '', estado: t.estado, valor: t.valor_referencia === null ? '' : String(t.valor_referencia), vencimiento_documentacion: t.vencimiento_documentacion ?? '', vin: t.vin ?? '', numero_economico: t.numero_economico ?? '', marca: t.marca ?? '', modelo: t.modelo ?? '', placas: t.placas ?? '' }) }}
                           className="hv-inkfill"
                           style={{ padding: '7px 12px', background: '#F3EFE7', border: '1px solid #D8D2C4', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: '#16191E', cursor: 'pointer', marginRight: 8 }}
                         >
@@ -438,6 +477,29 @@ export default function Catalogo() {
             <h3 style={h3Titulo}>Catálogo de Artículos y Existencias Límites</h3>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span style={{ fontSize: 13, color: '#8A8374', fontWeight: 600 }}>{articulos.length} artículos en almacén</span>
+              <button
+                onClick={() => {
+                  import('../lib/csv').then(({ descargarCSV }) => {
+                    const headers = ['Nombre', 'Número de Parte', 'Precio Ref', 'Stock Actual', 'Stock Mínimo', 'Stock Máximo', 'Alerta Límites']
+                    const rows = articulos.map(a => [
+                      String(a.nombre_normalizado),
+                      String(a.numero_parte || '—'),
+                      String(a.precio_referencia),
+                      String(a.stock_actual),
+                      String(a.stock_minimo ?? '—'),
+                      String(a.stock_maximo ?? '—'),
+                      String(a.validar_limites ? 'Sí' : 'No')
+                    ])
+                    const filename = `Reporte_Almacen_${new Date().toISOString().split('T')[0]}.csv`
+                    descargarCSV(headers, rows, filename)
+                    toast(`Reporte ${filename} descargado exitosamente.`)
+                  })
+                }}
+                className="hv-borde-ink"
+                style={{ padding: '7px 14px', background: '#fff', color: '#4A4438', border: '1px solid #D8D2C4', borderRadius: 8, fontFamily: FD, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', cursor: 'pointer' }}
+              >
+                ⬇️ Exportar CSV
+              </button>
               {(esAdmin || esCompras) && (
                 <button
                   onClick={() => { setError(''); setNuevoArticulo({ ...articuloVacio }) }}
@@ -537,9 +599,21 @@ export default function Catalogo() {
                   <option value="Tractor">Tractor</option>
                   <option value="Caja">Caja</option>
                   <option value="Thermo">Thermo</option>
-                  <option value="Servicio">Camioneta de servicio</option>
+                  <option value="Servicio">UTILITARIO</option>
                 </select>
               </label>
+              <label style={etiqueta}>
+                Operación
+                <select style={campo} value={alta.operacion} onChange={(e) => setAlta({ ...alta, operacion: e.target.value })}>
+                  <option value="">Seleccione...</option>
+                  <option value="LOCAL">LOCAL</option>
+                  <option value="CRUCE">CRUCE</option>
+                  <option value="UTILITARIO">UTILITARIO</option>
+                  <option value="FORANEO">FORANEO</option>
+                </select>
+              </label>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <label style={etiqueta}>
                 Estado
                 <select style={campo} value={alta.estado} onChange={(e) => setAlta({ ...alta, estado: e.target.value as EstadoUnidad })}>
@@ -596,15 +670,27 @@ export default function Catalogo() {
         modal(
           'Editar ' + editar.unidad.id_unidad,
           <>
-            <label style={etiqueta}>
-              Estado
-              <select style={campo} value={editar.estado} onChange={(e) => setEditar({ ...editar, estado: e.target.value as EstadoUnidad })}>
-                <option value="Activo">Activo</option>
-                <option value="Yonke">Yonke</option>
-                <option value="Inactivo">Inactivo</option>
-                <option value="Vendido">Vendido</option>
-              </select>
-            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <label style={etiqueta}>
+                Operación
+                <select style={campo} value={editar.operacion} onChange={(e) => setEditar({ ...editar, operacion: e.target.value })}>
+                  <option value="">Seleccione...</option>
+                  <option value="LOCAL">LOCAL</option>
+                  <option value="CRUCE">CRUCE</option>
+                  <option value="UTILITARIO">UTILITARIO</option>
+                  <option value="FORANEO">FORANEO</option>
+                </select>
+              </label>
+              <label style={etiqueta}>
+                Estado
+                <select style={campo} value={editar.estado} onChange={(e) => setEditar({ ...editar, estado: e.target.value as EstadoUnidad })}>
+                  <option value="Activo">Activo</option>
+                  <option value="Yonke">Yonke</option>
+                  <option value="Inactivo">Inactivo</option>
+                  <option value="Vendido">Vendido</option>
+                </select>
+              </label>
+            </div>
             <label style={etiqueta}>
                 Vencimiento Documentos (Placas/Vigencia)
                 <input type="date" style={campo} value={editar.vencimiento_documentacion} onChange={(e) => setEditar({ ...editar, vencimiento_documentacion: e.target.value })} />

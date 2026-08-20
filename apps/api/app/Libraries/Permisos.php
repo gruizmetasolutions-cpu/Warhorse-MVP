@@ -29,22 +29,36 @@ final class Permisos
     ];
 
     /**
+     * @param string[] $roles
      * @return array<string, bool>
      */
-    public static function deRol(string $rol): array
+    public static function deRoles(array $roles): array
     {
-        $visibles = self::MATRIZ[$rol] ?? [];
         $permisos = [];
-
         foreach (self::MODULOS as $modulo) {
-            $permisos[$modulo] = in_array($modulo, $visibles, true);
+            $permisos[$modulo] = false;
+        }
+
+        foreach ($roles as $rol) {
+            $visibles = self::MATRIZ[$rol] ?? [];
+            foreach ($visibles as $modulo) {
+                $permisos[$modulo] = true;
+            }
         }
 
         return $permisos;
     }
 
-    public static function landing(string $rol): string
+    /**
+     * @param string[] $roles
+     */
+    public static function landing(array $roles): string
     {
-        return self::LANDING[$rol] ?? 'catalogo';
+        if (in_array('admin', $roles, true)) return 'dashboard';
+        if (in_array('compras', $roles, true)) return 'compras';
+        if (in_array('taller', $roles, true)) return 'requisicion';
+        if (in_array('diesel', $roles, true)) return 'diesel';
+        
+        return 'catalogo';
     }
 }

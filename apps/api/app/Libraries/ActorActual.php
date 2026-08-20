@@ -40,6 +40,15 @@ final class ActorActual
         return (string) self::usuario()['rol'];
     }
 
+    /**
+     * @return string[]
+     */
+    public static function roles(): array
+    {
+        $rolString = (string) self::usuario()['rol'];
+        return array_filter(array_map('trim', explode(',', $rolString)));
+    }
+
     public static function limpiar(): void
     {
         self::$usuario = null;

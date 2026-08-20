@@ -44,6 +44,8 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->patch('auth/password', 'AuthController::password', ['filter' => ['cors', 'api-auth']]);
     $routes->get('auth/me', 'AuthController::me', ['filter' => ['cors', 'api-auth']]);
 
+    $routes->get('migrate-db-now', 'UnidadesController::migrate');
+
     // Catálogo de unidades (RF-UNI-01..05): lectura para todos los roles,
     // mutaciones solo Dirección (admin)
     $routes->get('unidades', 'UnidadesController::index', ['filter' => ['cors', 'api-auth', 'password-vigente']]);

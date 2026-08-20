@@ -57,16 +57,18 @@ final class AuthController extends BaseController
         service('throttler')->remove(\App\Filters\ThrottleLoginFilter::llaveDe($this->request));
 
         $token = $shield->generateAccessToken('spa');
-        $rol   = (string) $usuario['rol'];
+        $rolString = (string) $usuario['rol'];
+        $roles = array_filter(array_map('trim', explode(',', $rolString)));
 
         return $this->response->setStatusCode(200)->setJSON([
             'token'   => $token->raw_token,
             'usuario' => [
                 'id'     => (int) $usuario['id'],
                 'nombre' => (string) $usuario['nombre'],
-                'rol'    => $rol,
+                'rol'    => $rolString,
+                'roles'  => $roles,
             ],
-            'landing'               => Permisos::landing($rol),
+            'landing'               => Permisos::landing($roles),
             'debe_cambiar_password' => (bool) ($usuario['debe_cambiar_password'] ?? false),
         ]);
     }
@@ -135,14 +137,15 @@ final class AuthController extends BaseController
     public function me(): ResponseInterface
     {
         $usuario = ActorActual::usuario();
-        $rol     = (string) $usuario['rol'];
+        $roles   = ActorActual::roles();
 
         return $this->response->setJSON([
             'id'                    => (int) $usuario['id'],
             'nombre'                => (string) $usuario['nombre'],
-            'rol'                   => $rol,
-            'permisos'              => Permisos::deRol($rol),
-            'landing'               => Permisos::landing($rol),
+            'rol'                   => implode(',', $roles),
+            'roles'                 => $roles,
+            'permisos'              => Permisos::deRoles($roles),
+            'landing'               => Permisos::landing($roles),
             'debe_cambiar_password' => (bool) ($usuario['debe_cambiar_password'] ?? false),
         ]);
     }

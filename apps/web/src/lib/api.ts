@@ -51,7 +51,7 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
 
 export interface SesionLogin {
   token: string
-  usuario: { id: number; nombre: string; rol: Rol }
+  usuario: { id: number; nombre: string; rol: string; roles: Rol[] }
   landing: string
   debe_cambiar_password: boolean
 }
@@ -59,10 +59,29 @@ export interface SesionLogin {
 export interface Yo {
   id: number
   nombre: string
-  rol: Rol
+  rol: string
+  roles: Rol[]
   permisos: Record<string, boolean>
   landing: string
   debe_cambiar_password: boolean
+}
+
+export interface UsuarioApi {
+  id: number
+  nombre: string
+  email: string
+  rol: string
+  roles: Rol[]
+  activo: boolean
+}
+
+export interface UsuarioCreado {
+  id: number
+  nombre: string
+  email: string
+  rol: string
+  roles: Rol[]
+  password_temporal: string
 }
 
 export async function login(email: string, password: string): Promise<SesionLogin> {
@@ -105,6 +124,7 @@ export interface UnidadApi {
   id: number
   id_unidad: string
   tipo: TipoUnidad
+  operacion?: string | null
   estado: EstadoUnidad
   valor_referencia: number | null
   costo_real_acumulado: number
@@ -127,6 +147,7 @@ export async function getUnidades(estado?: EstadoUnidad): Promise<UnidadApi[]> {
 export interface NuevaUnidad {
   id_unidad: string
   tipo: TipoUnidad
+  operacion?: string | null
   estado?: EstadoUnidad
   fecha_alta: string
   valor_referencia?: number | null
@@ -144,7 +165,7 @@ export function crearUnidad(datos: NuevaUnidad): Promise<UnidadApi> {
 
 export function actualizarUnidad(
   id: number,
-  cambio: { estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null; vin?: string | null; numero_economico?: string | null; marca?: string | null; modelo?: string | null; placas?: string | null },
+  cambio: { operacion?: string | null; estado?: EstadoUnidad; valor_referencia?: number; vencimiento_documentacion?: string | null; vin?: string | null; numero_economico?: string | null; marca?: string | null; modelo?: string | null; placas?: string | null },
 ): Promise<UnidadApi> {
   return pedir<UnidadApi>(`/unidades/${id}`, { method: 'PATCH', body: JSON.stringify(cambio) })
 }
@@ -158,6 +179,7 @@ export interface RequisicionApi {
   unidad_destino_id: number | null
   unidad_donante_id: number | null
   descripcion_pieza: string
+  cantidad: number
   numero_parte: string | null
   urgencia: Urgencia
   costo_estimado: number | null
@@ -171,14 +193,17 @@ export interface RequisicionApi {
   archivo_cotizacion_url?: string | null
   archivo_factura_url?: string | null
   numero_factura?: string | null
+  orden_trabajo_id?: number | null
+  folio?: string | null
 }
 
 export interface NuevaRequisicionApi {
   unidad_destino_id: number | null
   origen: Origen
   unidad_donante_id: number | null
-  pieza_catalogo_id?: number | null
+  pieza_catalogo_id: number | null
   descripcion_pieza: string
+  cantidad?: number
   numero_parte: string | null
   urgencia: Urgencia
   costo_estimado_manual: number | null
@@ -186,6 +211,7 @@ export interface NuevaRequisicionApi {
   origen_refaccion?: string
   almacen?: string
   numero_serie?: string
+  orden_trabajo_id?: number | null
 }
 
 export function crearRequisicion(datos: NuevaRequisicionApi): Promise<RequisicionApi> {
@@ -194,7 +220,9 @@ export function crearRequisicion(datos: NuevaRequisicionApi): Promise<Requisicio
   fd.set('origen', datos.origen)
   if (datos.unidad_donante_id !== null) fd.set('unidad_donante_id', String(datos.unidad_donante_id))
   if (datos.pieza_catalogo_id) fd.set('pieza_catalogo_id', String(datos.pieza_catalogo_id))
+  if (datos.orden_trabajo_id) fd.set('orden_trabajo_id', String(datos.orden_trabajo_id))
   fd.set('descripcion_pieza', datos.descripcion_pieza)
+  if (datos.cantidad) fd.set('cantidad', String(datos.cantidad))
   if (datos.numero_parte) fd.set('numero_parte', datos.numero_parte)
   fd.set('urgencia', datos.urgencia)
   if (datos.costo_estimado_manual !== null) fd.set('costo_estimado_manual', String(datos.costo_estimado_manual))
@@ -395,7 +423,8 @@ export interface UsuarioAdminApi {
   id: number
   nombre: string
   email: string
-  rol: Rol
+  rol: string
+  roles: Rol[]
   activo: boolean
 }
 
@@ -409,11 +438,11 @@ export async function getUsuarios(): Promise<UsuarioAdminApi[]> {
   return r.data
 }
 
-export function crearUsuario(datos: { nombre: string; email: string; rol: Rol }): Promise<UsuarioCreado> {
+export function crearUsuario(datos: { nombre: string; email: string; rol: string }): Promise<UsuarioCreado> {
   return pedir<UsuarioCreado>('/usuarios', { method: 'POST', body: JSON.stringify(datos) })
 }
 
-export function actualizarUsuario(id: number, cambio: { rol?: Rol; activo?: boolean }): Promise<UsuarioAdminApi> {
+export function actualizarUsuario(id: number, cambio: { rol?: string; activo?: boolean }): Promise<UsuarioAdminApi> {
   return pedir<UsuarioAdminApi>(`/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify(cambio) })
 }
 
@@ -538,11 +567,14 @@ export interface ResponsableTaller {
 
 export interface OrdenTrabajoApi {
   id: number
+  folio?: string
+  estado?: string
   diagnostico: string
   materiales: Array<{ pieza: string; cantidad: number }>
   archivos_evidencia: Array<{ categoria: string; url: string; nombre: string }>
   created_at: string
   unidad: {
+    id: number
     id_unidad: string
     tipo: string
   }

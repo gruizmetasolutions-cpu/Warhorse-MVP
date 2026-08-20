@@ -21,12 +21,12 @@ class RbacFilter implements FilterInterface
         $rolesPermitidos = is_array($arguments) ? $arguments : [];
 
         try {
-            $rol = ActorActual::rol();
+            $misRoles = ActorActual::roles();
         } catch (\RuntimeException) {
             return RespuestasApi::error(401, 'unauthenticated', 'No autenticado.');
         }
 
-        if (! in_array($rol, $rolesPermitidos, true)) {
+        if (empty(array_intersect($misRoles, $rolesPermitidos))) {
             return RespuestasApi::error(403, 'forbidden', 'Sin permiso para esta acción.');
         }
 

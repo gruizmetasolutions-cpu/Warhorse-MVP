@@ -31,18 +31,24 @@ final class UsuariosController extends BaseController
         if (! $this->validateData($datos, [
             'nombre' => 'required|string|min_length[2]|max_length[120]',
             'email'  => 'required|valid_email|max_length[180]',
-            'rol'    => 'required|in_list[admin,taller,compras,diesel]',
+            'rol'    => 'required|string',
         ])) {
             $errores = $this->validator?->getErrors() ?? [];
 
-            return RespuestasApi::error(422, 'validation', 'Datos del usuario inválidos.', array_map(static fn (string $e): array => [$e], $errores));
+            return RespuestasApi::error(422, 'validation', 'Datos de usuario incompletos o invAlidos.', array_map(static fn (string $e): array => [$e], $errores));
+        }
+
+        $rolesArray = array_filter(array_map('trim', explode(',', (string) $datos['rol'])));
+        $invalidos = array_diff($rolesArray, ['admin', 'taller', 'compras', 'diesel']);
+        if (!empty($invalidos) || empty($rolesArray)) {
+            return RespuestasApi::error(422, 'validation', 'Roles invAlidos.', ['rol' => ['invalid']]);
         }
 
         try {
             $usuario = (new UsuarioService())->alta([
                 'nombre' => trim((string) $datos['nombre']),
                 'email'  => strtolower(trim((string) $datos['email'])),
-                'rol'    => (string) $datos['rol'],
+                'rol'    => implode(',', $rolesArray),
             ], ActorActual::usuario());
         } catch (ConflictoException $e) {
             return RespuestasApi::error(409, 'conflict', $e->getMessage());
@@ -56,8 +62,13 @@ final class UsuariosController extends BaseController
         $request = $this->request;
         $cambio  = $request instanceof IncomingRequest ? (array) $request->getJSON(true) : [];
 
-        if (array_key_exists('rol', $cambio) && ! in_array($cambio['rol'], ['admin', 'taller', 'compras', 'diesel'], true)) {
-            return RespuestasApi::error(422, 'validation', 'Cambio de usuario inválido.', ['rol' => ['in_list']]);
+        if (array_key_exists('rol', $cambio)) {
+            $rolesArray = array_filter(array_map('trim', explode(',', (string) $cambio['rol'])));
+            $invalidos = array_diff($rolesArray, ['admin', 'taller', 'compras', 'diesel']);
+            if (!empty($invalidos) || empty($rolesArray)) {
+                return RespuestasApi::error(422, 'validation', 'Cambio de usuario invAlido.', ['rol' => ['invalid']]);
+            }
+            $cambio['rol'] = implode(',', $rolesArray);
         }
         // El booleano llega como true/false del JSON (no pasa por in_list)
         if (array_key_exists('activo', $cambio) && ! is_bool($cambio['activo']) && ! in_array($cambio['activo'], [0, 1, '0', '1'], true)) {

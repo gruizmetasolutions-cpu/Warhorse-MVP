@@ -372,7 +372,7 @@ export default function Compras() {
                     {q.unidad_destino}
                   </td>
                   <td style={{ ...tdCell, fontWeight: 600 }}>
-                    {q.descripcion_pieza}
+                    {q.cantidad > 1 ? `(x${q.cantidad}) ` : ''}{q.descripcion_pieza}
                     <div style={{ fontWeight: 400, fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', gap: 10, alignItems: 'center', marginTop: 4 }}>
                       <span>{yk ? 'Donante: ' + (q.unidad_donante ?? '—') + ' (yonke)' : 'Compra externa'}</span>
                       <button
@@ -571,20 +571,27 @@ export default function Compras() {
                 <input type="number" min={0} style={campo} value={costoReal} onChange={(e) => setCostoReal(e.target.value)} />
               </label>
               <label style={etiqueta}>
-                Origen de la compra / refacción
-                <input type="text" style={campo} value={origenRefaccion} onChange={(e) => setOrigenRefaccion(e.target.value)} placeholder="Ej. Nacional, Importado, Local" />
+                Origen de la compra y ETA
+                <select style={campo} value={origenRefaccion} onChange={(e) => setOrigenRefaccion(e.target.value)}>
+                  <option value="">Selecciona origen/tiempo...</option>
+                  <option value="Local (Mismo día)">Local (Mismo día)</option>
+                  <option value="Foránea (1-3 días)">Foránea (ETA 1-3 días)</option>
+                  <option value="Foránea (1 semana)">Foránea (ETA 1 semana)</option>
+                  <option value="Foránea (2+ semanas)">Foránea (ETA 2+ semanas)</option>
+                  <option value="Agencia / Planta (Indefinido)">Agencia / Planta (Indefinido)</option>
+                </select>
               </label>
               <label style={etiqueta}>
                 Número de factura
                 <input type="text" style={campo} value={factura} placeholder="Ej. F-10233" onChange={(e) => setFactura(e.target.value)} />
               </label>
               <label style={etiqueta}>
-                Adjuntar archivo de factura (PDF / Imagen)
+                Adjuntar archivo de factura (PDF / Imagen / XML)
                 <input
                   type="file"
-                  accept="application/pdf,image/jpeg,image/png,image/webp"
-                  style={campo}
-                  onChange={(e) => setArchivoFactura(e.target.files?.[0] ?? null)}
+                  accept="application/pdf,image/jpeg,image/png,image/webp,text/xml,application/xml"
+                  onChange={(e) => setArchivoFactura(e.target.files?.[0] || null)}
+                  style={{ ...campo, background: '#fff', border: '1px dashed var(--border-color)', padding: 10, cursor: 'pointer' }}
                 />
               </label>
             </div>
