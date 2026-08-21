@@ -59,17 +59,17 @@ export default function ConciliacionDiesel() {
       return toast('Por favor, ingresa los datos crudos en ambos campos de texto CSV.')
     }
 
-    // Mock client-side parser to read and cross-reference CSV lines
     try {
-      const lineasComb = combustibleCSV.split('\n').map(l => l.split(',')).filter(l => l.length >= 3)
+      const lineasComb = combustibleCSV.split('\n').map(l => l.split(';')).filter(l => l.length >= 18)
       const lineasSamsara = samsaraCSV.split('\n').map(l => l.split(',')).filter(l => l.length >= 2)
 
       const mapaComb: Record<string, { litros: number; costo: number }> = {}
       lineasComb.forEach((row, i) => {
-        if (i === 0) return // Skip header
-        const unidad = row[0]?.trim()
-        const litros = Number(row[1]) || 0
-        const costo = Number(row[2]) || 0
+        if (i === 0 && row[0].toLowerCase().includes('cantidad')) return // Skip header
+        const unidad = row[17]?.trim()
+        const litros = Number(row[0]) || 0
+        // Importe is row 4, which could have a '$' sign
+        const costo = Number(row[4]?.replace(/[^0-9.-]+/g, "")) || 0
         if (unidad) {
           if (!mapaComb[unidad]) mapaComb[unidad] = { litros: 0, costo: 0 }
           mapaComb[unidad].litros += litros
@@ -79,30 +79,34 @@ export default function ConciliacionDiesel() {
 
       const mapaSamsara: Record<string, number> = {}
       lineasSamsara.forEach((row, i) => {
-        if (i === 0) return // Skip header
+        if (i === 0 && row[0].toLowerCase().includes('vehículo')) return // Skip header
+        if (i === 0 && row[0].toLowerCase().includes('vehaculo')) return // Skip header
         const unidad = row[0]?.trim()
-        const distancia = Number(row[1]) || 0
+        // Samsara uses Distancia (mi), we need to convert to KM
+        const distanciaMiles = Number(row[1]) || 0
+        const distanciaKm = distanciaMiles * 1.60934
         if (unidad) {
           if (!mapaSamsara[unidad]) mapaSamsara[unidad] = 0
-          mapaSamsara[unidad] += distancia
+          mapaSamsara[unidad] += distanciaKm
         }
       })
 
       const cruzados: FilaConciliada[] = []
-      Object.keys(mapaComb).forEach(unidad => {
-        const comb = mapaComb[unidad]
-        const dist = mapaSamsara[unidad] ?? 0
-        const rend = comb.litros > 0 ? Number((dist / comb.litros).toFixed(2)) : 0
+      const todasLasUnidades = new Set([...Object.keys(mapaComb), ...Object.keys(mapaSamsara)])
+
+      todasLasUnidades.forEach(u => {
+        const c = mapaComb[u] || { litros: 0, costo: 0 }
+        const s = mapaSamsara[u] || 0
         cruzados.push({
-          unidad,
-          litros: comb.litros,
-          costo: comb.costo,
-          distancia: dist,
-          rendimiento: rend
+          unidad: u,
+          litros: Number(c.litros.toFixed(2)),
+          costo: Number(c.costo.toFixed(2)),
+          distancia: Number(s.toFixed(2)),
+          rendimiento: c.litros > 0 ? Number((s / c.litros).toFixed(2)) : 0
         })
       })
 
-      setResultados(cruzados)
+      setResultados(cruzados.sort((a, b) => b.costo - a.costo))
       toast('Cruces de telemetría de Samsara y combustible calculados exitosamente.')
     } catch (e) {
       toast('Error al parsear los archivos CSV. Verifica el formato.')
@@ -171,15 +175,15 @@ export default function ConciliacionDiesel() {
           }}
         >
           <label style={etiqueta}>
-            CSV Combustible Crudo (Unidad, Litros, Costo)
+            CSV Combustible Crudo (WEX)
             <textarea
               style={{ ...campo, height: 120, fontFamily: 'monospace', fontSize: 13 }}
-              placeholder="Unidad,Litros,Costo&#10;WH101,150,3450&#10;WH104,220,5060"
+              placeholder="Cantidad;No Identificación;Producto;Valor Unitario;Importe;...;Eco;...&#10;10.004;34006;Diesel;$23.962;$258.50;...;CAJAS4;..."
               value={combustibleCSV}
               onChange={(e) => setCombustibleCSV(e.target.value)}
             />
             <span style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 4 }}>
-              📂 Suelta tu archivo CSV de combustible aquí para cargarlo automáticamente
+              📁 Suelta tu archivo CSV de combustible aquí para cargarlo automáticamente
             </span>
           </label>
         </div>
@@ -195,15 +199,15 @@ export default function ConciliacionDiesel() {
           }}
         >
           <label style={etiqueta}>
-            CSV Samsara Telemetría Cruda (Unidad, Kilómetros)
+            CSV Samsara Telemetría Cruda
             <textarea
               style={{ ...campo, height: 120, fontFamily: 'monospace', fontSize: 13 }}
-              placeholder="Unidad,Kilometros&#10;WH101,340&#10;WH104,510"
+              placeholder="Nombre del vehículo,Distancia (mi),...&#10;WH68,2012.1,..."
               value={samsaraCSV}
               onChange={(e) => setSamsaraCSV(e.target.value)}
             />
             <span style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 4 }}>
-              📂 Suelta tu archivo CSV de Samsara aquí para cargarlo automáticamente
+              📁 Suelta tu archivo CSV de Samsara aquí para cargarlo automáticamente
             </span>
           </label>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import Camion from '../components/Camion'
 import { ApiError } from '../lib/api'
@@ -12,12 +12,26 @@ const puntos = [
 ]
 
 export default function Login() {
-  const { entrar, goTour } = useDemo()
+  const { entrar, goTour, refrescarSesion, recargarUnidades } = useDemo()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
+
+  useEffect(() => {
+    if (localStorage.getItem('wh_token')) {
+      setCargando(true)
+      refrescarSesion()
+        .then(yo => {
+          void recargarUnidades()
+          navigate(rutaDeLanding(yo.landing))
+        })
+        .catch(() => {
+          setCargando(false)
+        })
+    }
+  }, [refrescarSesion, recargarUnidades, navigate])
 
   const arrancar = async () => {
     setError('')
