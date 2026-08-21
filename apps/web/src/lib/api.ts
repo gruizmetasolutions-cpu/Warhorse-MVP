@@ -6,7 +6,7 @@ import type { EstadoRequisicion, EstadoUnidad, Origen, Rol, TipoUnidad, Urgencia
 const BASE = '/api/v1'
 
 // El token de acceso vive en memoria del SPA (doc 04 §3.5), nunca en localStorage.
-let tokenActual: string | null = null
+let tokenActual: string | null = localStorage.getItem('wh_token')
 
 export class ApiError extends Error {
   constructor(
@@ -90,6 +90,7 @@ export async function login(email: string, password: string): Promise<SesionLogi
     body: JSON.stringify({ email, password }),
   })
   tokenActual = sesion.token
+    localStorage.setItem('wh_token', tokenActual)
   return sesion
 }
 
@@ -98,6 +99,7 @@ export async function logout(): Promise<void> {
     await pedir<void>('/auth/logout', { method: 'POST' })
   } finally {
     tokenActual = null
+      localStorage.removeItem('wh_token')
   }
 }
 
