@@ -361,6 +361,31 @@ export function registrarCarga(datos: {
   return pedir<CargaDieselApi>('/diesel', { method: 'POST', body: JSON.stringify(datos) })
 }
 
+export interface CargaExternaApi {
+  id: number
+  fecha: string
+  litros_totales: number
+  costo_total: number
+  desglose: { id: number, unidad_id: number, unidad_nombre: string, litros: number }[]
+}
+
+export async function getCargasExternas(): Promise<CargaExternaApi[]> {
+  const r = await pedir<{ data: CargaExternaApi[] }>('/diesel/externos')
+  return r.data
+}
+
+export async function crearCargaExterna(datos: { fecha: string, litros_totales: number, costo_total: number }): Promise<{ id: number }> {
+  return pedir<{ id: number }>('/diesel/externos', { method: 'POST', body: JSON.stringify(datos) })
+}
+
+export async function asignarDesglose(cargaId: number, datos: { unidad_id: number, litros: number }): Promise<{ id: number }> {
+  return pedir<{ id: number }>(`/diesel/externos/${cargaId}/desglose`, { method: 'POST', body: JSON.stringify(datos) })
+}
+
+export async function borrarDesglose(cargaId: number, desgloseId: number): Promise<void> {
+  return pedir<void>(`/diesel/externos/${cargaId}/desglose/${desgloseId}`, { method: 'DELETE' })
+}
+
 // ---- Dashboard de Dirección (real desde el Sprint 5, doc 05 §8) ----
 
 export type Veredicto = 'Mantener' | 'Evaluar' | 'Vender'

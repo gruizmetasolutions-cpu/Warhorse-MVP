@@ -1,7 +1,8 @@
-import { useState, type CSSProperties } from 'react'
+import { useState, useCallback, useEffect, type CSSProperties } from 'react'
 import Kicker from '../components/Kicker'
 import { badge, card, FD, fmt, h2Titulo, h3Titulo, subTitulo, tdCell, thCell, theadRow } from '../lib/estilos'
 import { useDemo } from '../lib/demo'
+import { getCargasExternas, asignarDesglose, borrarDesglose, type CargaExternaApi } from '../lib/api'
 
 const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
@@ -14,13 +15,7 @@ interface FilaConciliada {
   rendimiento: number // km / L
 }
 
-interface CargaExterna {
-  id: number
-  fecha: string
-  litrosTotales: number
-  costoTotal: number
-  desglose: { unidad: string; litros: number }[]
-}
+
 
 export default function ConciliacionDiesel() {
   const { unidades, toast } = useDemo()
@@ -45,12 +40,17 @@ export default function ConciliacionDiesel() {
   }
 
   // Split loads state (mock dataset for external tanks)
-  const [cargasExternas, setCargasExternas] = useState<CargaExterna[]>([
-    { id: 1, fecha: '2026-07-25', litrosTotales: 150, costoTotal: 3450, desglose: [{ unidad: 'CJ12', litros: 50 }] },
-    { id: 2, fecha: '2026-07-26', litrosTotales: 300, costoTotal: 6900, desglose: [] }
-  ])
+  const [cargasExternas, setCargasExternas] = useState<CargaExternaApi[]>([])
 
-  const [desglosarCarga, setDesglosarCarga] = useState<CargaExterna | null>(null)
+  const cargarDatos = useCallback(() => {
+    getCargasExternas().then(setCargasExternas).catch(e => toast(e.message))
+  }, [toast])
+
+  useEffect(() => {
+    cargarDatos()
+  }, [cargarDatos])
+
+  const [desglosarCarga, setDesglosarCarga] = useState<CargaExternaApi | null>(null)
   const [nuevaUnidadDesglose, setNuevaUnidadDesglose] = useState('')
   const [nuevosLitrosDesglose, setNuevosLitrosDesglose] = useState('')
 
@@ -109,35 +109,43 @@ export default function ConciliacionDiesel() {
     }
   }
 
-  const agregarDesglose = () => {
+  const agregarDesglose = async () => {
     if (!desglosarCarga) return
     const l = Number(nuevosLitrosDesglose)
     if (!nuevaUnidadDesglose) return toast('Selecciona la unidad destino.')
-    if (isNaN(l) || l <= 0) return toast('Ingresa una cantidad de litros válida.')
+    if (isNaN(l) || l <= 0) return toast('Ingresa una cantidad de litros vAlida.')
 
-    const litrosAsignados = desglosarCarga.desglose.reduce((sum, item) => sum + item.litros, 0)
-    if (litrosAsignados + l > desglosarCarga.litrosTotales) {
+    const litrosAsignados = desglosarCarga.desglose.reduce((sum: number, item: any) => sum + item.litros, 0)
+    if (litrosAsignados + l > desglosarCarga.litros_totales) {
       return toast('La suma del desglose supera el total de litros disponibles en el tanque.')
     }
 
-    const nuevoDesglose = [...desglosarCarga.desglose, { unidad: nuevaUnidadDesglose, litros: l }]
-    const actualizada = { ...desglosarCarga, desglose: nuevoDesglose }
-
-    setCargasExternas(prev => prev.map(c => c.id === desglosarCarga.id ? actualizada : c))
-    setDesglosarCarga(actualizada)
-    setNuevaUnidadDesglose('')
-    setNuevosLitrosDesglose('')
-    toast('Carga parcial asignada exitosamente.')
+    try {
+      const u = unidades.find(un => un.id_unidad === nuevaUnidadDesglose)
+      if (!u) return toast('Unidad no encontrada.')
+      await asignarDesglose(desglosarCarga.id, { unidad_id: u.id, litros: l })
+      toast('Carga parcial asignada exitosamente.')
+      const c = await getCargasExternas()
+      setCargasExternas(c)
+      setDesglosarCarga(c.find(x => x.id === desglosarCarga.id) || null)
+      setNuevaUnidadDesglose('')
+      setNuevosLitrosDesglose('')
+    } catch (e: any) {
+      toast(e.message)
+    }
   }
 
-  const limpiarDesglose = (idx: number) => {
+  const limpiarDesglose = async (desgloseId: number) => {
     if (!desglosarCarga) return
-    const nuevoDesglose = desglosarCarga.desglose.filter((_, i) => i !== idx)
-    const actualizada = { ...desglosarCarga, desglose: nuevoDesglose }
-
-    setCargasExternas(prev => prev.map(c => c.id === desglosarCarga.id ? actualizada : c))
-    setDesglosarCarga(actualizada)
-    toast('Asignación de carga removida.')
+    try {
+      await borrarDesglose(desglosarCarga.id, desgloseId)
+      toast('AsignaciA3n de carga removida.')
+      const c = await getCargasExternas()
+      setCargasExternas(c)
+      setDesglosarCarga(c.find(x => x.id === desglosarCarga.id) || null)
+    } catch (e: any) {
+      toast(e.message)
+    }
   }
 
   return (
@@ -264,11 +272,11 @@ export default function ConciliacionDiesel() {
               return (
                 <tr key={c.id} className="hv-fila">
                   <td style={tdCell}>{c.fecha}</td>
-                  <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{c.litrosTotales} L</td>
-                  <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmt(c.costoTotal)}</td>
+                  <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{c.litros_totales} L</td>
+                  <td style={{ ...tdCell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmt(c.costo_total)}</td>
                   <td style={tdCell}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {c.desglose.map((d, idx) => (
+                      {c.desglose.map((d: any, idx: number) => (
                         <span key={idx} style={badge('#E3ECF7', '#1B4E8C', '#9FC0E4')}>
                           {d.unidad}: {d.litros} L
                         </span>
@@ -282,7 +290,7 @@ export default function ConciliacionDiesel() {
                       className="hv-op85"
                       style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(197, 160, 89, 0.4)', borderRadius: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--accent-gold)', cursor: 'pointer' }}
                     >
-                      Fragmentar Carga ({c.litrosTotales - litrosAsignados} L Libres)
+                      Fragmentar Carga ({c.litros_totales - litrosAsignados} L Libres)
                     </button>
                   </td>
                 </tr>
@@ -308,14 +316,14 @@ export default function ConciliacionDiesel() {
               Fragmentar Contenedor Externo
             </h3>
             <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Tanque del día <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.fecha}</strong> · Litros totales: <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.litrosTotales} L</strong>.<br />
+              Tanque del día <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.fecha}</strong> · Litros totales: <strong style={{ color: 'var(--text-main)' }}>{desglosarCarga.litros_totales} L</strong>.<br />
               <div style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-                  <span>Asignados: {desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0)} L</span>
-                  <span style={{ color: 'var(--accent-gold)' }}>Disponibles: {desglosarCarga.litrosTotales - desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0)} L</span>
+                  <span>Asignados: {desglosarCarga.desglose.reduce((s: number, i: any) => s + i.litros, 0)} L</span>
+                  <span style={{ color: 'var(--accent-gold)' }}>Disponibles: {desglosarCarga.litros_totales - desglosarCarga.desglose.reduce((s: number, i: any) => s + i.litros, 0)} L</span>
                 </div>
                 <div style={{ width: '100%', height: 10, background: 'var(--border-color)', borderRadius: 5, overflow: 'hidden' }}>
-                  <div style={{ width: `${(desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0) / desglosarCarga.litrosTotales) * 100}%`, height: '100%', background: 'var(--accent-gold)', transition: 'width 0.3s ease' }} />
+                  <div style={{ width: `${(desglosarCarga.desglose.reduce((s: number, i: any) => s + i.litros, 0) / desglosarCarga.litros_totales) * 100}%`, height: '100%', background: 'var(--accent-gold)', transition: 'width 0.3s ease' }} />
                 </div>
               </div>
             </p>
@@ -333,8 +341,8 @@ export default function ConciliacionDiesel() {
                 </label>
                 <label style={{ ...etiqueta, flex: 1 }}>
                   Litros
-                  <input type="number" min={1} max={desglosarCarga.litrosTotales - desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0)} style={campo} placeholder="Ej. 30" value={nuevosLitrosDesglose} onChange={(e) => {
-                    const max = desglosarCarga.litrosTotales - desglosarCarga.desglose.reduce((s, i) => s + i.litros, 0)
+                  <input type="number" min={1} max={desglosarCarga.litros_totales - desglosarCarga.desglose.reduce((s: number, i: any) => s + i.litros, 0)} style={campo} placeholder="Ej. 30" value={nuevosLitrosDesglose} onChange={(e) => {
+                    const max = desglosarCarga.litros_totales - desglosarCarga.desglose.reduce((s: number, i: any) => s + i.litros, 0)
                     if (Number(e.target.value) > max) {
                       setNuevosLitrosDesglose(String(max))
                     } else {
@@ -356,10 +364,10 @@ export default function ConciliacionDiesel() {
                   Desglose Registrado:
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {desglosarCarga.desglose.map((d, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-input)', padding: '6px 10px', borderRadius: 6, fontSize: 13 }}>
-                      <span><strong>{d.unidad}</strong>: {d.litros} Litros</span>
-                      <button onClick={() => limpiarDesglose(i)} style={{ background: 'transparent', border: 'none', color: '#C53030', cursor: 'pointer' }}>✕</button>
+                  {desglosarCarga.desglose.map((d: any, i: number) => (
+                    <div key={d.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-input)', padding: '6px 10px', borderRadius: 6, fontSize: 13 }}>
+                      <span><strong>{d.unidad_nombre}</strong>: {d.litros} Litros</span>
+                      <button onClick={() => limpiarDesglose(d.id)} style={{ background: 'transparent', border: 'none', color: '#C53030', cursor: 'pointer' }}>✕</button>
                     </div>
                   ))}
                   {desglosarCarga.desglose.length === 0 && (
