@@ -46,6 +46,8 @@ final class ComprasController extends BaseController
     {
         $request = $this->request;
         $cambio  = [];
+        $fileC = null;
+        $fileF = null;
         if ($request instanceof IncomingRequest) {
             $json = $request->getJSON(true);
             if (is_array($json)) {
@@ -54,13 +56,7 @@ final class ComprasController extends BaseController
                 $cambio = $request->getPost();
             }
             $fileC = $request->getFile('archivo_cotizacion');
-            if ($fileC !== null && $fileC->isValid()) {
-                $cambio['archivo_cotizacion'] = $fileC;
-            }
             $fileF = $request->getFile('archivo_factura');
-            if ($fileF !== null && $fileF->isValid()) {
-                $cambio['archivo_factura'] = $fileF;
-            }
         }
 
         if (! $this->validateData($cambio, [

@@ -70,7 +70,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
 
     // Panel de Compras (RF-COM-01..04): la cola la ven compras y admin; el
     // ciclo lo avanza SOLO compras (doc 05 §6)
-    $routes->get('compras/requisiciones', 'ComprasController::index', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'password-vigente']]);
+    $routes->get('compras/requisiciones', 'ComprasController::index', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin', 'password-vigente']]);
     $routes->patch('compras/requisiciones/(:num)/estado', 'ComprasController::estado/$1', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'throttle-mut', 'password-vigente']]);
     $routes->post('compras/requisiciones/(:num)/revertir', 'ComprasController::revertir/$1', ['filter' => ['cors', 'api-auth', 'rbac:compras,admin', 'throttle-mut', 'password-vigente']]);
 

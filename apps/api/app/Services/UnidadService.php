@@ -40,8 +40,10 @@ final class UnidadService
      */
     public function crear(array $datos, array $actor): array
     {
-        if ($this->unidades->where('id_unidad', $datos['id_unidad'])->first() !== null) {
-            throw new ConflictoException('Ya existe una unidad con ese ID.');
+        $existente = $this->unidades->where('id_unidad', $datos['id_unidad'])->first();
+        if ($existente !== null) {
+            // TKT-CIF-009: Instead of conflict, return existing to allow linking to work orders
+            return $this->conConsolidado((int) $existente['id']);
         }
 
         $db = db_connect();
@@ -52,6 +54,7 @@ final class UnidadService
             'tipo'                      => $datos['tipo'],
             'operacion'                 => $datos['operacion'] ?? null,
             'estado'                    => $datos['estado'] ?? 'Activo',
+            'es_modificada'             => isset($datos['es_modificada']) ? (bool) $datos['es_modificada'] : false,
             'fecha_alta'                => $datos['fecha_alta'],
             'valor_referencia'          => $datos['valor_referencia'] ?? null,
             'vencimiento_documentacion' => $datos['vencimiento_documentacion'] ?? null,
@@ -159,6 +162,7 @@ final class UnidadService
 
         return [
             'id'                     => (int) $unidad['id'],
+            'es_modificada'          => (bool) ($unidad['es_modificada'] ?? false),
             'id_unidad'              => (string) $unidad['id_unidad'],
             'tipo'                   => (string) $unidad['tipo'],
             'estado'                 => (string) $unidad['estado'],

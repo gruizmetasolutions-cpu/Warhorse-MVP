@@ -185,6 +185,7 @@ export interface RequisicionApi {
   numero_parte: string | null
   urgencia: Urgencia
   costo_estimado: number | null
+  unidad?: { id: number, id_unidad: string }
   origen_costo_estimado: 'ultima_compra' | 'catalogo' | 'manual' | null
   costo_real: number | null
   foto_pieza_url: string
@@ -194,6 +195,8 @@ export interface RequisicionApi {
   numero_serie?: string | null
   archivo_cotizacion_url?: string | null
   archivo_factura_url?: string | null
+  creado_por_nombre?: string
+  aprobado_por_nombre?: string | null
   numero_factura?: string | null
   orden_trabajo_id?: number | null
   folio?: string | null
@@ -214,6 +217,11 @@ export interface NuevaRequisicionApi {
   almacen?: string
   numero_serie?: string
   orden_trabajo_id?: number | null
+}
+
+export async function getRequisiciones(): Promise<RequisicionApi[]> {
+  const r = await pedir<{ data: RequisicionApi[] }>('/compras/requisiciones?estado=Todas&page=1&per_page=50')
+  return r.data
 }
 
 export function crearRequisicion(datos: NuevaRequisicionApi): Promise<RequisicionApi> {
@@ -243,6 +251,7 @@ export function crearRequisicion(datos: NuevaRequisicionApi): Promise<Requisicio
 
 export interface FilaCompras extends RequisicionApi {
   unidad_destino: string
+  destino_modificada: boolean
   unidad_donante: string | null
 }
 
@@ -520,6 +529,7 @@ export function getFicha(id: number): Promise<FichaApi> {
 export interface ArticuloAlmacenApi {
   id: number
   nombre_normalizado: string
+  categoria?: string
   numero_parte: string | null
   precio_referencia: number | null
   stock_minimo: number | null
@@ -589,7 +599,8 @@ export async function getDocumentoRequisicion(id: number, tipo: 'cotizacion' | '
 export interface ResponsableTaller {
   id: number
   nombre: string
-  rol: 'Mecánico A' | 'Mecánico B' | 'Auxiliares' | 'Termoquineros' | 'Desponchadores'
+  tipo: 'Tracto' | 'Caja'
+  rol: 'Mecánico A' | 'Mecánico B' | 'Auxiliar' | 'Termoquineros'
 }
 
 export interface OrdenTrabajoApi {
@@ -616,7 +627,7 @@ export async function getResponsablesTaller(): Promise<ResponsableTaller[]> {
   return r.data
 }
 
-export function crearResponsableTaller(datos: { nombre: string; rol: string }): Promise<{ id: number }> {
+export function crearResponsableTaller(datos: { nombre: string; tipo: string; rol: string }): Promise<{ id: number }> {
   return pedir<{ id: number }>('/taller/responsables', { method: 'POST', body: JSON.stringify(datos) })
 }
 

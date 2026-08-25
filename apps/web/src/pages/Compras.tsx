@@ -43,6 +43,9 @@ export default function Compras() {
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('Todos')
   const [filtroOrigen, setFiltroOrigen] = useState<FiltroOrigen>('Todos')
   const [busqueda, setBusqueda] = useState('')
+  const [filtroDestino, setFiltroDestino] = useState('')
+  const [filtroUrgencia, setFiltroUrgencia] = useState('')
+  const [filtroFechaSol, setFiltroFechaSol] = useState('')
   
   // Date Filters
   const [filtroDia, setFiltroDia] = useState('')
@@ -158,6 +161,7 @@ export default function Compras() {
 
   const ejecutarReversion = async () => {
     if (!revertirReq) return
+    if (!motivoReversion.trim()) return setErrorModal('El motivo es obligatorio.')
     setErrorModal('')
     try {
       await revertirCotizacion(revertirReq.id, { motivo: motivoReversion })
@@ -347,18 +351,39 @@ export default function Compras() {
         />
 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 850 }}>
-          <thead>
-            <tr style={theadRow}>
-              <SortTh col="unidad_destino"    label="Destino"   sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-              <SortTh col="descripcion_pieza" label="Pieza"     sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-              <SortTh col="origen"            label="Origen"    sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-              <SortTh col="costo"             label="Costo"     sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
-              <SortTh col="urgencia"          label="Urgencia"  sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-              <SortTh col="estado"            label="Estado"    sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-              <SortTh col="fecha_solicitud"   label="Solicitud" sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
-              <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }}>Acción</th>
-            </tr>
-          </thead>
+            <thead>
+              <tr style={theadRow}>
+                <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => ctrl.toggleSort('unidad_destino')}>Destino {ctrl.sortCol === 'unidad_destino' && (ctrl.sortDir === 'asc' ? '↑' : '↓')}</div>
+                    <input type="text" placeholder="Filtrar..." value={filtroDestino} onChange={(e) => setFiltroDestino(e.target.value)} style={{ padding: '4px 6px', fontSize: 12, borderRadius: 4, border: '1px solid var(--border-color)', background: 'var(--bg-input)' }} />
+                  </div>
+                </th>
+                <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)', textAlign: 'left' }}>Cant.</th>
+                <SortTh col="descripcion_pieza" label="Pieza"     sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="origen"            label="Origen"    sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <SortTh col="costo"             label="Costo"     sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} style={{ textAlign: 'right' }} />
+                <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => ctrl.toggleSort('urgencia')}>Urgencia {ctrl.sortCol === 'urgencia' && (ctrl.sortDir === 'asc' ? '↑' : '↓')}</div>
+                    <select value={filtroUrgencia} onChange={(e) => setFiltroUrgencia(e.target.value)} style={{ padding: '4px 2px', fontSize: 12, borderRadius: 4, border: '1px solid var(--border-color)', background: 'var(--bg-input)' }}>
+                      <option value="">Todas</option>
+                      <option value="Baja">Baja</option>
+                      <option value="Media">Media</option>
+                      <option value="Crítica">Crítica</option>
+                    </select>
+                  </div>
+                </th>
+                <SortTh col="estado"            label="Estado"    sortCol={ctrl.sortCol} sortDir={ctrl.sortDir} onSort={ctrl.toggleSort} />
+                <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => ctrl.toggleSort('fecha_solicitud')}>Solicitud {ctrl.sortCol === 'fecha_solicitud' && (ctrl.sortDir === 'asc' ? '↑' : '↓')}</div>
+                    <input type="date" value={filtroFechaSol} onChange={(e) => setFiltroFechaSol(e.target.value)} style={{ padding: '4px 6px', fontSize: 12, borderRadius: 4, border: '1px solid var(--border-color)', background: 'var(--bg-input)' }} />
+                  </div>
+                </th>
+                <th style={{ padding: '12px 10px', borderBottom: '2px solid rgba(197, 160, 89, 0.3)' }}>Acción</th>
+              </tr>
+            </thead>
           <tbody>
             {ctrl.filasPagina.map((q) => {
               const yk = q.origen === 'Yonke'

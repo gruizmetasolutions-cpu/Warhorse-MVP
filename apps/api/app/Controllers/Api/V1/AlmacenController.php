@@ -21,6 +21,7 @@ final class AlmacenController extends BaseController
             'data' => array_map(static fn (array $a): array => [
                 'id'                 => (int) $a['id'],
                 'nombre_normalizado' => (string) $a['nombre_normalizado'],
+                'categoria'          => (string) ($a['categoria'] ?? 'Preventivos'),
                 'numero_parte'       => $a['numero_parte'],
                 'precio_referencia'  => $a['precio_referencia'] === null ? null : (float) $a['precio_referencia'],
                 'stock_minimo'       => $a['stock_minimo'] === null ? null : (int) $a['stock_minimo'],
@@ -38,6 +39,7 @@ final class AlmacenController extends BaseController
 
         if (! $this->validateData($datos, [
             'nombre_normalizado' => 'required|is_unique[catalogo_piezas.nombre_normalizado]|min_length[3]|max_length[180]',
+            'categoria'          => 'required|in_list[Frenos,Suspensión,Preventivos,Filtros,Aceites,Otros]',
             'numero_parte'       => 'permit_empty|max_length[80]',
             'precio_referencia'  => 'required|numeric|greater_than[0]',
             'stock_minimo'       => 'permit_empty|is_natural',
@@ -62,6 +64,7 @@ final class AlmacenController extends BaseController
 
         $id = $model->insert([
             'nombre_normalizado' => trim((string) $datos['nombre_normalizado']),
+            'categoria'          => $datos['categoria'],
             'numero_parte'       => isset($datos['numero_parte']) && trim((string) $datos['numero_parte']) !== '' ? trim((string) $datos['numero_parte']) : null,
             'precio_referencia'  => (float) $datos['precio_referencia'],
             'stock_minimo'       => $stockMin,

@@ -1,9 +1,9 @@
 import { useState, useEffect, type CSSProperties } from 'react'
 import Ayuda from '../components/Ayuda'
 import Kicker from '../components/Kicker'
-import { ApiError, crearRequisicion, getArticulosAlmacen, getOrdenesTrabajo, type ArticuloAlmacenApi, type OrdenTrabajoApi } from '../lib/api'
+import { crearRequisicion, getArticulosAlmacen, getOrdenesTrabajo, getRequisiciones, type ArticuloAlmacenApi, type OrdenTrabajoApi, type RequisicionApi } from '../lib/api'
 import { useDemo } from '../lib/demo'
-import { FD, fmt, h2Titulo, subTitulo, urgColors } from '../lib/estilos'
+import { FD, h2Titulo, subTitulo, urgColors } from '../lib/estilos'
 import type { Origen, Urgencia } from '../lib/types'
 
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
@@ -32,10 +32,14 @@ export default function Requisicion() {
   const [enviando, setEnviando] = useState(false)
   const [articulos, setArticulos] = useState<ArticuloAlmacenApi[]>([])
   const [selArticuloId, setSelArticuloId] = useState('')
+  const [categoriaSel, setCategoriaSel] = useState('')
+  const [carrito, setCarrito] = useState<any[]>([])
+  const [historial, setHistorial] = useState<RequisicionApi[]>([])
 
   useEffect(() => {
     getArticulosAlmacen().then(setArticulos).catch(() => {})
     getOrdenesTrabajo().then(setOrdenesTrabajo).catch(() => {})
+    getRequisiciones().then(setHistorial).catch(() => {})
   }, [])
 
   // CatÃ¡logo VIVO (RF-UNI-01): los selectores leen de la API, no del mock
@@ -68,13 +72,14 @@ export default function Requisicion() {
     }
   }
 
-  const enviar = async () => {
+
+  const agregarAlCarrito = () => {
     const esInventario = origen === 'Inventario'
     if (!paraInventario && !destino) return setError('Selecciona el tracto destino.')
     
     let descripcionPieza = pieza.trim()
     let sku = numeroParte.trim() || null
-    let piezaCatId: number | null = null
+    let piezaCatId: number | null = selArticuloId ? Number(selArticuloId) : null
 
     if (esInventario) {
       if (!selArticuloId) return setError('Selecciona el artÃ­culo del inventario.')
@@ -88,44 +93,52 @@ export default function Requisicion() {
       if (!descripcionPieza) return setError('Describe la pieza solicitada.')
       if (descripcionPieza.length > 350) return setError('La descripciÃ³n de la pieza no puede exceder los 350 caracteres.')
       if (esYonke && !donante) return setError('El origen Yonke obliga a registrar la unidad donante.')
-      
-      // WH-004: part number is mandatory for Tractors/Service but optional for Cajas/Termos
-      
     }
     
     if (fotos.length === 0) return setError('La foto de la pieza o etiqueta del VIN es obligatoria.')
     if (fotos.length > 3) return setError('La carga de evidencias estÃ¡ limitada a un mÃ¡ximo de 3 fotografÃ­as.')
 
+    const item = {
+      unidad_destino_id: paraInventario ? null : Number(destino),
+      origen,
+      unidad_donante_id: esYonke ? Number(donante) : null,
+      pieza_catalogo_id: piezaCatId,
+      descripcion_pieza: descripcionPieza,
+      cantidad: cantidad === '' ? 1 : Number(cantidad),
+      numero_parte: sku,
+      urgencia,
+      costo_estimado_manual: costo === '' ? null : Number(costo),
+      fotos: [...fotos],
+      origen_refaccion: origenRefaccion.trim() || undefined,
+      almacen: almacen.trim() || undefined,
+      numero_serie: numeroSerie.trim() || undefined,
+      orden_trabajo_id: ordenTrabajoId === '' ? null : Number(ordenTrabajoId),
+      display_pieza: descripcionPieza,
+      display_destino: destinoInput
+    }
+
+    setCarrito([...carrito, item])
+    toast('Pieza agregada al carrito.')
+    setPieza('')
+    setCantidad('1')
+    setFotos([])
+    setSelArticuloId('')
+    setError('')
+  }
+
+  const enviar = async () => {
+    if (carrito.length === 0) return setError('El carrito estÃ¡ vacÃ­o.')
     setEnviando(true)
     try {
-      const creada = await crearRequisicion({
-        unidad_destino_id: paraInventario ? null : Number(destino),
-        origen,
-        unidad_donante_id: esYonke ? Number(donante) : null,
-        pieza_catalogo_id: piezaCatId,
-        descripcion_pieza: descripcionPieza,
-        cantidad: cantidad === '' ? 1 : Number(cantidad),
-        numero_parte: sku,
-        urgencia,
-        costo_estimado_manual: costo === '' ? null : Number(costo),
-        fotos,
-        origen_refaccion: origenRefaccion.trim() || undefined,
-        almacen: almacen.trim() || undefined,
-        numero_serie: numeroSerie.trim() || undefined,
-        orden_trabajo_id: ordenTrabajoId === '' ? null : Number(ordenTrabajoId),
-      })
-      setDestino(''); setDestinoInput(''); setDonante(''); setPieza(''); setCantidad('1'); setCosto(''); setUrgencia('Medio'); setNumeroParte(''); setOrigen('Compra'); setFotos([]); setError(''); setOrigenRefaccion(''); setAlmacen(''); setNumeroSerie(''); setParaInventario(false); setSelArticuloId(''); setOrdenTrabajoId('')
-      const detalleCosto = creada.costo_estimado !== null
-        ? ` Costo estimado: ${fmt(creada.costo_estimado)} (${creada.origen_costo_estimado}).`
-        : ''
-      toast('RequisiciÃ³n enviada â€” Compras la verÃ¡ en su panel.' + detalleCosto)
-    } catch (e) {
-      if (e instanceof ApiError) {
-        const campos = e.fields ? Object.values(e.fields).flat() : []
-        setError(campos[0] ?? e.message)
-      } else {
-        setError('No se pudo enviar la requisiciÃ³n. Intenta de nuevo.')
+      for (const item of carrito) {
+        await crearRequisicion(item)
       }
+      setDestino(''); setDestinoInput(''); setDonante(''); setPieza(''); setCantidad('1'); setCosto(''); setUrgencia('Medio'); setNumeroParte(''); setOrigen('Compra'); setFotos([]); setError(''); setOrigenRefaccion(''); setAlmacen(''); setNumeroSerie(''); setParaInventario(false); setSelArticuloId(''); setOrdenTrabajoId('')
+      setCarrito([])
+      toast('Requisiciones enviadas â€” Compras las verÃ¡ en su panel.')
+      getRequisiciones().then(setHistorial).catch(() => {})
+    } catch (e) {
+      setError('No se pudieron enviar todas las requisiciones.')
     } finally {
       setEnviando(false)
     }
@@ -285,21 +298,49 @@ export default function Requisicion() {
                 </label>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: 14 }}>
               <label style={etiqueta}>
-                DescripciÃ³n de la pieza
+                Categoría (Filtro)
+                <select
+                  value={categoriaSel}
+                  onChange={(e) => setCategoriaSel(e.target.value)}
+                  style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
+                >
+                  <option value="">-- Todas --</option>
+                  <option value="Frenos">Frenos</option>
+                  <option value="Suspensión">Suspensión</option>
+                  <option value="Preventivos">Preventivos</option>
+                  <option value="Filtros">Filtros</option>
+                  <option value="Aceites">Aceites</option>
+                  <option value="Otros">Otros</option>
+                </select>
+              </label>
+              <label style={etiqueta}>
+                Pieza (Catálogo)
                 <input
+                  list="piezas-list"
                   type="text"
                   value={pieza}
                   maxLength={350}
-                  onChange={(e) => { setPieza(e.target.value); limpiarError() }}
-                  placeholder="Ej. Turbo, nÃºmero de parte si se conoce (mÃ¡x. 350 caracteres)"
+                  onChange={(e) => {
+                    setPieza(e.target.value)
+                    const matched = articulos.find(a => a.nombre_normalizado === e.target.value)
+                    if (matched) {
+                      setSelArticuloId(String(matched.id))
+                      if (matched.numero_parte) setNumeroParte(matched.numero_parte)
+                    } else {
+                      setSelArticuloId('')
+                    }
+                    limpiarError()
+                  }}
+                  placeholder="Busca en el catálogo..."
                   style={{ padding: 12, border: '1px solid #D8D2C4', borderRadius: 9, fontSize: 15, background: '#FAF7F0' }}
                 />
-                <span style={{ ...ayudaCampo, display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Entre mÃ¡s completa, menos idas y vueltas con Compras.</span>
-                  <span>{pieza.length} / 350</span>
-                </span>
+                <datalist id="piezas-list">
+                  {articulos.filter(a => !categoriaSel || a.categoria === categoriaSel).map(a => (
+                    <option key={a.id} value={a.nombre_normalizado} />
+                  ))}
+                </datalist>
               </label>
 
               <label style={etiqueta}>
@@ -411,19 +452,80 @@ export default function Requisicion() {
           </div>
         </div>
 
-        <button
-          onClick={() => void enviar()}
-          disabled={enviando}
-          className="hv-naranja"
-          style={{ padding: 15, background: '#F2620F', color: '#fff', border: 'none', borderRadius: 10, fontFamily: FD, fontWeight: 700, fontSize: 19, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 4px 12px rgba(242,98,15,0.3)' }}
-        >
-          {enviando ? 'Enviandoâ€¦' : 'Enviar requisiciÃ³n'}
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => void agregarAlCarrito()}
+            disabled={enviando}
+            className="hv-naranja"
+            style={{ flex: 1, padding: 15, background: 'var(--bg-glass)', border: '2px solid #F2620F', color: '#F2620F', borderRadius: 10, fontFamily: FD, fontWeight: 700, fontSize: 17, textTransform: 'uppercase', cursor: 'pointer' }}
+          >
+            + Agregar al carrito
+          </button>
+          <button
+            onClick={() => void enviar()}
+            disabled={enviando || carrito.length === 0}
+            className="hv-naranja"
+            style={{ flex: 1, padding: 15, background: '#F2620F', color: '#fff', border: 'none', borderRadius: 10, fontFamily: FD, fontWeight: 700, fontSize: 19, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: (enviando || carrito.length === 0) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(242,98,15,0.3)', opacity: (enviando || carrito.length === 0) ? 0.6 : 1 }}
+          >
+            {enviando ? 'Enviando...' : `Enviar (${carrito.length})`}
+          </button>
+        </div>
+
+        {carrito.length > 0 && (
+          <div style={{ background: '#FDF3EC', padding: 16, borderRadius: 10, marginTop: 10 }}>
+            <h4 style={{ margin: '0 0 10px', fontSize: 15 }}>🛒 Carrito de Piezas</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {carrito.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, background: '#fff', padding: 10, borderRadius: 6, border: '1px solid #F0C4A4' }}>
+                  <div>
+                    <strong>{item.cantidad}x {item.display_pieza}</strong>
+                    <div style={{ color: '#6F6A60', marginTop: 4 }}>Urgencia: {item.urgencia} | Origen: {item.origen}</div>
+                  </div>
+                  <button onClick={() => setCarrito(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#C53030', cursor: 'pointer' }}>❌</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {error && (
           <div role="alert" style={{ background: '#FBEBE8', border: '1px solid #E8A99D', color: '#9B2C2C', borderRadius: 9, padding: '12px 14px', fontSize: 14 }}>
             {error}
           </div>
         )}
+      </div>
+
+      {/* Historial de Requisiciones para el Taller */}
+      <div style={{ background: '#fff', border: '1px solid #E7E0D2', borderRadius: 14, padding: 26, boxShadow: '0 1px 2px rgba(20,24,29,0.05)', marginTop: 20 }}>
+        <h3 style={{ ...h2Titulo, fontSize: 22, margin: '0 0 16px' }}>Historial de Requisiciones</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: '#FAF7F0', borderBottom: '2px solid #E7E0D2' }}>
+              <th style={{ padding: 12, textAlign: 'left' }}>Folio</th>
+              <th style={{ padding: 12, textAlign: 'left' }}>Pieza</th>
+              <th style={{ padding: 12, textAlign: 'left' }}>Unidad</th>
+              <th style={{ padding: 12, textAlign: 'left' }}>Estatus</th>
+            </tr>
+          </thead>
+          <tbody>
+            {historial.slice(0, 10).map(req => (
+              <tr key={req.id} style={{ borderBottom: '1px solid #E7E0D2' }}>
+                <td style={{ padding: 12, fontWeight: 600 }}>REQ-{req.id}</td>
+                <td style={{ padding: 12 }}>{req.descripcion_pieza} ({req.cantidad})</td>
+                <td style={{ padding: 12 }}>{req.unidad?.id_unidad || 'N/A'}</td>
+                <td style={{ padding: 12 }}>
+                  <span style={{ padding: '4px 8px', borderRadius: 6, background: req.estado === 'Aprobada' ? '#E6F4EA' : '#FDF3EC', color: req.estado === 'Aprobada' ? '#1E8E3E' : '#B4430A', fontWeight: 600, fontSize: 13 }}>
+                    {req.estado}
+                  </span>
+                </td>
+              </tr>
+            ))}
+            {historial.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ padding: 20, textAlign: 'center', color: '#6F6A60' }}>No hay requisiciones recientes.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

@@ -42,7 +42,9 @@ final class RequisicionService
     public function listarCola(?string $estado, int $pagina = 1, int $porPagina = 100): array
     {
         $builder = db_connect()->table('requisiciones r')
-            ->select("r.*, COALESCE(d.id_unidad, 'Almacén') AS unidad_destino, y.id_unidad AS unidad_donante")
+            ->select("r.*, COALESCE(d.id_unidad, 'Almacén') AS unidad_destino, d.es_modificada AS destino_modificada, y.id_unidad AS unidad_donante, c.nombre AS creado_por_nombre, a.nombre AS aprobado_por_nombre")
+            ->join('usuarios c', 'c.id = r.creado_por', 'left')
+            ->join('usuarios a', 'a.id = r.aprobado_por', 'left')
             ->join('unidades d', 'd.id = r.unidad_destino_id', 'left')
             ->join('unidades y', 'y.id = r.unidad_donante_id', 'left');
 
@@ -80,6 +82,26 @@ final class RequisicionService
         $nuevo  = (string) ($cambio['estado'] ?? '');
         $origen = (string) $req['origen'];
         $actual = (string) $req['estado'];
+        
+        $aprobadoPor = $req['aprobado_por'] ?? null;
+        if ($actual === 'Solicitado' && $nuevo !== 'Solicitado' && empty($aprobadoPor)) {
+            $aprobadoPor = (int) $actor['id'];
+        }
+
+        
+        $aprobadoPor = $req['aprobado_por'];
+        if ($actual === 'Solicitado' && $nuevo !== 'Solicitado' && empty($aprobadoPor)) {
+            $aprobadoPor = (int) $actor['id'];
+        }
+
+
+        // Si cambia a cualquier estado que no sea 'Solicitado', registramos al aprobador
+        // si es que aÃºn no tiene uno.
+        $aprobadoPor = $req['aprobado_por'];
+        if ($actual === 'Solicitado' && $nuevo !== 'Solicitado' && empty($aprobadoPor)) {
+            $aprobadoPor = (int) $actor['id'];
+        }
+
 
         // RF-INT-03: una requisición Yonke jamás lleva factura
         if ($origen === 'Yonke' && ! empty($cambio['numero_factura'])) {

@@ -9,7 +9,7 @@ import { useTabla } from '../lib/useTabla'
 const campo: CSSProperties = { padding: 12, border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-input)', width: '100%' }
 const etiqueta: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 }
 
-const ROLES_TECNICOS = ['Mecánico A', 'Mecánico B', 'Auxiliares', 'Termoquineros', 'Desponchadores']
+const ROLES_TECNICOS = ['Mecánico A', 'Mecánico B', 'Auxiliar', 'Termoquineros']
 
 export default function OrdenesTrabajo() {
   const { unidades, toast } = useDemo()
@@ -72,6 +72,7 @@ export default function OrdenesTrabajo() {
 
   // Resp form state
   const [respNombre, setRespNombre] = useState('')
+  const [respTipo, setRespTipo] = useState<'Tracto' | 'Caja'>('Tracto')
   const [respRol, setRespRol] = useState('Mecánico A')
 
   const ctrl = useTabla(
@@ -104,7 +105,7 @@ export default function OrdenesTrabajo() {
     if (!respNombre.trim()) return setError('Ingresa el nombre del responsable.')
     setError('')
     try {
-      await crearResponsableTaller({ nombre: respNombre.trim(), rol: respRol })
+      await crearResponsableTaller({ nombre: respNombre.trim(), tipo: respTipo, rol: respRol })
       toast(`Responsable "${respNombre}" agregado al taller.`)
       setRespNombre('')
       setNuevoResp(false)
@@ -306,7 +307,7 @@ export default function OrdenesTrabajo() {
                 <select style={campo} value={responsableId} onChange={(e) => setResponsableId(e.target.value)}>
                   <option value="">Selecciona responsable...</option>
                   {responsables.map(r => (
-                    <option key={r.id} value={String(r.id)}>{r.nombre} ({r.rol})</option>
+                    <option key={r.id} value={String(r.id)}>{r.nombre} ({r.tipo} - {r.rol})</option>
                   ))}
                 </select>
               </label>
@@ -400,14 +401,23 @@ export default function OrdenesTrabajo() {
               Nombre Completo
               <input style={campo} placeholder="Ej. Juan Pérez" value={respNombre} onChange={(e) => setRespNombre(e.target.value)} />
             </label>
-            <label style={etiqueta}>
-              Rol / Especialidad
-              <select style={campo} value={respRol} onChange={(e) => setRespRol(e.target.value)}>
-                {ROLES_TECNICOS.map(r => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <label style={etiqueta}>
+                Rubro
+                <select style={campo} value={respTipo} onChange={(e) => setRespTipo(e.target.value as 'Tracto'|'Caja')}>
+                  <option value="Tracto">Tracto</option>
+                  <option value="Caja">Caja</option>
+                </select>
+              </label>
+              <label style={etiqueta}>
+                Rol / Especialidad
+                <select style={campo} value={respRol} onChange={(e) => setRespRol(e.target.value)}>
+                  {ROLES_TECNICOS.map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </>,
           () => void handleCrearResponsable(),
           () => setNuevoResp(false)

@@ -222,9 +222,10 @@ final class OrdenesTrabajoController extends BaseController
         $request = $this->request;
         $datos   = $request instanceof IncomingRequest ? (array) $request->getJSON(true) : [];
 
-        if (! $this->validateData($datos, [
+                if (! $this->validateData($datos, [
             'nombre' => 'required|min_length[3]|max_length[120]',
-            'rol'    => 'required|in_list[Mecánico A,Mecánico B,Auxiliares,Termoquineros,Desponchadores]',
+            'tipo'   => 'required|in_list[Tracto,Caja]',
+            'rol'    => 'required|in_list[Mecánico A,Mecánico B,Auxiliar,Termoquineros]',
         ])) {
             $errores = $this->validator?->getErrors() ?? [];
             return RespuestasApi::error(422, 'validation', 'Datos de responsable inválidos.', array_map(static fn (string $e): array => [$e], $errores));
