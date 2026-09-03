@@ -14,4 +14,8 @@
 /deploy/warhorse_app/composer.json
 /deploy/warhorse_app/composer.lock
 /deploy/warhorse_app/preload.php
-/deploy/warhorse_app/.env
+# Sistema de personalizaciones local (no incluir en pull requests upstream)
+/.agents/
+
+# Configuración y credenciales locales
+/apps/api/.env

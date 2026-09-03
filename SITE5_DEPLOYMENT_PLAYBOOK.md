@@ -147,7 +147,7 @@ echo "Migrado exitosamente!";
    Dependiendo de la configuración del subdominio en cPanel, el servidor web de Site5 puede servir archivos desde la raíz del FTP (`/`) o desde la carpeta `/public_html/`. Para garantizar que cualquier actualización cargue de inmediato sin importar la configuración del docroot:
    - Sube los archivos compilados en `apps/web/dist/` ejecutando el script de doble sincronización:
      ```bash
-     python double_upload.py
+     python deploy/scripts/double_upload.py
      ```
    - Este script copia automáticamente `index.html`, `.htaccess` y la carpeta `assets/` **tanto en la raíz (`/`) como en `/public_html/`**.
 

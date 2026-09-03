@@ -7,9 +7,13 @@ export default defineConfig({
   base: '/app/',
   plugins: [react(), tailwindcss()],
   server: {
-    // La API CI4 corre en :8080 (php spark serve); el contrato vive bajo /api/v1
+    host: true,
+    // Proxy al backend local de Laragon / CodeIgniter 4
     proxy: {
-      '/api': 'http://localhost:8080',
+      '/api': {
+        target: 'http://127.0.0.1:8080',
+        changeOrigin: true,
+      },
     },
   },
   test: {
