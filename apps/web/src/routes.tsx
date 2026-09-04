@@ -1,59 +1,319 @@
-import type { ReactNode } from 'react'
+import React from 'react'
 import { Navigate, Route, Routes } from 'react-router'
-import AppLayout from './components/AppLayout'
-import { DemoProvider, rutaDeLanding, useDemo } from './lib/demo'
+import MainLayout from './components/layout/MainLayout'
+import PatioKioskLayout from './components/patio/PatioKioskLayout'
+import { useAuthStore } from './store/useAuthStore'
+import type { Rol } from './lib/types'
+
+// Vistas
 import Login from './pages/Login'
 import DefinirPassword from './pages/DefinirPassword'
-import Dashboard from './pages/Dashboard'
 import Ficha from './pages/Ficha'
-import Requisicion from './pages/Requisicion'
-import Taller from './pages/Taller'
-import Compras from './pages/Compras'
 import Diesel from './pages/Diesel'
 import Catalogo from './pages/Catalogo'
 import Usuarios from './pages/Usuarios'
-import Reportes from './pages/Reportes'
-import OrdenesTrabajo from './pages/OrdenesTrabajo'
+import PatioHome from './pages/patio/PatioHome'
+import PatioInspeccion from './pages/patio/PatioInspeccion'
+import PatioHistorial from './pages/patio/PatioHistorial'
+import TallerOrdenes from './pages/taller/TallerOrdenes'
+import TallerNuevaOT from './pages/taller/TallerNuevaOT'
+import TallerPersonal from './pages/taller/TallerPersonal'
+import ComprasCarrito from './pages/compras/ComprasCarrito'
+import ComprasCola from './pages/compras/ComprasCola'
+import ComprasYonke from './pages/compras/ComprasYonke'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminReportes from './pages/admin/AdminReportes'
 
 /**
- * Guarda por módulo (RF-USR-03): la visibilidad es UX; la seguridad real la
- * re-verifica el backend con el filtro rbac en cada endpoint.
+ * Guarda de Ruta por Rol (RBAC de Frontend)
+ * Oculta y protege la navegación; la seguridad real es validada en el backend por CI4 Shield.
  */
-function RutaModulo({ modulo, children }: { modulo: string; children: ReactNode }) {
-  const { sesion } = useDemo()
-  if (!sesion) return <Navigate to="/login" replace />
-  // Cambio obligatorio de contraseña: nada del Hub hasta definirla
-  if (sesion.debe_cambiar_password) return <Navigate to="/definir-password" replace />
-  if (!sesion.permisos[modulo]) return <Navigate to={rutaDeLanding(sesion.landing)} replace />
-  return children
+function RutaProtegida({ 
+  rolesPermitidos, 
+  children 
+}: { 
+  rolesPermitidos?: Rol[]
+  children: React.ReactNode 
+}) {
+  const { usuario, token, tieneRol } = useAuthStore()
+
+  if (!token && !usuario) {
+    return <Navigate to="/login" replace />
+  }
+
+  // Si tiene un rol restringido y no está en la lista permitida
+  if (rolesPermitidos && rolesPermitidos.length > 0 && !tieneRol(rolesPermitidos)) {
+    // Redirigir a la vista predeterminada según su rol
+    if (usuario?.rol === 'operador') return <Navigate to="/patio" replace />
+    if (usuario?.rol === 'taller') return <Navigate to="/taller/ordenes" replace />
+    if (usuario?.rol === 'compras') return <Navigate to="/compras/carrito" replace />
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <>{children}</>
 }
 
 export function AppRoutes() {
+  const { usuario } = useAuthStore()
+
+  // Determinar la ruta por defecto según rol
+  const rutaDefault = usuario?.rol === 'operador' ? '/patio' :
+                      usuario?.rol === 'taller' ? '/taller/ordenes' :
+                      usuario?.rol === 'compras' ? '/compras/carrito' :
+                      '/dashboard'
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/definir-password" element={<DefinirPassword />} />
-      <Route element={<AppLayout />}>
-        <Route path="/dashboard" element={<RutaModulo modulo="dashboard"><Dashboard /></RutaModulo>} />
-        <Route path="/ficha/:id" element={<Ficha />} />
-        <Route path="/requisicion" element={<RutaModulo modulo="requisicion"><Requisicion /></RutaModulo>} />
-        <Route path="/taller" element={<RutaModulo modulo="taller"><Taller /></RutaModulo>} />
-        <Route path="/compras" element={<RutaModulo modulo="compras"><Compras /></RutaModulo>} />
-        <Route path="/diesel" element={<RutaModulo modulo="diesel"><Diesel /></RutaModulo>} />
-        <Route path="/catalogo" element={<RutaModulo modulo="catalogo"><Catalogo /></RutaModulo>} />
-        <Route path="/usuarios" element={<RutaModulo modulo="usuarios"><Usuarios /></RutaModulo>} />
-        <Route path="/reportes" element={<RutaModulo modulo="reportes"><Reportes /></RutaModulo>} />
-        <Route path="/reparaciones" element={<RutaModulo modulo="reparaciones"><OrdenesTrabajo /></RutaModulo>} />
+
+      {/* Módulo de Patio en Modo Kiosk Tablet (Desacoplado de la barra lateral de escritorio) */}
+      <Route element={<PatioKioskLayout />}>
+        <Route
+          path="/patio"
+          element={
+            <RutaProtegida rolesPermitidos={['operador', 'admin']}>
+              <PatioHome />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/patio/inspeccion"
+          element={
+            <RutaProtegida rolesPermitidos={['operador', 'admin']}>
+              <PatioInspeccion />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/patio/historial"
+          element={
+            <RutaProtegida rolesPermitidos={['operador', 'admin']}>
+              <PatioHistorial />
+            </RutaProtegida>
+          }
+        />
       </Route>
-      <Route path="*" element={<Navigate to="/login" replace />} />
+
+      {/* Rutas dentro del Layout Principal Industrial de Escritorio */}
+      <Route element={<MainLayout />}>
+
+        {/* Módulo Taller (Mantenimiento y OTs) */}
+        <Route
+          path="/taller/ordenes"
+          element={
+            <RutaProtegida rolesPermitidos={['taller', 'admin']}>
+              <TallerOrdenes />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/taller/ingreso"
+          element={
+            <RutaProtegida rolesPermitidos={['taller', 'admin']}>
+              <TallerNuevaOT />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/taller/liberaciones"
+          element={
+            <RutaProtegida rolesPermitidos={['taller', 'admin']}>
+              <TallerOrdenes />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/taller/personal"
+          element={
+            <RutaProtegida rolesPermitidos={['taller', 'admin']}>
+              <TallerPersonal />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/taller"
+          element={
+            <RutaProtegida rolesPermitidos={['taller', 'admin']}>
+              <TallerOrdenes />
+            </RutaProtegida>
+          }
+        />
+
+        {/* Módulo Compras (Abasto e Inventario) */}
+        <Route
+          path="/compras/carrito"
+          element={
+            <RutaProtegida rolesPermitidos={['compras', 'admin']}>
+              <ComprasCarrito />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/compras/cola"
+          element={
+            <RutaProtegida rolesPermitidos={['compras', 'admin']}>
+              <ComprasCola />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/compras/yonke"
+          element={
+            <RutaProtegida rolesPermitidos={['compras', 'admin']}>
+              <ComprasYonke />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/compras/yonkee"
+          element={
+            <RutaProtegida rolesPermitidos={['compras', 'admin']}>
+              <ComprasYonke />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/compras/inventario"
+          element={
+            <RutaProtegida rolesPermitidos={['compras', 'admin']}>
+              <ComprasYonke />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/compras/caja-chica"
+          element={
+            <RutaProtegida rolesPermitidos={['compras', 'admin']}>
+              <ComprasCarrito />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/compras"
+          element={
+            <RutaProtegida rolesPermitidos={['compras', 'admin']}>
+              <ComprasCarrito />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/requisicion"
+          element={
+            <RutaProtegida rolesPermitidos={['compras', 'taller', 'admin']}>
+              <ComprasCarrito />
+            </RutaProtegida>
+          }
+        />
+
+        {/* Módulo Administración & Reportes */}
+        <Route
+          path="/dashboard"
+          element={
+            <RutaProtegida rolesPermitidos={['admin']}>
+              <AdminDashboard />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/salud-flota"
+          element={
+            <RutaProtegida rolesPermitidos={['admin']}>
+              <AdminDashboard />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/reportes"
+          element={
+            <RutaProtegida rolesPermitidos={['admin']}>
+              <AdminReportes />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/reportes"
+          element={
+            <RutaProtegida rolesPermitidos={['admin']}>
+              <AdminReportes />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/usuarios"
+          element={
+            <RutaProtegida rolesPermitidos={['admin']}>
+              <Usuarios />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/ficha/:id"
+          element={
+            <RutaProtegida rolesPermitidos={['admin', 'taller', 'compras']}>
+              <Ficha />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/catalogo"
+          element={
+            <RutaProtegida rolesPermitidos={['admin', 'compras']}>
+              <Catalogo />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/reportes"
+          element={
+            <RutaProtegida rolesPermitidos={['admin']}>
+              <AdminReportes />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/usuarios"
+          element={
+            <RutaProtegida rolesPermitidos={['admin']}>
+              <Usuarios />
+            </RutaProtegida>
+          }
+        />
+
+        {/* Módulo Diésel */}
+        <Route
+          path="/diesel/cargas"
+          element={
+            <RutaProtegida rolesPermitidos={['diesel', 'admin']}>
+              <Diesel />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/diesel/externas"
+          element={
+            <RutaProtegida rolesPermitidos={['diesel', 'admin']}>
+              <Diesel />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/diesel"
+          element={
+            <RutaProtegida rolesPermitidos={['diesel', 'admin']}>
+              <Diesel />
+            </RutaProtegida>
+          }
+        />
+      </Route>
+
+      {/* Redirección raíz o 404 */}
+      <Route path="/" element={<Navigate to={rutaDefault} replace />} />
+      <Route path="*" element={<Navigate to={rutaDefault} replace />} />
     </Routes>
   )
 }
 
 export default function App() {
-  return (
-    <DemoProvider>
-      <AppRoutes />
-    </DemoProvider>
-  )
+  return <AppRoutes />
 }

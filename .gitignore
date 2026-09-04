@@ -19,3 +19,7 @@
 
 # Configuración y credenciales locales
 /apps/api/.env
+
+# Archivos de datos binarios pesados (convertidos a Markdown)
+*.xlsx
+

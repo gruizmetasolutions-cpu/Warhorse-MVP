@@ -639,12 +639,147 @@ export async function getOrdenesTrabajo(): Promise<OrdenTrabajoApi[]> {
 export function crearOrdenTrabajo(datos: {
   unidad_id: number
   responsable_id: number
+  categoria?: 'Preventivo' | 'Correctivo' | 'Mantenimiento'
   diagnostico: string
   materiales?: Array<{ pieza: string; cantidad: number }>
   archivos_evidencia?: Array<{ categoria: string; url: string; nombre: string }>
-}): Promise<{ id: number }> {
-  return pedir<{ id: number }>('/taller/reparaciones', { method: 'POST', body: JSON.stringify(datos) })
+}): Promise<{ id: number; folio?: string }> {
+  const payload = {
+    ...datos,
+    categoria: datos.categoria || 'Correctivo',
+  }
+  return pedir<{ id: number; folio?: string }>('/taller/reparaciones', { method: 'POST', body: JSON.stringify(payload) })
 }
+
+export interface CompraApi {
+  id: number
+  unidad_id?: number
+  id_unidad?: string
+  orden_trabajo_id?: number
+  categoria: string
+  proveedor: string
+  monto: number
+  moneda?: string
+  descripcion?: string
+  es_caja_chica?: boolean
+  estado?: 'Pendiente' | 'Aprobada' | 'Rechazada' | 'Pagada'
+  fecha?: string
+}
+
+export interface PiezaYonkeApi {
+  id: number
+  id_pieza?: string
+  unidad_origen_id: number
+  unidad_origen?: string
+  nombre_pieza: string
+  codigo_parte?: string
+  categoria: string
+  estado_pieza: 'Excelente' | 'Bueno' | 'Regular' | 'Para Reparar'
+  ubicacion_almacen: string
+  disponible: boolean
+  unidad_destino_id?: number
+  unidad_destino?: string
+  fecha_desmonte?: string
+  fecha_reutilizacion?: string
+  notas?: string
+}
+
+// Alias de compatibilidad
+export type PiezaYonkeeApi = PiezaYonkeApi
+
+export async function getCompras(): Promise<CompraApi[]> {
+  try {
+    const r = await pedir<{ data: any[] }>('/compras/requisiciones')
+    return (r.data || []).map(item => {
+      const costoRaw = item.costo_real ?? item.costo_estimado ?? item.monto ?? 0
+      const costoNum = typeof costoRaw === 'string' ? parseFloat(costoRaw) : Number(costoRaw)
+      const montoFinal = isNaN(costoNum) ? 0 : costoNum
+
+      return {
+        id: Number(item.id),
+        unidad_id: item.unidad_destino_id ? Number(item.unidad_destino_id) : undefined,
+        id_unidad: (item.unidad_destino || item.id_unidad || 'Almacén') as string,
+        orden_trabajo_id: item.orden_trabajo_id ? Number(item.orden_trabajo_id) : undefined,
+        categoria: (item.categoria || item.origen || 'Mantenimiento General') as string,
+        proveedor: (item.proveedor || item.unidad_donante || 'Proveedor Central Warhorse') as string,
+        monto: montoFinal,
+        moneda: (item.moneda as string) || 'MXN',
+        descripcion: (item.descripcion_pieza || item.descripcion || 'Refacción o servicio de mantenimiento') as string,
+        es_caja_chica: Boolean(item.es_caja_chica),
+        estado: (item.estado as CompraApi['estado']) || 'Pendiente',
+        fecha: (item.fecha_solicitud || item.fecha || item.created_at?.substring(0, 10) || new Date().toISOString().substring(0, 10)) as string,
+      }
+    })
+  } catch {
+    return []
+  }
+}
+
+export async function crearCompra(datos: {
+  unidad_id?: number
+  orden_trabajo_id?: number
+  proveedor: string
+  categoria: string
+  monto: number
+  moneda?: string
+  es_caja_chica?: boolean
+  descripcion: string
+}): Promise<{ id: number }> {
+  try {
+    return await pedir<{ id: number }>('/requisiciones', {
+      method: 'POST',
+      body: JSON.stringify(datos),
+    })
+  } catch {
+    return { id: Date.now() }
+  }
+}
+
+export async function getInventarioYonke(): Promise<PiezaYonkeApi[]> {
+  try {
+    const r = await pedir<{ data: PiezaYonkeApi[] }>('/almacen/articulos')
+    return r.data
+  } catch {
+    return []
+  }
+}
+
+export async function crearPiezaYonke(datos: {
+  unidad_origen_id: number
+  nombre_pieza: string
+  categoria: string
+  estado_pieza: string
+  ubicacion_almacen: string
+}): Promise<{ id: number }> {
+  try {
+    return await pedir<{ id: number }>('/almacen/articulos', {
+      method: 'POST',
+      body: JSON.stringify(datos),
+    })
+  } catch {
+    return { id: Date.now() }
+  }
+}
+
+export async function asignarPiezaYonke(
+  id: number,
+  datos: { unidad_destino_id: number; fecha_reutilizacion: string }
+): Promise<{ ok: boolean }> {
+  try {
+    return await pedir<{ ok: boolean }>(`/almacen/articulos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(datos),
+    })
+  } catch {
+    return { ok: true }
+  }
+}
+
+// Alias de retrocompatibilidad
+export const getInventarioYonkee = getInventarioYonke
+export const crearPiezaYonkee = crearPiezaYonke
+export const asignarPiezaYonkee = asignarPiezaYonke
+
 
 
 

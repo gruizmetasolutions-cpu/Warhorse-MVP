@@ -122,13 +122,19 @@ final class AuthController extends BaseController
 
     public function logout(): ResponseInterface
     {
-        $autorizacion = (string) $this->request->getHeaderLine('Authorization');
-        $crudo        = trim(str_ireplace('Bearer', '', $autorizacion));
+        try {
+            $autorizacion = (string) $this->request->getHeaderLine('Authorization');
+            $crudo        = trim(str_ireplace('Bearer', '', $autorizacion));
 
-        $usuario = ActorActual::usuario();
-        $shield  = auth()->getProvider()->findByCredentials(['email' => (string) $usuario['email']]);
-        if ($shield !== null && $crudo !== '') {
-            $shield->revokeAccessToken($crudo);
+            $usuario = ActorActual::usuario();
+            if ($usuario !== null && isset($usuario['email'])) {
+                $shield = auth()->getProvider()->findByCredentials(['email' => (string) $usuario['email']]);
+                if ($shield !== null && $crudo !== '') {
+                    $shield->revokeAccessToken($crudo);
+                }
+            }
+        } catch (\Throwable) {
+            // Ignorar para garantizar cierre de sesión limpio en el cliente
         }
 
         return $this->response->setStatusCode(204);

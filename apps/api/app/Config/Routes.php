@@ -62,7 +62,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->delete('requisiciones/(:num)', 'RequisicionesController::delete/$1', ['filter' => ['cors', 'api-auth', 'rbac:admin', 'throttle-mut', 'password-vigente']]);
 
     // Ordenes de Trabajo / Reparaciones (WH-005)
-    $routes->get('taller/reparaciones', 'OrdenesTrabajoController::listar', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'password-vigente']]);
+    $routes->get('taller/reparaciones', 'OrdenesTrabajoController::listar', ['filter' => ['cors', 'api-auth', 'rbac:taller,compras,admin', 'password-vigente']]);
     $routes->post('taller/reparaciones', 'OrdenesTrabajoController::crear', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
     $routes->post('taller/reparaciones/(:num)/tomar-inventario', 'OrdenesTrabajoController::tomarInventario/$1', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'throttle-mut', 'password-vigente']]);
     $routes->get('taller/responsables', 'OrdenesTrabajoController::responsables', ['filter' => ['cors', 'api-auth', 'rbac:taller,admin', 'password-vigente']]);

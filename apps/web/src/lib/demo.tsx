@@ -99,6 +99,7 @@ const etiquetaRol: Record<Rol, string> = {
   taller: 'Taller',
   compras: 'Compras',
   diesel: 'Diésel',
+  operador: 'Operador (Patio)',
 }
 
 export function DemoProvider({ children }: { children: ReactNode }) {

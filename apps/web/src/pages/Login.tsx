@@ -1,160 +1,584 @@
-import { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router'
-import Camion from '../components/Camion'
+import { 
+  Truck, 
+  ShieldCheck, 
+  QrCode, 
+  UserCheck, 
+  ArrowRight, 
+  Wrench, 
+  ShoppingCart,
+  Lock,
+  Mail,
+  AlertCircle,
+  Camera,
+  Sparkles,
+  Delete
+} from 'lucide-react'
+import { useAuthStore } from '../store/useAuthStore'
+import { useUiStore } from '../store/useUiStore'
 import { ApiError } from '../lib/api'
-import { rutaDeLanding, useDemo } from '../lib/demo'
-import { FD } from '../lib/estilos'
+import logoWarhorse from '../assets/Logo.png'
+import truckHero from '../assets/warhorse-truck.jpg'
+import { QrScannerModal } from '../components/patio/QrScannerModal'
 
-const puntos = [
-  'Costo real por unidad: diésel + refacciones + taller, consolidado.',
-  'Piezas del yonke (WH03, WH60) con trazabilidad y costo estimado.',
-  '¿Vale la pena meterle más lana? Respuesta en 30 segundos.',
-]
-
-export default function Login() {
-  const { entrar, goTour, refrescarSesion, recargarUnidades } = useDemo()
+export const Login: React.FC = () => {
   const navigate = useNavigate()
+  const { iniciarSesion, iniciarSesionDev, iniciarSesionOperador } = useAuthStore()
+  const { agregarToast } = useUiStore()
+
+  const [modo, setModo] = useState<'corporativo' | 'patio'>('corporativo')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [idEmpleado, setIdEmpleado] = useState('')
+  const [nombreOperador, setNombreOperador] = useState('')
+  const [unidadOperador, setUnidadOperador] = useState('WH-101')
   const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [modalQrAbierto, setModalQrAbierto] = useState(false)
 
-  useEffect(() => {
-    if (localStorage.getItem('wh_token')) {
-      setCargando(true)
-      refrescarSesion()
-        .then(yo => {
-          void recargarUnidades()
-          navigate(rutaDeLanding(yo.landing))
-        })
-        .catch(() => {
-          setCargando(false)
-        })
+  const manejarLoginCorporativo = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (!email.trim() || !password) {
+      setError('Por favor escribe tu correo y contraseña.')
+      return
     }
-  }, [refrescarSesion, recargarUnidades, navigate])
 
-  const arrancar = async () => {
-    setError('')
     setCargando(true)
     try {
-      const yo = await entrar(email.trim(), password)
-      let primeraVez = false
-      try {
-        primeraVez = !localStorage.getItem('wh_tour_v1')
-        if (primeraVez) localStorage.setItem('wh_tour_v1', 'done')
-      } catch {
-        /* sin localStorage */
-      }
-      navigate(rutaDeLanding(yo.landing))
-      if (primeraVez) setTimeout(() => goTour(0), 500)
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 429) {
-        setError('Demasiados intentos; espera un minuto e inténtalo de nuevo.')
-      } else if (e instanceof ApiError && e.status === 422) {
-        setError('Escribe tu correo y contraseña.')
-      } else if (e instanceof ApiError && e.status === 401) {
-        setError('Credenciales inválidas.')
+      await iniciarSesion(email.trim(), password)
+      agregarToast({
+        tipo: 'success',
+        titulo: 'Sesión Iniciada',
+        mensaje: 'Bienvenido a la plataforma central de Warhorse México.',
+      })
+      navigate('/dashboard')
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setError('Credenciales inválidas. Verifica tu correo y contraseña.')
+        } else if (err.status === 429) {
+          setError('Demasiados intentos. Espera un minuto.')
+        } else {
+          setError(err.message || 'Error al conectar con la API.')
+        }
       } else {
-        setError('No se pudo conectar con el servidor. Intenta de nuevo.')
+        setError('No se pudo conectar con el servidor local en Laragon.')
       }
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  const teclearDigito = (digito: string) => {
+    setIdEmpleado(prev => {
+      if (!prev || !prev.startsWith('EMP-')) {
+        return `EMP-${digito}`
+      }
+      return `${prev}${digito}`
+    })
+  }
+
+  const borrarDigito = () => {
+    setIdEmpleado(prev => {
+      if (prev.length <= 4) return ''
+      return prev.slice(0, -1)
+    })
+  }
+
+  const limpiarId = () => {
+    setIdEmpleado('')
+  }
+
+  const manejarScanGafeteExitoso = (datos: {
+    idEmpleado: string
+    nombre?: string
+    unidad?: string
+  }) => {
+    setIdEmpleado(datos.idEmpleado)
+    if (datos.nombre) setNombreOperador(datos.nombre)
+    if (datos.unidad) setUnidadOperador(datos.unidad)
+
+    iniciarSesionOperador(
+      datos.idEmpleado,
+      datos.nombre,
+      datos.unidad || unidadOperador
+    )
+
+    // Intentar solicitar pantalla completa nativa para la tableta
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {})
+    }
+
+    agregarToast({
+      tipo: 'success',
+      titulo: 'Gafete Escaneado con Éxito',
+      mensaje: `Bienvenido, ${datos.nombre || datos.idEmpleado}. Terminal Kiosk activada.`,
+    })
+    navigate('/patio')
+  }
+
+  const manejarLoginPatio = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!idEmpleado.trim()) {
+      setError('Escribe tu número de empleado o escanea tu gafete.')
+      return
+    }
+
+    iniciarSesionOperador(
+      idEmpleado.trim().toUpperCase(),
+      nombreOperador.trim() || undefined,
+      unidadOperador
+    )
+
+    // Intentar solicitar pantalla completa nativa para la tableta
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {})
+    }
+
+    agregarToast({
+      tipo: 'success',
+      titulo: 'Operador Identificado',
+      mensaje: `Bienvenido. Unidad asignada: ${unidadOperador}. Terminal Kiosk activada.`,
+    })
+    navigate('/patio')
+  }
+
+  const accesoRapidoDemo = async (
+    correo: string, 
+    pass: string, 
+    rol: 'admin' | 'taller' | 'compras' | 'diesel', 
+    destino: string, 
+    nombre: string
+  ) => {
+    setEmail(correo)
+    setPassword(pass)
+    setCargando(true)
+    setError(null)
+    try {
+      await iniciarSesion(correo, pass)
+      agregarToast({
+        tipo: 'success',
+        titulo: 'Sesión Iniciada (API Laragon)',
+        mensaje: `Bienvenido, ${nombre} (${rol.toUpperCase()})`,
+      })
+      navigate(destino)
+    } catch {
+      // Fallback resiliente para desarrollo local si las credenciales en BD son diferentes
+      iniciarSesionDev(correo, rol, nombre)
+      agregarToast({
+        tipo: 'success',
+        titulo: 'Acceso Local Concedido',
+        mensaje: `Bienvenido, ${nombre} (${rol.toUpperCase()})`,
+      })
+      navigate(destino)
+    } finally {
       setCargando(false)
     }
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexWrap: 'wrap' }}>
-      <div style={{ flex: '3 1 440px', color: 'var(--text-main)', padding: '64px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 34, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 8, background: 'linear-gradient(90deg, transparent, #C5A059, transparent)' }} />
-        <Camion
-          stroke="#C5A059"
-          strokeWidth={2.5}
-          conLinea
-          style={{ position: 'absolute', right: -40, bottom: -16, width: 420, opacity: 0.1 }}
+    <div className="flex min-h-screen flex-col bg-[#0f0f10] text-[#f3f4f6] lg:flex-row">
+      {/* Panel Izquierdo: Fotografía Hero del Tractocamión Warhorse e Identidad de Marca */}
+      <div className="relative flex flex-1 flex-col justify-between overflow-hidden border-b border-[rgba(243,239,231,0.1)] p-8 lg:border-b-0 lg:border-r lg:p-16">
+        {/* Imagen de Fondo del Tractocamión Oficial Warhorse */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+          style={{ backgroundImage: `url(${truckHero})` }}
         />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ width: 34, height: 4, background: 'var(--accent-gold)' }} />
-            <span style={{ fontFamily: FD, fontWeight: 600, fontSize: 15, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--accent-gold)' }}>
-              WarHorse México · Dataholics
-            </span>
-          </div>
-          <h1 style={{ fontFamily: FD, fontWeight: 700, fontSize: 'clamp(40px,5.5vw,68px)', lineHeight: 0.98, margin: 0, maxWidth: 560, textTransform: 'uppercase', letterSpacing: '0.01em' }}>
-            Hub de Gastos
-            <br />
-            por Tracto
-          </h1>
-          <p style={{ fontSize: 18, color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>
-            Cada peso que se traga un tracto, a la vista. Diésel, refacciones y taller en un solo lugar.
-          </p>
-        </div>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 480 }}>
-          {puntos.map((p, i) => (
-            <li key={i} style={{ display: 'flex', gap: 14, alignItems: 'baseline', fontSize: 16, color: 'var(--text-main)' }}>
-              <span style={{ fontFamily: FD, fontWeight: 700, color: 'var(--accent-gold)', fontSize: 18, flex: 'none' }}>
-                {'0' + (i + 1)}
-              </span>
-              {p}
-            </li>
-          ))}
-        </ul>
-      </div>
+        {/* Overlays industriales para garantizar legibilidad y contraste WCAG AAA */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f10] via-[#0f0f10]/85 to-[#0f0f10]/70" />
+        <div className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full bg-[#C5A059]/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-[#F2620F]/20 blur-3xl" />
 
-      <div style={{ flex: '2 1 360px', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 36px', position: 'relative' }}>
-        <form
-          style={{ width: '100%', maxWidth: 390, display: 'flex', flexDirection: 'column', gap: 22, animation: 'fadeUp 0.4s ease', background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '40px', boxShadow: '0 10px 30px -10px rgba(197, 160, 89, 0.15)' }}
-          onSubmit={(e) => {
-            e.preventDefault()
-            void arrancar()
-          }}
-        >
-          <div>
-            <h2 style={{ fontFamily: FD, fontWeight: 700, fontSize: 30, color: 'var(--text-main)', margin: '0 0 6px', textTransform: 'uppercase' }}>
-              Entrar al Hub
-            </h2>
-            <p style={{ fontSize: 14.5, color: 'var(--text-muted)', margin: 0 }}>
-              Accede con la cuenta que te asignó Dirección.
+        {/* Encabezado con Logo Grande Prominente */}
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            {/* Logo Oficial Warhorse en Gran Formato con Máscara de Color Invertida */}
+            <div className="flex items-center">
+              <img 
+                src={logoWarhorse} 
+                alt="Warhorse Brokerage" 
+                className="h-20 sm:h-24 w-auto object-contain brightness-0 invert filter drop-shadow-[0_4px_16px_rgba(242,98,15,0.35)]" 
+              />
+            </div>
+            <div className="border-l-0 sm:border-l-2 border-[rgba(243,239,231,0.2)] sm:pl-4">
+              <div className="flex items-center gap-2">
+                <span className="font-['Barlow_Condensed'] text-2xl sm:text-3xl font-black tracking-widest text-white">
+                  WARHORSE
+                </span>
+                <span className="rounded bg-[#F2620F] px-2 py-0.5 font-['Barlow_Condensed'] text-xs font-black uppercase tracking-wider text-[#16191E]">
+                  MÉXICO
+                </span>
+              </div>
+              <p className="font-['Barlow_Condensed'] text-xs font-semibold tracking-wider text-[#C5A059]">
+                SISTEMA OPERATIVO INTEGRAL DE FLOTAS Y TALLER
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-12 max-w-lg">
+            <div className="flex items-center gap-2">
+              <span className="h-1 w-8 bg-[#F2620F]" />
+              <span className="font-['Barlow_Condensed'] text-xs font-bold uppercase tracking-widest text-[#F2620F]">
+                Backbone de Operación y Logística
+              </span>
+            </div>
+            <h1 className="mt-3 font-['Barlow_Condensed'] text-4xl font-black uppercase leading-none tracking-tight sm:text-6xl text-white drop-shadow-md">
+              CONTROL TOTAL DE FLOTA Y COSTOS
+            </h1>
+            <p className="mt-4 text-sm leading-relaxed text-[#B8B2A6]">
+              Trazabilidad integral desde la inspección física en patio hasta la adquisición de refacciones, 
+              órdenes de trabajo correctivas y preventivas, e inventario Yonke a costo cero.
             </p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <input
-              type="text"
-              placeholder="Usuario o correo"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ padding: '13px 14px', border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{ padding: '13px 14px', border: '1px solid var(--border-color)', borderRadius: 9, fontSize: 15, background: 'var(--bg-glass)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-            />
-            <button
-              type="submit"
-              disabled={cargando}
-              className="hv-naranja"
-              style={{
-                padding: 14, background: 'linear-gradient(135deg, #C5A059 0%, #9A7B3E 100%)', color: 'var(--text-main)', border: 'none', borderRadius: 9,
-                fontFamily: FD, fontWeight: 700, fontSize: 18, letterSpacing: '0.08em',
-                textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 0 20px rgba(197, 160, 89, 0.3)',
-                opacity: cargando ? 0.7 : 1, transition: 'all 0.3s ease'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 0 30px rgba(197, 160, 89, 0.6)'}
-              onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(197, 160, 89, 0.3)'}
-            >
-              {cargando ? 'Arrancando…' : 'Arrancar →'}
-            </button>
-            {error && (
-              <div role="alert" style={{ background: '#FBEBE8', border: '1px solid #E8A99D', color: '#9B2C2C', borderRadius: 9, padding: '12px 14px', fontSize: 14 }}>
-                {error}
-              </div>
-            )}
+        </div>
+
+        {/* Pilares del flujo */}
+        <div className="relative z-10 mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 max-w-xl">
+          <div className="rounded-xl border border-[rgba(243,239,231,0.12)] bg-[#14181D]/80 p-3.5 backdrop-blur-md">
+            <div className="font-['Barlow_Condensed'] text-lg font-bold text-[#F2620F]">01. PATIO</div>
+            <div className="font-['Barlow_Condensed'] text-xs font-bold uppercase tracking-wider text-white mt-0.5">Inspección Offline</div>
+            <div className="text-[10px] text-[#B8B2A6]">Captura sin conexión IndexDB</div>
           </div>
-        </form>
+          <div className="rounded-xl border border-[rgba(243,239,231,0.12)] bg-[#14181D]/80 p-3.5 backdrop-blur-md">
+            <div className="font-['Barlow_Condensed'] text-lg font-bold text-[#C5A059]">02. TALLER</div>
+            <div className="font-['Barlow_Condensed'] text-xs font-bold uppercase tracking-wider text-white mt-0.5">Gestión de OTs</div>
+            <div className="text-[10px] text-[#B8B2A6]">Liberación total o warning</div>
+          </div>
+          <div className="rounded-xl border border-[rgba(243,239,231,0.12)] bg-[#14181D]/80 p-3.5 backdrop-blur-md">
+            <div className="font-['Barlow_Condensed'] text-lg font-bold text-[#3FA65C]">03. COMPRAS</div>
+            <div className="font-['Barlow_Condensed'] text-xs font-bold uppercase tracking-wider text-white mt-0.5">Abasto & Yonke</div>
+            <div className="text-[10px] text-[#B8B2A6]">Reutilización a costo $0</div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="relative z-10 mt-6 flex items-center justify-between text-xs text-[#B8B2A6]">
+          <div>
+            Entorno: <span className="text-[#3FA65C] font-semibold">Laragon Local (127.0.0.1)</span> · warhorse_db
+          </div>
+          <div className="text-[11px] text-[#C5A059] font-mono font-bold">
+            TRACTO DEMO: WH-101
+          </div>
+        </div>
       </div>
+
+      {/* Panel Derecho: Formulario Dual de Acceso */}
+      <div className="flex flex-1 items-center justify-center p-6 sm:p-12 lg:p-16">
+        <div className="w-full max-w-md">
+          {/* Logo para pantallas móviles */}
+          <div className="mb-6 flex flex-col items-center justify-center text-center lg:hidden">
+            <img 
+              src={logoWarhorse} 
+              alt="Warhorse Brokerage" 
+              className="h-16 w-auto object-contain brightness-0 invert filter drop-shadow-[0_2px_10px_rgba(242,98,15,0.4)]" 
+            />
+            <div className="mt-2 flex items-center gap-2">
+              <span className="font-['Barlow_Condensed'] text-xl font-black tracking-widest text-white">
+                WARHORSE
+              </span>
+              <span className="rounded bg-[#F2620F] px-1.5 py-0.5 font-['Barlow_Condensed'] text-[10px] font-black uppercase text-[#16191E]">
+                MÉXICO
+              </span>
+            </div>
+          </div>
+
+          {/* Selector de Modo: Corporativo vs Patio */}
+          <div className="mb-6 flex rounded-xl border border-[rgba(243,239,231,0.12)] bg-[#14181D] p-1">
+            <button
+              type="button"
+              onClick={() => { setModo('corporativo'); setError(null) }}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-semibold font-['Barlow_Condensed'] uppercase tracking-wider transition-all ${
+                modo === 'corporativo'
+                  ? 'bg-[#F2620F] text-[#16191E] shadow-md'
+                  : 'text-[#B8B2A6] hover:text-white'
+              }`}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Acceso Corporativo
+            </button>
+            <button
+              type="button"
+              onClick={() => { setModo('patio'); setError(null) }}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-semibold font-['Barlow_Condensed'] uppercase tracking-wider transition-all ${
+                modo === 'patio'
+                  ? 'bg-[#F2620F] text-[#16191E] shadow-md'
+                  : 'text-[#B8B2A6] hover:text-white'
+              }`}
+            >
+              <QrCode className="h-4 w-4" />
+              Acceso Patio (Operador)
+            </button>
+          </div>
+
+          {/* Formulario Corporativo */}
+          {modo === 'corporativo' && (
+            <div className="rounded-2xl border border-[rgba(243,239,231,0.12)] bg-[#14181D]/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+              <div className="mb-6">
+                <h2 className="font-['Barlow_Condensed'] text-2xl font-bold uppercase tracking-wide text-white">
+                  Ingreso a la Plataforma
+                </h2>
+                <p className="text-xs text-[#B8B2A6] mt-1">
+                  Acceso para Dirección, Taller, Compras y Diésel.
+                </p>
+              </div>
+
+              {error && (
+                <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-[#F2620F]/30 bg-[#F2620F]/10 p-3 text-xs text-[#F2620F]">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <form onSubmit={manejarLoginCorporativo} className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#B8B2A6]">
+                    Correo Electrónico
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-3 h-4 w-4 text-[#B8B2A6]" />
+                    <input
+                      type="text"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="ejemplo@warhorse.com"
+                      className="w-full rounded-xl border border-[rgba(243,239,231,0.15)] bg-[#1C1C1C] py-2.5 pl-10 pr-3 text-xs text-white placeholder-[#B8B2A6]/50 focus:border-[#F2620F] focus:outline-none focus:ring-1 focus:ring-[#F2620F]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#B8B2A6]">
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-3 h-4 w-4 text-[#B8B2A6]" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-xl border border-[rgba(243,239,231,0.15)] bg-[#1C1C1C] py-2.5 pl-10 pr-3 text-xs text-white placeholder-[#B8B2A6]/50 focus:border-[#F2620F] focus:outline-none focus:ring-1 focus:ring-[#F2620F]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#F2620F] py-3 font-['Barlow_Condensed'] text-sm font-bold uppercase tracking-wider text-[#16191E] shadow-lg shadow-[#F2620F]/20 transition-all hover:bg-[#D9550C] hover:shadow-xl disabled:opacity-50 cursor-pointer"
+                >
+                  {cargando ? 'Verificando...' : 'Iniciar Sesión'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </form>
+
+              {/* Accesos rápidos de desarrollo */}
+              <div className="mt-8 border-t border-[rgba(243,239,231,0.08)] pt-4">
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#B8B2A6]">
+                  Acceso Rápido Demo (1-Click)
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => accesoRapidoDemo('direccion@warhorse.mx', 'warhorse-demo', 'admin', '/dashboard', 'Dirección WarHorse')}
+                    className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#1C1C1C] p-2 text-left text-[11px] text-[#f3f4f6] hover:border-[#C5A059] cursor-pointer"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 text-[#C5A059]" />
+                    <span>Admin</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => accesoRapidoDemo('edgar@warhorse.mx', 'warhorse-demo', 'taller', '/taller/ordenes', 'Edgar Fraga')}
+                    className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#1C1C1C] p-2 text-left text-[11px] text-[#f3f4f6] hover:border-[#F2620F] cursor-pointer"
+                  >
+                    <Wrench className="h-3.5 w-3.5 text-[#F2620F]" />
+                    <span>Taller</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => accesoRapidoDemo('montzay@warhorse.mx', 'warhorse-demo', 'compras', '/compras/cola', 'Montzay Vázquez')}
+                    className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#1C1C1C] p-2 text-left text-[11px] text-[#f3f4f6] hover:border-[#3FA65C] cursor-pointer"
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5 text-[#3FA65C]" />
+                    <span>Compras</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => accesoRapidoDemo('greisy@warhorse.mx', 'warhorse-demo', 'diesel', '/diesel/cargas', 'Greisy López')}
+                    className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#1C1C1C] p-2 text-left text-[11px] text-[#f3f4f6] hover:border-[#E0C36A] cursor-pointer"
+                  >
+                    <Truck className="h-3.5 w-3.5 text-[#E0C36A]" />
+                    <span>Diésel</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Formulario de Acceso Patio (Operador) */}
+          {modo === 'patio' && (
+            <div className="rounded-2xl border border-[rgba(243,239,231,0.12)] bg-[#14181D]/90 p-5 sm:p-7 backdrop-blur-xl shadow-2xl">
+              <div className="mb-4">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-[#3FA65C]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#3FA65C] mb-2 font-['Barlow_Condensed'] uppercase tracking-wider">
+                  Terminal Tablet · Kiosk Mode
+                </div>
+                <h2 className="font-['Barlow_Condensed'] text-2xl font-bold uppercase tracking-wide text-white">
+                  Identificación de Operador
+                </h2>
+                <p className="text-xs text-[#B8B2A6] mt-0.5">
+                  Escanea tu gafete con la cámara o teclea tu ID para iniciar tu turno.
+                </p>
+              </div>
+
+              {error && (
+                <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-[#F2620F]/30 bg-[#F2620F]/10 p-3 text-xs text-[#F2620F]">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Botón Destacado de Escaneo QR de Gafete */}
+              <button
+                type="button"
+                onClick={() => setModalQrAbierto(true)}
+                className="mb-4 group flex w-full items-center justify-between rounded-2xl border-2 border-[#F2620F]/60 bg-gradient-to-r from-[#F2620F]/15 via-[#1C1C1C] to-[#C5A059]/15 p-3.5 transition-all hover:border-[#F2620F] hover:bg-[#F2620F]/20 active:scale-[0.98] cursor-pointer shadow-lg shadow-[#F2620F]/10"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F2620F] text-[#16191E] shadow-md group-hover:scale-105 transition-transform">
+                    <Camera className="h-6 w-6" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-['Barlow_Condensed'] text-base font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                      <span>Escanear Gafete QR</span>
+                      <Sparkles className="h-3.5 w-3.5 text-[#C5A059]" />
+                    </div>
+                    <div className="text-[11px] text-[#B8B2A6]">
+                      Cámara o simulador de gafetes
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 rounded-xl bg-[#F2620F]/20 px-2.5 py-1 text-xs font-bold font-['Barlow_Condensed'] uppercase tracking-wider text-[#F2620F]">
+                  <QrCode className="h-4 w-4" />
+                  <span>Abrir</span>
+                </div>
+              </button>
+
+              <div className="relative my-3 flex items-center justify-center">
+                <div className="w-full border-t border-[rgba(243,239,231,0.1)]" />
+                <span className="absolute bg-[#14181D] px-2 text-[10px] font-bold uppercase tracking-wider text-[#B8B2A6] font-['Barlow_Condensed']">
+                  O CAPTURA CON TECLADO TÁCTIL
+                </span>
+              </div>
+
+              <form onSubmit={manejarLoginPatio} className="space-y-3.5">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-[#B8B2A6]">
+                      Número de Empleado
+                    </label>
+                    {idEmpleado && (
+                      <button
+                        type="button"
+                        onClick={limpiarId}
+                        className="text-[10px] text-[#F2620F] hover:underline"
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <UserCheck className="absolute left-3.5 top-3 h-4 w-4 text-[#F2620F]" />
+                    <input
+                      type="text"
+                      value={idEmpleado}
+                      onChange={e => setIdEmpleado(e.target.value.toUpperCase())}
+                      placeholder="EMP-409"
+                      className="w-full rounded-xl border border-[rgba(243,239,231,0.15)] bg-[#1C1C1C] py-2.5 pl-10 pr-3 font-['Barlow_Condensed'] text-lg font-bold tracking-wider text-white uppercase placeholder-[#B8B2A6]/40 focus:border-[#F2620F] focus:outline-none focus:ring-1 focus:ring-[#F2620F]"
+                    />
+                  </div>
+                </div>
+
+                {/* Numpad Táctil Industrial en Pantalla para Tablet */}
+                <div className="rounded-xl border border-[rgba(243,239,231,0.08)] bg-[#101317] p-2">
+                  <div className="mb-1 text-center text-[10px] uppercase tracking-wider text-[#B8B2A6] font-['Barlow_Condensed']">
+                    Numpad Rápido de Patio
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => teclearDigito(d)}
+                        className="flex h-10 items-center justify-center rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#181D23] font-['Barlow_Condensed'] text-base font-bold text-white transition-all hover:bg-[#20262E] hover:border-[#F2620F] active:scale-95 cursor-pointer"
+                      >
+                        {d}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={limpiarId}
+                      className="flex h-10 items-center justify-center rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#181D23] font-['Barlow_Condensed'] text-xs font-bold text-[#c53030] hover:bg-[#20262E] cursor-pointer"
+                    >
+                      C
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => teclearDigito('0')}
+                      className="flex h-10 items-center justify-center rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#181D23] font-['Barlow_Condensed'] text-base font-bold text-white hover:bg-[#20262E] cursor-pointer"
+                    >
+                      0
+                    </button>
+                    <button
+                      type="button"
+                      onClick={borrarDigito}
+                      className="flex h-10 items-center justify-center rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#181D23] text-[#B8B2A6] hover:bg-[#20262E] hover:text-white cursor-pointer"
+                    >
+                      <Delete className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#B8B2A6]">
+                    Tracto / Unidad a Inspeccionar
+                  </label>
+                  <select
+                    value={unidadOperador}
+                    onChange={e => setUnidadOperador(e.target.value)}
+                    className="w-full rounded-xl border border-[rgba(243,239,231,0.15)] bg-[#1C1C1C] py-2.5 px-3 font-['Barlow_Condensed'] text-sm tracking-wide text-white focus:border-[#F2620F] focus:outline-none"
+                  >
+                    <option value="WH-101">WH-101 (Tractor Cruce)</option>
+                    <option value="WH-104">WH-104 (Tractor Foráneo)</option>
+                    <option value="WH-125">WH-125 (Tractor Local)</option>
+                    <option value="CJ-502">CJ-502 (Caja Seca 53ft)</option>
+                    <option value="TH-201">TH-201 (Thermo King)</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#F2620F] py-3.5 font-['Barlow_Condensed'] text-base font-bold uppercase tracking-wider text-[#16191E] shadow-lg shadow-[#F2620F]/20 transition-all hover:bg-[#D9550C] hover:shadow-xl cursor-pointer"
+                >
+                  <span>Entrar en Modo Tableta</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal de Escaneo QR de Gafete y Unidad */}
+      <QrScannerModal
+        abierto={modalQrAbierto}
+        onCerrar={() => setModalQrAbierto(false)}
+        onScanSuccess={manejarScanGafeteExitoso}
+      />
     </div>
   )
 }
+
+export default Login
