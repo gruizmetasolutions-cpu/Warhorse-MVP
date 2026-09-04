@@ -1,14 +1,13 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { 
-  Truck, 
-  ShieldCheck, 
+  
+  
   QrCode, 
   UserCheck, 
   ArrowRight, 
-  Wrench, 
-  ShoppingCart,
-  Lock,
+  
+    Lock,
   Mail,
   AlertCircle,
   Camera,
@@ -24,7 +23,7 @@ import { QrScannerModal } from '../components/patio/QrScannerModal'
 
 export const Login: React.FC = () => {
   const navigate = useNavigate()
-  const { iniciarSesion, iniciarSesionDev, iniciarSesionOperador } = useAuthStore()
+  const { iniciarSesion, iniciarSesionOperador } = useAuthStore()
   const { agregarToast } = useUiStore()
 
   const [modo, setModo] = useState<'corporativo' | 'patio'>('corporativo')
@@ -145,38 +144,6 @@ export const Login: React.FC = () => {
     navigate('/patio')
   }
 
-  const accesoRapidoDemo = async (
-    correo: string, 
-    pass: string, 
-    rol: 'admin' | 'taller' | 'compras' | 'diesel', 
-    destino: string, 
-    nombre: string
-  ) => {
-    setEmail(correo)
-    setPassword(pass)
-    setCargando(true)
-    setError(null)
-    try {
-      await iniciarSesion(correo, pass)
-      agregarToast({
-        tipo: 'success',
-        titulo: 'Sesión Iniciada (API Laragon)',
-        mensaje: `Bienvenido, ${nombre} (${rol.toUpperCase()})`,
-      })
-      navigate(destino)
-    } catch {
-      // Fallback resiliente para desarrollo local si las credenciales en BD son diferentes
-      iniciarSesionDev(correo, rol, nombre)
-      agregarToast({
-        tipo: 'success',
-        titulo: 'Acceso Local Concedido',
-        mensaje: `Bienvenido, ${nombre} (${rol.toUpperCase()})`,
-      })
-      navigate(destino)
-    } finally {
-      setCargando(false)
-    }
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0f0f10] text-[#f3f4f6] lg:flex-row">
@@ -259,9 +226,6 @@ export const Login: React.FC = () => {
           <div>
             Entorno: <span className="text-[#3FA65C] font-semibold">{import.meta.env.PROD ? 'Producción (Cloud)' : 'Laragon Local (127.0.0.1)'}</span> {import.meta.env.PROD ? '· warhorse_prod' : '· warhorse_db'}
           </div>
-          <div className="text-[11px] text-[#C5A059] font-mono font-bold">
-            TRACTO DEMO: WH-101
-          </div>
         </div>
       </div>
 
@@ -296,7 +260,7 @@ export const Login: React.FC = () => {
                   : 'text-[#B8B2A6] hover:text-white'
               }`}
             >
-              <ShieldCheck className="h-4 w-4" />
+              
               Acceso Corporativo
             </button>
             <button
@@ -375,46 +339,6 @@ export const Login: React.FC = () => {
                 </button>
               </form>
 
-              {/* Accesos rápidos de desarrollo */}
-              <div className="mt-8 border-t border-[rgba(243,239,231,0.08)] pt-4">
-                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#B8B2A6]">
-                  Acceso Rápido Demo (1-Click)
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => accesoRapidoDemo('direccion@warhorse.mx', 'warhorse-demo', 'admin', '/dashboard', 'Dirección WarHorse')}
-                    className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#1C1C1C] p-2 text-left text-[11px] text-[#f3f4f6] hover:border-[#C5A059] cursor-pointer"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5 text-[#C5A059]" />
-                    <span>Admin</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => accesoRapidoDemo('edgar@warhorse.mx', 'warhorse-demo', 'taller', '/taller/ordenes', 'Edgar Fraga')}
-                    className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#1C1C1C] p-2 text-left text-[11px] text-[#f3f4f6] hover:border-[#F2620F] cursor-pointer"
-                  >
-                    <Wrench className="h-3.5 w-3.5 text-[#F2620F]" />
-                    <span>Taller</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => accesoRapidoDemo('montzay@warhorse.mx', 'warhorse-demo', 'compras', '/compras/cola', 'Montzay Vázquez')}
-                    className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#1C1C1C] p-2 text-left text-[11px] text-[#f3f4f6] hover:border-[#3FA65C] cursor-pointer"
-                  >
-                    <ShoppingCart className="h-3.5 w-3.5 text-[#3FA65C]" />
-                    <span>Compras</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => accesoRapidoDemo('greisy@warhorse.mx', 'warhorse-demo', 'diesel', '/diesel/cargas', 'Greisy López')}
-                    className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.1)] bg-[#1C1C1C] p-2 text-left text-[11px] text-[#f3f4f6] hover:border-[#E0C36A] cursor-pointer"
-                  >
-                    <Truck className="h-3.5 w-3.5 text-[#E0C36A]" />
-                    <span>Diésel</span>
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 

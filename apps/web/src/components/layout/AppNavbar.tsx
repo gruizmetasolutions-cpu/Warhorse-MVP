@@ -4,21 +4,20 @@ import {
   Wifi, 
   WifiOff, 
   LogOut, 
-  Shield, 
-  Wrench, 
-  ShoppingCart, 
-  Truck, 
+   
+   
+   
+   
   Sun, 
   Moon,
-  ChevronDown
+  
 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useUiStore } from '../../store/useUiStore'
-import type { Rol } from '../../lib/types'
 import logoWarhorse from '../../assets/Logo.png'
 
 export const AppNavbar: React.FC = () => {
-  const { usuario, cerrarSesion, iniciarSesionOperador } = useAuthStore()
+  const { usuario, cerrarSesion,  } = useAuthStore()
   const { 
     sidebarAbierto, 
     toggleSidebar, 
@@ -28,7 +27,6 @@ export const AppNavbar: React.FC = () => {
     agregarToast 
   } = useUiStore()
 
-  const [menuRolAbierto, setMenuRolAbierto] = React.useState(false)
 
   // Escuchar cambios de conectividad
   React.useEffect(() => {
@@ -57,35 +55,7 @@ export const AppNavbar: React.FC = () => {
     }
   }, [agregarToast])
 
-  const cambiarRolDemo = (nuevoRol: Rol) => {
-    setMenuRolAbierto(false)
-    if (nuevoRol === 'operador') {
-      iniciarSesionOperador('EMP-409', 'Juan Morales (Patio)', 'WH-104')
-      agregarToast({
-        tipo: 'info',
-        titulo: 'Perfil Cambiado',
-        mensaje: 'Ahora navegando en Modo Operador de Patio (Inspecciones Offline-First).',
-      })
-    } else {
-      // Modificar el rol del usuario activo para testing interactivo
-      useAuthStore.setState(prev => ({
-        usuario: prev.usuario ? {
-          ...prev.usuario,
-          rol: nuevoRol,
-          roles: [nuevoRol],
-          nombre: nuevoRol === 'admin' ? 'Ing. Gustavo Ruiz (Admin)' :
-                  nuevoRol === 'taller' ? 'Carlos Méndez (Jefe Taller)' :
-                  nuevoRol === 'compras' ? 'Elena Soto (Compras/Abasto)' :
-                  'Arturo Ramos (Control Diésel)',
-        } : null,
-      }))
-      agregarToast({
-        tipo: 'info',
-        titulo: 'Perfil Cambiado',
-        mensaje: `Navegando con permisos de rol: ${nuevoRol.toUpperCase()}`,
-      })
-    }
-  }
+
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-[rgba(243,239,231,0.12)] bg-[#14181D]/90 px-4 backdrop-blur-md transition-colors sm:px-6">
@@ -147,72 +117,7 @@ export const AppNavbar: React.FC = () => {
           )}
         </div>
 
-        {/* Selector Rápido de Rol (Testing Interactivo de Flujos) */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setMenuRolAbierto(!menuRolAbierto)}
-            className="flex items-center gap-1.5 rounded-lg border border-[rgba(243,239,231,0.15)] bg-[#1C1C1C] px-2.5 py-1.5 text-xs text-[#f3f4f6] hover:border-[#C5A059] transition-all"
-          >
-            <span className="hidden text-[#B8B2A6] md:inline">Rol:</span>
-            <span className="font-['Barlow_Condensed'] font-bold uppercase text-[#F2620F]">
-              {usuario?.rol || 'Invitado'}
-            </span>
-            <ChevronDown className="h-3.5 w-3.5 text-[#B8B2A6]" />
-          </button>
 
-          {menuRolAbierto && (
-            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-[rgba(243,239,231,0.15)] bg-[#1C1C1C] p-1.5 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-[#B8B2A6]">
-                Cambiar Perfil (Demo)
-              </div>
-              <button
-                type="button"
-                onClick={() => cambiarRolDemo('operador')}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[#f3f4f6] hover:bg-[#F2620F]/15 hover:text-[#F2620F]"
-              >
-                <Truck className="h-4 w-4 text-[#F2620F]" />
-                <div>
-                  <div className="font-semibold">Operador (Patio)</div>
-                  <div className="text-[10px] text-[#B8B2A6]">Wizards Offline & Inspección</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => cambiarRolDemo('taller')}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[#f3f4f6] hover:bg-[#C5A059]/15 hover:text-[#C5A059]"
-              >
-                <Wrench className="h-4 w-4 text-[#C5A059]" />
-                <div>
-                  <div className="font-semibold">Taller / Mecánicos</div>
-                  <div className="text-[10px] text-[#B8B2A6]">Órdenes de Trabajo (OT)</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => cambiarRolDemo('compras')}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[#f3f4f6] hover:bg-[#3FA65C]/15 hover:text-[#3FA65C]"
-              >
-                <ShoppingCart className="h-4 w-4 text-[#3FA65C]" />
-                <div>
-                  <div className="font-semibold">Compras y Abasto</div>
-                  <div className="text-[10px] text-[#B8B2A6]">Requisición, Yonke & Carrito</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => cambiarRolDemo('admin')}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[#f3f4f6] hover:bg-white/10 hover:text-white"
-              >
-                <Shield className="h-4 w-4 text-white" />
-                <div>
-                  <div className="font-semibold">Administración</div>
-                  <div className="text-[10px] text-[#B8B2A6]">Dashboard, Reportes & Flota</div>
-                </div>
-              </button>
-            </div>
-          )}
-        </div>
 
         {/* Selector de Tema */}
         <button
