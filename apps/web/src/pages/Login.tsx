@@ -257,7 +257,7 @@ export const Login: React.FC = () => {
         {/* Footer */}
         <div className="relative z-10 mt-6 flex items-center justify-between text-xs text-[#B8B2A6]">
           <div>
-            Entorno: <span className="text-[#3FA65C] font-semibold">Laragon Local (127.0.0.1)</span> · warhorse_db
+            Entorno: <span className="text-[#3FA65C] font-semibold">{import.meta.env.PROD ? 'Producción (Cloud)' : 'Laragon Local (127.0.0.1)'}</span> {import.meta.env.PROD ? '· warhorse_prod' : '· warhorse_db'}
           </div>
           <div className="text-[11px] text-[#C5A059] font-mono font-bold">
             TRACTO DEMO: WH-101
